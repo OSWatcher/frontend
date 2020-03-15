@@ -1,9 +1,13 @@
-from flask import Flask
+from flask import Flask, render_template
+from flask_bootstrap import Bootstrap
 
 # Define the WSGI application object
 app = Flask(__name__)
 
+# Apply Bootstrap
+Bootstrap(app)
+
 
 @app.route('/')
 def home_page():
-    return '<h1>Home</h1>'
+    return render_template('home.html')
