@@ -1,7 +1,7 @@
 from pathlib import PurePath
 
 from flask import render_template
-from oswatcher.model import OS, GraphInode
+from oswatcher.model import OS, InodeType
 
 from . import app
 
@@ -30,4 +30,4 @@ def os_view(os_name, fs_path=None):
     cypher_query += "-[:HAS_CHILD]->(child:GraphInode) RETURN child"
     print(cypher_query)
     cursor = GRAPH.run(cypher_query)
-    return render_template('os_view.html', os_name=os_name, fs_path=fs_path, cursor=cursor)
+    return render_template('os_view.html', os_name=os_name, fs_path=fs_path, cursor=cursor, InodeType=InodeType)
