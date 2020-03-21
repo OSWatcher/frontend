@@ -2,4 +2,29 @@
 
 {% block content %}
   <h1>{{ os_name }}</h1>
+  <h2>Filesystem</h2>
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        {% for part in fs_path.parts %}
+            {% if part == fs_path.name %}
+              <li class="breadcrumb-item active" aria-current="page">
+            {% else %}
+              <li class="breadcrumb-item" aria-current="page">
+            {% endif %}
+            {% if part == '/' %}
+              Root
+            {% else %}
+              {{ part }}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+    <ul class="list-group">
+      {% for record in cursor %}
+        <li class="list-group-item">{{ record['child']['name'] }}</li>
+      {% endfor %}
+    </ul>
+  </div>
 {% endblock %}
