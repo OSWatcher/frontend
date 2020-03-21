@@ -25,7 +25,13 @@
     </nav>
     <ul class="list-group">
       {% for record in cursor %}
-        <li class="list-group-item">{{ record['child']['name'] }}</li>
+        <li class="list-group-item">
+        {% if InodeType(record['child']['inode_type']) == InodeType.DIR %}
+            <i class="fas fa-folder-open"></i>
+          {% else %}
+            <i class="far fa-file"></i>
+        {% endif %}
+        {{ record['child']['name'] }}</li>
       {% endfor %}
     </ul>
   </div>
