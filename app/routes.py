@@ -1,7 +1,8 @@
 from pathlib import PurePath
 from urllib.parse import unquote
 
-from flask import render_template
+from flask import render_template, jsonify
+from flask_cors import cross_origin
 from oswatcher.model import OS, InodeType
 
 from . import app
@@ -9,10 +10,15 @@ from . import app
 GRAPH = app.config['GRAPH']
 
 
-@app.route('/')
-def home_page():
+@app.route('/list_os', methods=['GET'])
+@cross_origin()
+def list_os():
     os_list = [os.name for os in OS.match(GRAPH)]
-    return render_template('home.html', os_list=os_list)
+    reply = {
+        'status': 'success',
+        'os_list': os_list
+    }
+    return jsonify(reply)
 
 
 @app.route('/os/<os_name>')
