@@ -1,8 +1,14 @@
 <template>
   <div>
-    <h2 id="title">Operating Systems</h2>
+    <h2 id="title">
+      Operating Systems
+    </h2>
     <b-list-group>
-      <b-list-group-item to="/" v-for="os in osList" :key="os">
+      <b-list-group-item
+        v-for="os in os_list"
+        :key="os"
+        to="/"
+      >
         {{ os }}
       </b-list-group-item>
     </b-list-group>
@@ -10,18 +16,29 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "Home",
-  data () {
+  data() {
     return {
-      osList: [
-        "Windows XP",
-        "Windows Vista",
-        "Windows 7",
-        "Windows 8",
-        "Windows 10"
-      ]
+      os_list: []
     };
+  },
+  methods: {
+    get_message() {
+      const path = "http://localhost:5000/list_os";
+      axios.get(path)
+        .then((res) => {
+          this.os_list = res.data.os_list;
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    }
+  },
+  created() {
+    this.get_message();
   }
 };
 </script>
