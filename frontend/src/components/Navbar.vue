@@ -1,10 +1,18 @@
 <template>
   <b-navbar type="dark">
     <b-navbar-brand href="#">
-      <img src="@/assets/logo.png" alt="logo" />
+      <img
+        src="@/assets/logo.png"
+        alt="logo"
+      >
     </b-navbar-brand>
     <b-navbar-nav>
-      <b-nav-item to="/" active-class="active">Home</b-nav-item>
+      <b-nav-item
+        to="/"
+        active-class="active"
+      >
+        Home
+      </b-nav-item>
     </b-navbar-nav>
   </b-navbar>
 </template>
