@@ -3,7 +3,7 @@
     <h2 id="title">
       {{name}}
     </h2>
-    <Filesystem />
+    <Filesystem :name="name"/>
   </div>
 </template>
 
@@ -23,3 +23,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+#title {
+  padding-bottom: 2rem;
+}
+</style>
