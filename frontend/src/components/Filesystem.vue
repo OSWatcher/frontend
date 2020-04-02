@@ -1,6 +1,7 @@
 <template>
   <div>
     <h2>Filesystem</h2>
+    <b-breadcrumb :items="fs_path_parts"></b-breadcrumb>
     <b-list-group>
       <b-list-group-item
         v-for="entry in fs_entries"
@@ -29,6 +30,7 @@ export default {
   data() {
     return {
       fs_path: "/",
+      fs_path_parts: ["Root"],
       fs_entries: []
     };
   },
