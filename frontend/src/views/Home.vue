@@ -7,7 +7,7 @@
       <b-list-group-item
         v-for="os in os_list"
         :key="os"
-        to="/"
+        :to="{ name: 'OSView', params: { name: os }}"
       >
         {{ os }}
       </b-list-group-item>
