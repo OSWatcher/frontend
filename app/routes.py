@@ -1,7 +1,7 @@
 from pathlib import PurePath
 from urllib.parse import unquote
 
-from flask import render_template, jsonify
+from flask import render_template, jsonify, request
 from flask_cors import cross_origin
 from oswatcher.model import OS, InodeType
 
@@ -21,10 +21,13 @@ def list_os():
     return jsonify(reply)
 
 
-@app.route('/os/<os_name>')
-@app.route('/os/<os_name>/')
-@app.route('/os/<os_name>/<path:fs_path>')
-def os_view(os_name, fs_path=None):
+@app.route('/list_fs_at', methods=['GET'])
+@cross_origin()
+def list_fs_at():
+    os_name = request.args.get('os_name')
+    fs_path = request.args.get('fs_path')
+    reply = {'status': 'success'}
+
     if fs_path is None:
         fs_path = PurePath('/')
     else:
@@ -38,4 +41,5 @@ def os_view(os_name, fs_path=None):
     cypher_query += "-[:HAS_CHILD]->(child:GraphInode) RETURN child"
     print(cypher_query)
     cursor = GRAPH.run(cypher_query)
-    return render_template('os_view.html', os_name=os_name, fs_path=fs_path, cursor=cursor, InodeType=InodeType, PurePath=PurePath, str=str)
+    reply['fs_entries'] = [record['child'] for record in cursor]
+    return jsonify(reply)
