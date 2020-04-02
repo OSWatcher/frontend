@@ -6,6 +6,9 @@
         v-for="entry in fs_entries"
         :key="entry.name"
       >
+        
+        <b-icon v-if="entry.inode_type == 16384" icon="folder-fill"></b-icon>
+        <b-icon v-else icon="file-earmark"></b-icon>
         {{ entry.name }}
       </b-list-group-item>
     </b-list-group>
