@@ -3,7 +3,7 @@
     <h2>Filesystem</h2>
     <b-breadcrumb>
       <b-breadcrumb-item
-        v-for="(entry, index) in fs_path_parts"
+        v-for="(entry, index) in fs_path_items"
         :key="entry.id"
         :active="entry.active"
         :disabled="entry.disabled"
@@ -50,7 +50,7 @@ export default {
   data() {
     return {
       fs_path: "/",
-      fs_path_parts: this.build_fs_parts("/"),
+      fs_path_items: this.build_fs_parts("/"),
       fs_folder_entries: [],
       fs_file_entries: []
     };
@@ -75,30 +75,30 @@ export default {
       return inode_type == 16384 ? true : false;
     },
     build_fs_parts(new_fs_path) {
-      // update this.fs_path_parts
+      // update this.fs_path_items
       // replace '/' by 'Root'
-      var parts = [];
-      var splitted = new_fs_path.split("/");
+      var path_items = [];
+      var path_splitted = new_fs_path.split("/");
       // special case for "/"
       // "/".split("/") will return ["", ""]
       // -> remove second empty string
-      if (splitted[1].length == 0) {
-        splitted.pop();
+      if (path_splitted[1].length == 0) {
+        path_splitted.pop();
       }
-      for (var i = 0; i < splitted.length; i++) {
+      for (var i = 0; i < path_splitted.length; i++) {
         var item = {
-          "part": splitted[i],
+          "part": path_splitted[i],
           "active": false,
           "disabled": false
         };
-        parts.push(item);
+        path_items.push(item);
       }
       // change first item to "Root"
-      parts[0]["part"] = "Root";
+      path_items[0]["part"] = "Root";
       // disable last item
-      parts[parts.length-1]["active"] = true;
-      parts[parts.length-1]["disabled"] = true;
-      return parts;
+      path_items[path_items.length-1]["active"] = true;
+      path_items[path_items.length-1]["disabled"] = true;
+      return path_items;
     },
     // events
     on_item_clicked (event) {
@@ -107,17 +107,17 @@ export default {
       // fetch fs entries at new location
       this.get_message(this.fs_path);
       // update fs parts for breadcrumb
-      this.fs_path_parts = this.build_fs_parts(this.fs_path);
+      this.fs_path_items = this.build_fs_parts(this.fs_path);
     },
     on_breadcrumb_clicked (event, index) {
       // build a new fs_path until index
       // skip 'Root'
-      var path_components = this.fs_path_parts.map(item => item.part);
-      var new_fs_path_parts = path_components.slice(1, index + 1);
+      var path_parts = this.fs_path_items.map(item => item.part);
+      var new_fs_path_parts = path_parts.slice(1, index + 1);
       var new_fs_path = `/${new_fs_path_parts.join("/")}`;
       this.fs_path = new_fs_path;
       this.get_message(this.fs_path);
-      this.fs_path_parts = this.build_fs_parts(this.fs_path);
+      this.fs_path_items = this.build_fs_parts(this.fs_path);
     }
   },
   created() {
