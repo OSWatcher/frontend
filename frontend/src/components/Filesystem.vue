@@ -11,14 +11,14 @@
       >
         <b-icon icon="folder-fill"></b-icon>
 
-        {{ entry.name }}
+        {{entry.name}}
       </b-list-group-item>
       <b-list-group-item
         v-for="entry in fs_file_entries"
         :key="entry.name"
       >
         <b-icon icon="file-earmark"></b-icon>
-        {{ entry.name }}
+        {{entry.name}}
       </b-list-group-item>
     </b-list-group>
   </div>
@@ -26,6 +26,8 @@
 
 <script>
 import axios from "axios";
+const path = require("path");
+
 
 export default {
   name: "Filesystem",
@@ -44,8 +46,8 @@ export default {
     };
   },
   methods: {
-    get_message() {
-      const path = `http://localhost:5000/list_fs_at?os_name=${this.name}&fs_path=${this.fs_path}`;
+    get_message(fs_path) {
+      const path = `http://localhost:5000/list_fs_at?os_name=${this.name}&fs_path=${fs_path}`;
       axios.get(path)
         .then((res) => {
           this.fs_folder_entries = res.data.fs_entries.filter(entry => this.inode_is_dir(entry.inode_type)).sort(function(a, b) {
@@ -63,12 +65,14 @@ export default {
       return inode_type == 16384 ? true : false;
     },
     on_item_clicked (event) {
-      // check if dir
-      console.log(event);
+      // build new path
+      this.fs_path = path.join(this.fs_path, event.target.textContent.trim());
+      // fetch fs entries at new location
+      this.get_message(this.fs_path);
     }
   },
   created() {
-    this.get_message();
+    this.get_message(this.fs_path);
   }
 };
 </script>
