@@ -13,6 +13,7 @@
       </b-breadcrumb-item>
     </b-breadcrumb>
     <div id="filesystem">
+      <!-- Display Filesystem using 2 lists: folders and files, sorted -->
       <b-list-group>
         <b-list-group-item
           v-for="entry in fs_folder_entries"
@@ -21,7 +22,6 @@
           v-on:click="on_item_clicked"
         >
           <b-icon icon="folder-fill"></b-icon>
-
           {{entry.name}}
         </b-list-group-item>
         <b-list-group-item
@@ -52,13 +52,30 @@ export default {
   data() {
     return {
       fs_path: "/",
+      /*
+        fs_path_items is the array to be rendered in the breadcrumb
+        last item is active and link is disabled
+        [
+          {
+            "part": "Root",
+            "active": false,
+            "disabled": false,
+          },
+          ....
+          {
+            "part": "system32",
+            "active": true,
+            "disabled": true
+          }
+        ]
+      */
       fs_path_items: this.build_fs_parts("/"),
       fs_folder_entries: [],
       fs_file_entries: []
     };
   },
   methods: {
-    get_message(fs_path) {
+    list_fs_at(fs_path) {
       const path = `http://localhost:5000/list_fs_at?os_name=${this.name}&fs_path=${fs_path}`;
       axios.get(path)
         .then((res) => {
@@ -107,7 +124,7 @@ export default {
       // build new path
       this.fs_path = path.join(this.fs_path, event.target.textContent.trim());
       // fetch fs entries at new location
-      this.get_message(this.fs_path);
+      this.list_fs_at(this.fs_path);
       // update fs parts for breadcrumb
       this.fs_path_items = this.build_fs_parts(this.fs_path);
     },
@@ -118,12 +135,12 @@ export default {
       var new_fs_path_parts = path_parts.slice(1, index + 1);
       var new_fs_path = `/${new_fs_path_parts.join("/")}`;
       this.fs_path = new_fs_path;
-      this.get_message(this.fs_path);
+      this.list_fs_at(this.fs_path);
       this.fs_path_items = this.build_fs_parts(this.fs_path);
     }
   },
   created() {
-    this.get_message(this.fs_path);
+    this.list_fs_at(this.fs_path);
   }
 };
 </script>
