@@ -12,25 +12,27 @@
       {{entry.part}}
       </b-breadcrumb-item>
     </b-breadcrumb>
-    <b-list-group>
-      <b-list-group-item
-        v-for="entry in fs_folder_entries"
-        :key="entry.id"
-        :action="true"
-        v-on:click="on_item_clicked"
-      >
-        <b-icon icon="folder-fill"></b-icon>
+    <div id="filesystem">
+      <b-list-group>
+        <b-list-group-item
+          v-for="entry in fs_folder_entries"
+          :key="entry.id"
+          :action="true"
+          v-on:click="on_item_clicked"
+        >
+          <b-icon icon="folder-fill"></b-icon>
 
-        {{entry.name}}
-      </b-list-group-item>
-      <b-list-group-item
-        v-for="entry in fs_file_entries"
-        :key="entry.id"
-      >
-        <b-icon icon="file-earmark"></b-icon>
-        {{entry.name}}
-      </b-list-group-item>
-    </b-list-group>
+          {{entry.name}}
+        </b-list-group-item>
+        <b-list-group-item
+          v-for="entry in fs_file_entries"
+          :key="entry.id"
+        >
+          <b-icon icon="file-earmark"></b-icon>
+          {{entry.name}}
+        </b-list-group-item>
+      </b-list-group>
+    </div>
   </div>
 </template>
 
@@ -130,5 +132,10 @@ export default {
 .list-group {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+#filesystem {
+  height: 35rem;
+  overflow: auto;
 }
 </style>
