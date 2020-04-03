@@ -21,4 +21,4 @@ graph = Graph(password=app.config['DB_PASSWORD'])
 app.config['GRAPH'] = graph
 
 # define routes
-from . import routes
+from . import routes    # noqa: E402,F401
