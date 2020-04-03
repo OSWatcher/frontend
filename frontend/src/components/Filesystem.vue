@@ -1,7 +1,15 @@
 <template>
   <div>
     <h2>Filesystem</h2>
-    <b-breadcrumb :items="fs_path_parts"></b-breadcrumb>
+    <b-breadcrumb>
+      <b-breadcrumb-item
+        v-for="(part, index) in fs_path_parts"
+        :key="part"
+        v-on:click="on_breadcrumb_clicked($event, index)"
+      >
+      {{part}}
+      </b-breadcrumb-item>
+    </b-breadcrumb>
     <b-list-group>
       <b-list-group-item
         v-for="entry in fs_folder_entries"
@@ -78,6 +86,15 @@ export default {
       // fetch fs entries at new location
       this.get_message(this.fs_path);
       // update fs parts for breadcrumb
+      this.fs_path_parts = this.update_fs_parts(this.fs_path);
+    },
+    on_breadcrumb_clicked (event, index) {
+      // build a new fs_path until index
+      // skip 'Root'
+      var new_fs_path_parts = this.fs_path_parts.slice(1, index + 1);
+      var new_fs_path = `/${new_fs_path_parts.join("/")}`;
+      this.fs_path = new_fs_path;
+      this.get_message(this.fs_path);
       this.fs_path_parts = this.update_fs_parts(this.fs_path);
     }
   },
