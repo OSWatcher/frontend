@@ -40,7 +40,7 @@ export default {
   data() {
     return {
       fs_path: "/",
-      fs_path_parts: ["Root"],
+      fs_path_parts: this.update_fs_parts("/"),
       fs_folder_entries: [],
       fs_file_entries: []
     };
@@ -64,11 +64,21 @@ export default {
     inode_is_dir(inode_type) {
       return inode_type == 16384 ? true : false;
     },
+    update_fs_parts(new_fs_path) {
+      // update this.fs_path_parts
+      // replace '/' by 'Root'
+      var splitted = new_fs_path.split("/");
+      splitted[0] = "Root";
+      return splitted;
+    },
+    // events
     on_item_clicked (event) {
       // build new path
       this.fs_path = path.join(this.fs_path, event.target.textContent.trim());
       // fetch fs entries at new location
       this.get_message(this.fs_path);
+      // update fs parts for breadcrumb
+      this.fs_path_parts = this.update_fs_parts(this.fs_path);
     }
   },
   created() {
