@@ -1,9 +1,9 @@
 from pathlib import PurePath
 from urllib.parse import unquote
 
-from flask import render_template, jsonify, request
+from flask import jsonify, request
 from flask_cors import cross_origin
-from oswatcher.model import OS, InodeType
+from oswatcher.model import OS
 
 from . import app
 
