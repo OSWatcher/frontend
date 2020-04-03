@@ -9,13 +9,15 @@
 
 ## Setup
 
-Backend
+Flask API backend
 
+    cd backend
     virtualenv -p python3 venv
     source venv/bin/activate
     (venv) pip install -r requirements.txt
+    (venv) pip install /path/to/oswatcher_sources # oswatcher libraries are required, not yet available on pip
 
-Frontend
+VueJS frontend
 
     cd frontend
     npm install
