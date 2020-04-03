@@ -4,7 +4,7 @@
     <b-breadcrumb>
       <b-breadcrumb-item
         v-for="(entry, index) in fs_path_parts"
-        :key="entry.part"
+        :key="entry.id"
         :active="entry.active"
         :disabled="entry.disabled"
         v-on:click="on_breadcrumb_clicked($event, index)"
@@ -15,7 +15,7 @@
     <b-list-group>
       <b-list-group-item
         v-for="entry in fs_folder_entries"
-        :key="entry.name"
+        :key="entry.id"
         :action="true"
         v-on:click="on_item_clicked"
       >
@@ -25,7 +25,7 @@
       </b-list-group-item>
       <b-list-group-item
         v-for="entry in fs_file_entries"
-        :key="entry.name"
+        :key="entry.id"
       >
         <b-icon icon="file-earmark"></b-icon>
         {{entry.name}}
@@ -92,8 +92,6 @@ export default {
           "disabled": false
         };
         parts.push(item);
-        console.log(item);
-        console.log(parts);
       }
       // change first item to "Root"
       parts[0]["part"] = "Root";
@@ -114,7 +112,8 @@ export default {
     on_breadcrumb_clicked (event, index) {
       // build a new fs_path until index
       // skip 'Root'
-      var new_fs_path_parts = this.fs_path_parts.slice(1, index + 1);
+      var path_components = this.fs_path_parts.map(item => item.part);
+      var new_fs_path_parts = path_components.slice(1, index + 1);
       var new_fs_path = `/${new_fs_path_parts.join("/")}`;
       this.fs_path = new_fs_path;
       this.get_message(this.fs_path);
