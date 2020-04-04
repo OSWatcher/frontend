@@ -4,16 +4,19 @@
       {{name}}
     </h2>
     <Filesystem :name="name"/>
+    <SyscallTable :name="name"/>
   </div>
 </template>
 
 <script>
 import Filesystem from "@/components/Filesystem.vue";
+import SyscallTable from "@/components/SyscallTable.vue";
 
 export default {
   name: "OSView",
   components: {
-    Filesystem
+    Filesystem,
+    SyscallTable
   },
   props: {
     name: {
