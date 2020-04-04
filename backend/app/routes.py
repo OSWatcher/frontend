@@ -43,3 +43,16 @@ def list_fs_at():
     cursor = GRAPH.run(cypher_query)
     reply['fs_entries'] = [record['child'] for record in cursor]
     return jsonify(reply)
+
+
+@app.route('/list_syscalls', methods=['GET'])
+@cross_origin()
+def list_syscalls():
+    os_name = request.args.get('os_name')
+    reply = {'status': 'success'}
+    cypher_query = "MATCH (:OS {{name: '{os_name}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
+        os_name=os_name)
+    print(cypher_query)
+    cursor = GRAPH.run(cypher_query)
+    reply['syscall_entries'] = [record['syscall'] for record in cursor]
+    return jsonify(reply)
