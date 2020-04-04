@@ -1,6 +1,13 @@
 <template>
   <div>
-    <h2>Filesystem</h2>
+    <div class="d-flex flex-row">
+      <div class="p-2">
+        <h2>Filesystem</h2>
+      </div>
+      <div class="p-2">
+        <pulse-loader :loading="is_loading"></pulse-loader>
+      </div>
+    </div>
     <b-breadcrumb>
       <b-breadcrumb-item
         v-for="(entry, index) in fs_path_items"
@@ -12,6 +19,7 @@
       {{entry.part}}
       </b-breadcrumb-item>
     </b-breadcrumb>
+    
     <div id="filesystem">
       <!-- Display Filesystem using 2 lists: folders and files, sorted -->
       <b-list-group>
@@ -38,6 +46,8 @@
 
 <script>
 import axios from "axios";
+import PulseLoader from "vue-spinner/src/PulseLoader.vue";
+
 const path = require("path");
 
 
@@ -49,8 +59,12 @@ export default {
       type: String
     },
   },
+  components: {
+    PulseLoader
+  },
   data() {
     return {
+      is_loading: true,
       fs_path: "/",
       /*
         fs_path_items is the array to be rendered in the breadcrumb
@@ -77,14 +91,18 @@ export default {
   methods: {
     list_fs_at(fs_path) {
       const path = `http://localhost:5000/list_fs_at?os_name=${this.name}&fs_path=${fs_path}`;
+
       axios.get(path)
         .then((res) => {
+          // update folder and file lists
           this.fs_folder_entries = res.data.fs_entries.filter(entry => this.inode_is_dir(entry.inode_type)).sort(function(a, b) {
             return a.name > b.name;
           });
           this.fs_file_entries = res.data.fs_entries.filter(entry => !this.inode_is_dir(entry.inode_type)).sort(function(a, b) {
             return a.name > b.name;
           });
+          // update fs parts for breadcrumb
+          this.fs_path_items = this.build_fs_parts(this.fs_path);
         })
         .catch((error) => {
           console.error(error);
@@ -125,8 +143,6 @@ export default {
       this.fs_path = path.join(this.fs_path, event.target.textContent.trim());
       // fetch fs entries at new location
       this.list_fs_at(this.fs_path);
-      // update fs parts for breadcrumb
-      this.fs_path_items = this.build_fs_parts(this.fs_path);
     },
     on_breadcrumb_clicked (event, index) {
       // build a new fs_path until index
@@ -136,10 +152,31 @@ export default {
       var new_fs_path = `/${new_fs_path_parts.join("/")}`;
       this.fs_path = new_fs_path;
       this.list_fs_at(this.fs_path);
-      this.fs_path_items = this.build_fs_parts(this.fs_path);
     }
   },
   created() {
+    // declare new interceptor on request
+    axios.interceptors.request.use(config => {
+      // start spinner
+      this.is_loading = true;
+      return config;
+    }, error => {
+      // stop spinner
+      this.is_loading = false;
+      return Promise.reject(error);
+    });
+
+    // declare new interceptor on response
+    axios.interceptors.response.use(response => {
+      // start spinner
+      this.is_loading = false;
+      return response;
+    }, error => {
+      // stop spinner
+      this.is_loading = false;  
+      return Promise.reject(error);
+    });
+
     this.list_fs_at(this.fs_path);
   }
 };
@@ -155,4 +192,6 @@ export default {
   height: 35rem;
   overflow: auto;
 }
+
+
 </style>
