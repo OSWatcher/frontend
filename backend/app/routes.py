@@ -10,9 +10,9 @@ from . import app
 GRAPH = app.config['GRAPH']
 
 
-@app.route('/list_os', methods=['GET'])
+@app.route('/os', methods=['GET'])
 @cross_origin()
-def list_os():
+def os():
     os_list = [os.name for os in OS.match(GRAPH)]
     reply = {
         'status': 'success',
