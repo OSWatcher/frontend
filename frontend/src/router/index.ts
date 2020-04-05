@@ -12,7 +12,7 @@ const routes = [
     component: Home
   },
   {
-    path: "/os_view/:name",
+    path: "/os_view/:id",
     name: "OSView",
     component: OSView,
     props: true
