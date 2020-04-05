@@ -21,11 +21,10 @@ def os():
     return jsonify(reply)
 
 
-@app.route('/list_fs_at', methods=['GET'])
+@app.route('/os/<os_name>/filesystem/', methods=['GET'])
+@app.route('/os/<os_name>/filesystem/<path:fs_path>', methods=['GET'])
 @cross_origin()
-def list_fs_at():
-    os_name = request.args.get('os_name')
-    fs_path = request.args.get('fs_path')
+def filesystem(os_name, fs_path=None):
     reply = {'status': 'success'}
 
     if fs_path is None:
