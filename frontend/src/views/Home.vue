@@ -5,11 +5,11 @@
     </h2>
     <b-list-group>
       <b-list-group-item
-        v-for="os in os_list"
-        :key="os"
-        :to="{ name: 'OSView', params: { name: os }}"
+        v-for="os in os_items"
+        :key="os['id']"
+        :to="{ name: 'OSView', params: { id: os['id'] }}"
       >
-        {{ os }}
+        {{ os['name'] }}
       </b-list-group-item>
     </b-list-group>
   </div>
@@ -22,7 +22,7 @@ export default {
   name: "Home",
   data() {
     return {
-      os_list: []
+      os_items: []
     };
   },
   methods: {
@@ -30,7 +30,7 @@ export default {
       const url = "http://localhost:5000/os";
       axios.get(url)
         .then((res) => {
-          this.os_list = res.data.os_list;
+          this.os_items = res.data.os;
         })
         .catch((error) => {
           console.error(error);
