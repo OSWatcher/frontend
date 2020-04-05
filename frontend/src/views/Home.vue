@@ -27,8 +27,8 @@ export default {
   },
   methods: {
     get_message() {
-      const path = "http://localhost:5000/list_os";
-      axios.get(path)
+      const url = "http://localhost:5000/os";
+      axios.get(url)
         .then((res) => {
           this.os_list = res.data.os_list;
         })
