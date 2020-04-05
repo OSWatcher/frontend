@@ -3,8 +3,8 @@
     <h2 id="title">
       {{name}}
     </h2>
-    <Filesystem :name="name"/>
-    <SyscallTable :name="name"/>
+    <Filesystem :os_id="id"/>
+    <SyscallTable :os_id="id"/>
   </div>
 </template>
 
@@ -19,7 +19,7 @@ export default {
     SyscallTable
   },
   props: {
-    name: {
+    id: {
       required: true,
       type: String
     }

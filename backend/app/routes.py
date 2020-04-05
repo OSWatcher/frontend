@@ -1,8 +1,9 @@
 from pathlib import PurePath
 from urllib.parse import unquote
 
-from flask import jsonify, request
+from flask import jsonify
 from flask_cors import cross_origin
+
 from oswatcher.model import OS
 
 from . import app
@@ -10,22 +11,23 @@ from . import app
 GRAPH = app.config['GRAPH']
 
 
-@app.route('/list_os', methods=['GET'])
+@app.route('/os', methods=['GET'])
 @cross_origin()
-def list_os():
-    os_list = [os.name for os in OS.match(GRAPH)]
+def os():
     reply = {
         'status': 'success',
-        'os_list': os_list
     }
+    os_items = [
+        {'id': os.id,
+         'name': os.name} for os in OS.match(GRAPH)]
+    reply['os'] = os_items
     return jsonify(reply)
 
 
-@app.route('/list_fs_at', methods=['GET'])
+@app.route('/os/<os_id>/filesystem/', methods=['GET'])
+@app.route('/os/<os_id>/filesystem/<path:fs_path>', methods=['GET'])
 @cross_origin()
-def list_fs_at():
-    os_name = request.args.get('os_name')
-    fs_path = request.args.get('fs_path')
+def filesystem(os_id, fs_path=None):
     reply = {'status': 'success'}
 
     if fs_path is None:
@@ -33,8 +35,8 @@ def list_fs_at():
     else:
         fs_path = PurePath('/') / unquote(fs_path)
 
-    cypher_query = "MATCH (:OS {{name: '{os_name}'}})-[:OWNS_FILESYSTEM]->(root:GraphInode {{name: '/' }})".format(
-        os_name=os_name)
+    cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_FILESYSTEM]->(root:GraphInode {{name: '/' }})".format(
+        os_id=os_id)
     for part in fs_path.parts[1:]:
         subquery = "-[:HAS_CHILD]->(:GraphInode {{name: '{folder_name}'}})".format(folder_name=part)
         cypher_query += subquery
@@ -45,13 +47,12 @@ def list_fs_at():
     return jsonify(reply)
 
 
-@app.route('/list_syscalls', methods=['GET'])
+@app.route('/os/<os_id>/syscall', methods=['GET'])
 @cross_origin()
-def list_syscalls():
-    os_name = request.args.get('os_name')
+def syscall(os_id):
     reply = {'status': 'success'}
-    cypher_query = "MATCH (:OS {{name: '{os_name}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
-        os_name=os_name)
+    cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
+        os_id=os_id)
     print(cypher_query)
     cursor = GRAPH.run(cypher_query)
     reply['syscall_entries'] = [record['syscall'] for record in cursor]
