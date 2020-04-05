@@ -1,52 +1,46 @@
 <template>
   <div>
-    <div class="d-flex flex-row">
-      <div class="p-2">
-        <h2>Filesystem</h2>
-      </div>
-      <div class="p-2">
-        <pulse-loader :loading="is_loading"></pulse-loader>
-      </div>
-    </div>
-    <b-breadcrumb>
-      <b-breadcrumb-item
-        v-for="(entry, index) in fs_path_items"
-        :key="entry.id"
-        :active="entry.active"
-        :disabled="entry.disabled"
-        v-on:click="on_breadcrumb_clicked($event, index)"
-      >
-      {{entry.part}}
-      </b-breadcrumb-item>
-    </b-breadcrumb>
-    
-    <div id="filesystem">
-      <!-- Display Filesystem using 2 lists: folders and files, sorted -->
-      <b-list-group>
-        <b-list-group-item
-          v-for="entry in fs_folder_entries"
+    <h2>Filesystem</h2>
+    <b-overlay :show="is_loading">
+      <b-breadcrumb>
+        <b-breadcrumb-item
+          v-for="(entry, index) in fs_path_items"
           :key="entry.id"
-          :action="true"
-          v-on:click="on_item_clicked"
+          :active="entry.active"
+          :disabled="entry.disabled"
+          v-on:click="on_breadcrumb_clicked($event, index)"
         >
-          <b-icon icon="folder-fill"></b-icon>
-          {{entry.name}}
-        </b-list-group-item>
-        <b-list-group-item
-          v-for="entry in fs_file_entries"
-          :key="entry.id"
-        >
-          <b-icon icon="file-earmark"></b-icon>
-          {{entry.name}}
-        </b-list-group-item>
-      </b-list-group>
-    </div>
+        {{entry.part}}
+        </b-breadcrumb-item>
+      </b-breadcrumb>
+      
+      <div id="filesystem">
+        <!-- Display Filesystem using 2 lists: folders and files, sorted -->
+        <b-list-group>
+          <b-list-group-item
+            v-for="entry in fs_folder_entries"
+            :key="entry.id"
+            :action="true"
+            v-on:click="on_item_clicked"
+          >
+            <b-icon icon="folder-fill"></b-icon>
+            {{entry.name}}
+          </b-list-group-item>
+          <b-list-group-item
+            v-for="entry in fs_file_entries"
+            :key="entry.id"
+          >
+            <b-icon icon="file-earmark"></b-icon>
+            {{entry.name}}
+          </b-list-group-item>
+        </b-list-group>
+      </div>
+    </b-overlay>
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import PulseLoader from "vue-spinner/src/PulseLoader.vue";
 
 const path = require("path");
 
@@ -58,9 +52,6 @@ export default {
       required: true,
       type: String
     },
-  },
-  components: {
-    PulseLoader
   },
   data() {
     return {
