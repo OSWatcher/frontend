@@ -38,7 +38,7 @@ import axios from "axios";
 export default {
   name: "SyscallTable",
   props: {
-    name: {
+    os_id: {
       required: true,
       type: String
     },
@@ -71,7 +71,7 @@ export default {
   },
   methods: {
     list_syscalls() {
-      const url = `http://localhost:5000/os/${this.name}/syscall`;
+      const url = `http://localhost:5000/os/${this.os_id}/syscall`;
 
       axios.get(url)
         .then((res) => {
