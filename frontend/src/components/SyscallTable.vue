@@ -71,7 +71,7 @@ export default {
   },
   methods: {
     list_syscalls() {
-      const url = `http://localhost:5000/list_syscalls?os_name=${this.name}`;
+      const url = `http://localhost:5000/os/${this.name}/syscall`;
 
       axios.get(url)
         .then((res) => {

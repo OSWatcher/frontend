@@ -44,10 +44,9 @@ def filesystem(os_name, fs_path=None):
     return jsonify(reply)
 
 
-@app.route('/list_syscalls', methods=['GET'])
+@app.route('/os/<os_name>/syscall', methods=['GET'])
 @cross_origin()
-def list_syscalls():
-    os_name = request.args.get('os_name')
+def syscall(os_name):
     reply = {'status': 'success'}
     cypher_query = "MATCH (:OS {{name: '{os_name}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
         os_name=os_name)
