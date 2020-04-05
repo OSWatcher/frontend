@@ -90,9 +90,9 @@ export default {
   },
   methods: {
     list_fs_at(fs_path) {
-      const path = `http://localhost:5000/list_fs_at?os_name=${this.name}&fs_path=${fs_path}`;
+      const url = `http://localhost:5000/os/${this.name}/filesystem${fs_path}`;
 
-      axios.get(path)
+      axios.get(url)
         .then((res) => {
           // update folder and file lists
           this.fs_folder_entries = res.data.fs_entries.filter(entry => this.inode_is_dir(entry.inode_type)).sort(function(a, b) {
