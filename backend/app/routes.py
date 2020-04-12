@@ -1,3 +1,4 @@
+import logging
 from pathlib import PurePath
 from urllib.parse import unquote
 
@@ -41,7 +42,7 @@ def filesystem(os_id, fs_path=None):
         subquery = "-[:HAS_CHILD]->(:GraphInode {{name: '{folder_name}'}})".format(folder_name=part)
         cypher_query += subquery
     cypher_query += "-[:HAS_CHILD]->(child:GraphInode) RETURN child"
-    print(cypher_query)
+    logging.debug(cypher_query)
     cursor = GRAPH.run(cypher_query)
     reply['fs_entries'] = [record['child'] for record in cursor]
     return jsonify(reply)
@@ -53,7 +54,7 @@ def syscall(os_id):
     reply = {'status': 'success'}
     cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
         os_id=os_id)
-    print(cypher_query)
+    logging.debug(cypher_query)
     cursor = GRAPH.run(cypher_query)
     reply['syscall_entries'] = [record['syscall'] for record in cursor]
     return jsonify(reply)
