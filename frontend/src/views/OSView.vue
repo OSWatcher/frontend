@@ -5,7 +5,7 @@
         {{os_item.name}}
       </h2>
       <b-card no-body>
-        <b-tabs content-class="py-4" card>
+        <b-tabs card>
           <b-tab title="Filesystem" active>
             <Filesystem :os="os_item"/>
           </b-tab>
