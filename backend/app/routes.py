@@ -56,9 +56,9 @@ def filesystem_search(os_id):
     where_str_list = []
     for k, v in filter.items():
         if isinstance(v, bool):
-            current_filter = f"_.{k} = {v}"
+            current_filter = f"inode.{k} = {v}"
         elif isinstance(v, str):
-            current_filter = f"_.{k} = '{v}'"
+            current_filter = f"inode.{k} = '{v}'"
         elif isinstance(v, dict):
             # complex query
             try:
@@ -67,23 +67,29 @@ def filesystem_search(os_id):
             except KeyError:
                 return jsonify(reply)
             else:
+                # redouble backslack because of JSON
+                value = value.replace('\\', '\\\\')
+                logging.info(value)
                 # one type is supported: regex
                 if type != 'regex':
                     return jsonify(reply)
-                current_filter = f"_.{k} =~ '{value}'"
+                current_filter = f"inode.{k} =~ '{value}'"
         else:
             return jsonify(reply)
         where_str_list.append(current_filter)
-    where_statement = ' AND '.join(where_str_list)
-    logging.debug("WHERE: %s", where_statement)
-    match = GraphInode.match(GRAPH).where(where_statement)
-
+    inode_where = ' AND '.join(where_str_list)
+    cypher_query = \
+        f"MATCH (os:OS)-[*]->(inode:GraphInode)\n" \
+        f"WHERE os.id = '{os_id}' AND {inode_where}\n" \
+        "RETURN inode"
+    logging.debug(cypher_query)
+    cursor = GRAPH.run(cypher_query)
     graph_inodes_properties = [k for k, v in GraphInode.__dict__.items() if isinstance(v, Property)]
     search_result = []
-    for graph_inode in match:
+    for record in cursor:
         current_result = {}
         for prop in graph_inodes_properties:
-            current_result[prop] = getattr(graph_inode, prop)
+            current_result[prop] = record['inode'][prop]
         search_result.append(current_result)
     reply['result'] = search_result
     reply['status'] = 'success'
