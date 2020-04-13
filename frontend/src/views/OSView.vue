@@ -1,10 +1,12 @@
 <template>
   <div>
-    <h2 id="title">
-      {{os_item.name}}
-    </h2>
-    <Filesystem :os_id="id"/>
-    <SyscallTable :os_id="id"/>
+    <template v-if="os_item != null">
+      <h2 id="title">
+        {{os_item.name}}
+      </h2>
+      <Filesystem :os="os_item"/>
+      <SyscallTable :os="os_item"/>
+    </template>
   </div>
 </template>
 
@@ -27,7 +29,7 @@ export default {
   },
   data () {
     return {
-      os_item: {}
+      os_item: null
     };
   },
   created () {
@@ -43,7 +45,6 @@ export default {
       });
     console.log(this.os_item);
   }
-  
 };
 </script>
 
