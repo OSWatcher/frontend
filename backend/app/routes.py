@@ -31,6 +31,22 @@ def os():
     return jsonify(reply)
 
 
+@app.route('/os/<os_id>', methods=['GET'])
+@cross_origin()
+def os_details(os_id):
+    reply = {
+        'status': 'failure',
+    }
+    os_properties = [k for k, v in OS.__dict__.items() if isinstance(v, Property)]
+    os = OS.match(GRAPH).where(id=os_id).first()
+    os_item = {}
+    for prop in os_properties:
+        os_item[prop] = getattr(os, prop)
+    reply['os'] = os_item
+    reply['status'] = 'success'
+    return jsonify(reply)
+
+
 @app.route('/os/<os_id>/filesystem/', methods=['GET'])
 @app.route('/os/<os_id>/filesystem/<path:fs_path>', methods=['GET'])
 @cross_origin()
