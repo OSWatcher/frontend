@@ -17,12 +17,17 @@ GRAPH = app.config['GRAPH']
 @cross_origin()
 def os():
     reply = {
-        'status': 'success',
+        'status': 'failure',
     }
-    os_items = [
-        {'id': os.id,
-         'name': os.name} for os in OS.match(GRAPH)]
+    os_properties = [k for k, v in OS.__dict__.items() if isinstance(v, Property)]
+    os_items = []
+    for os in OS.match(GRAPH):
+        os_item = {}
+        for prop in os_properties:
+            os_item[prop] = getattr(os, prop)
+        os_items.append(os_item)
     reply['os'] = os_items
+    reply['status'] = 'success'
     return jsonify(reply)
 
 
