@@ -9,6 +9,7 @@
 </template>
 
 <script>
+import axios from "axios";
 import Filesystem from "@/components/Filesystem.vue";
 import SyscallTable from "@/components/SyscallTable.vue";
 
@@ -23,7 +24,26 @@ export default {
       required: true,
       type: String
     }
+  },
+  data () {
+    return {
+      os_item: {}
+    };
+  },
+  created () {
+    // query OS details from OS ID to get the OS type
+    const url = `http://localhost:5000/os/${this.id}`;
+
+    axios.get(url)
+      .then((res) => {
+        this.os_item = res.data.os;
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+    console.log(this.os_item);
   }
+  
 };
 </script>
 
