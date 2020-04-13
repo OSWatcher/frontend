@@ -59,7 +59,7 @@ export default {
           sortable: true
         }
       ],
-      items: {},
+      items: [],
       per_page: 20,
       current_page: 1
     };
