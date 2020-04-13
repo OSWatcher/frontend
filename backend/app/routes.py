@@ -2,10 +2,11 @@ import logging
 from pathlib import PurePath
 from urllib.parse import unquote
 
-from flask import jsonify
+from flask import jsonify, request
 from flask_cors import cross_origin
+from py2neo.ogm import Property
 
-from oswatcher.model import OS
+from oswatcher.model import OS, GraphInode
 
 from . import app
 
@@ -45,6 +46,47 @@ def filesystem(os_id, fs_path=None):
     logging.debug(cypher_query)
     cursor = GRAPH.run(cypher_query)
     reply['fs_entries'] = [record['child'] for record in cursor]
+    return jsonify(reply)
+
+
+@app.route('/os/<os_id>/filesystem/search', methods=['POST'])
+def filesystem_search(os_id):
+    reply = {'status': 'failure'}
+    filter = request.json
+    where_str_list = []
+    for k, v in filter.items():
+        if isinstance(v, bool):
+            current_filter = f"_.{k} = {v}"
+        elif isinstance(v, str):
+            current_filter = f"_.{k} = '{v}'"
+        elif isinstance(v, dict):
+            # complex query
+            try:
+                type = v['type']
+                value = v['value']
+            except KeyError:
+                return jsonify(reply)
+            else:
+                # one type is supported: regex
+                if type != 'regex':
+                    return jsonify(reply)
+                current_filter = f"_.{k} =~ '{value}'"
+        else:
+            return jsonify(reply)
+        where_str_list.append(current_filter)
+    where_statement = ' AND '.join(where_str_list)
+    logging.debug("WHERE: %s", where_statement)
+    match = GraphInode.match(GRAPH).where(where_statement)
+
+    graph_inodes_properties = [k for k, v in GraphInode.__dict__.items() if isinstance(v, Property)]
+    search_result = []
+    for graph_inode in match:
+        current_result = {}
+        for prop in graph_inodes_properties:
+            current_result[prop] = getattr(graph_inode, prop)
+        search_result.append(current_result)
+    reply['result'] = search_result
+    reply['status'] = 'success'
     return jsonify(reply)
 
 
