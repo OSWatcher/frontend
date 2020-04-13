@@ -48,9 +48,9 @@ const path = require("path");
 export default {
   name: "Filesystem",
   props: {
-    os_id: {
+    os: {
       required: true,
-      type: String
+      type: Object
     },
   },
   data() {
@@ -81,7 +81,7 @@ export default {
   },
   methods: {
     list_fs_at(fs_path) {
-      const url = `http://localhost:5000/os/${this.os_id}/filesystem${fs_path}`;
+      const url = `http://localhost:5000/os/${this.os.id}/filesystem${fs_path}`;
 
       axios.get(url)
         .then((res) => {
