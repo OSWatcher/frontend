@@ -180,7 +180,7 @@ export default {
 }
 
 #filesystem {
-  height: 35rem;
+  height: 30rem;
   overflow: auto;
 }
 
