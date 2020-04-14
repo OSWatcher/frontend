@@ -2,7 +2,10 @@
   <div>
     <!-- Setuid binaries (if Linux) -->
     <template v-if="os.type == 'Linux'">
-      <h2>Setuid Binaries</h2>
+      <h2>
+        Setuid Binaries
+        <b-badge variant="secondary">{{ setuid_count }}</b-badge>
+      </h2>
       <b-overlay :show=is_loading>
         <b-list-group>
           <b-list-group-item v-for="item in setuid_list" :key="item.path" class="text-monospace">
@@ -45,6 +48,11 @@ export default {
           console.error(error);
         });
     },
+  },
+  computed: {
+    setuid_count () {
+      return this.setuid_list.length;
+    }
   },
   created() {
     // declare new interceptor on request
