@@ -88,6 +88,10 @@ def filesystem(os_id, fs_path=None):
 def filesystem_search(os_id):
     reply = {'status': 'failure'}
     filter = request.json
+    if not filter:
+        # a search request without a filter would return all the inodes
+        # this is not acceptable
+        return jsonify(reply)
     where_str_list = []
     for k, v in filter.items():
         if isinstance(v, bool):
