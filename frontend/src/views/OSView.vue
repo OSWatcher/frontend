@@ -4,8 +4,16 @@
       <h2 id="title">
         {{os_item.name}}
       </h2>
-      <Filesystem :os="os_item"/>
-      <SyscallTable :os="os_item"/>
+      <b-card no-body>
+        <b-tabs card>
+          <b-tab title="Filesystem" active>
+            <Filesystem :os="os_item"/>
+          </b-tab>
+          <b-tab title="Syscalls">
+            <SyscallTable :os="os_item"/>
+          </b-tab>
+        </b-tabs>
+      </b-card>
     </template>
   </div>
 </template>
