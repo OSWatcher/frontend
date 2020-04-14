@@ -5,7 +5,7 @@
       <h2>Setuid Binaries</h2>
       <b-overlay :show=is_loading>
         <b-list-group>
-          <b-list-group-item v-for="item in setuid_list" :key="item.path">
+          <b-list-group-item v-for="item in setuid_list" :key="item.path" class="text-monospace">
             {{ item.path }}
           </b-list-group-item>
         </b-list-group>
