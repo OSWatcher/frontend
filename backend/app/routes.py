@@ -4,6 +4,7 @@ from urllib.parse import unquote
 
 from flask import jsonify, request
 from flask_cors import cross_origin
+from py2neo import GraphError
 from py2neo.ogm import Property
 
 from oswatcher.model import OS, GraphInode
@@ -21,11 +22,15 @@ def os():
     }
     os_properties = [k for k, v in OS.__dict__.items() if isinstance(v, Property)]
     os_items = []
-    for os in OS.match(GRAPH):
-        os_item = {}
-        for prop in os_properties:
-            os_item[prop] = getattr(os, prop)
-        os_items.append(os_item)
+    try:
+        for os in OS.match(GRAPH):
+            os_item = {}
+            for prop in os_properties:
+                os_item[prop] = getattr(os, prop)
+            os_items.append(os_item)
+    except GraphError:
+        logging.exception("Cypher query failed")
+        return jsonify(reply)
     reply['os'] = os_items
     reply['status'] = 'success'
     return jsonify(reply)
@@ -38,7 +43,11 @@ def os_details(os_id):
         'status': 'failure',
     }
     os_properties = [k for k, v in OS.__dict__.items() if isinstance(v, Property)]
-    os = OS.match(GRAPH).where(id=os_id).first()
+    try:
+        os = OS.match(GRAPH).where(id=os_id).first()
+    except GraphError:
+        logging.exception("Cypher query failed")
+        return jsonify(reply)
     os_item = {}
     for prop in os_properties:
         os_item[prop] = getattr(os, prop)
@@ -65,7 +74,11 @@ def filesystem(os_id, fs_path=None):
         cypher_query += subquery
     cypher_query += "-[:HAS_CHILD]->(child:GraphInode) RETURN child"
     logging.debug(cypher_query)
-    cursor = GRAPH.run(cypher_query)
+    try:
+        cursor = GRAPH.run(cypher_query)
+    except GraphError:
+        logging.exception("Cypher query failed")
+        return jsonify(reply)
     reply['fs_entries'] = [record['child'] for record in cursor]
     return jsonify(reply)
 
@@ -105,7 +118,11 @@ def filesystem_search(os_id):
         f"WHERE os.id = '{os_id}' AND {inode_where}\n" \
         "RETURN inode"
     logging.debug(cypher_query)
-    cursor = GRAPH.run(cypher_query)
+    try:
+        cursor = GRAPH.run(cypher_query)
+    except GraphError:
+        logging.exception("Cypher query failed")
+        return jsonify(reply)
     graph_inodes_properties = [k for k, v in GraphInode.__dict__.items() if isinstance(v, Property)]
     search_result = []
     for record in cursor:
@@ -125,6 +142,10 @@ def syscall(os_id):
     cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
         os_id=os_id)
     logging.debug(cypher_query)
-    cursor = GRAPH.run(cypher_query)
+    try:
+        cursor = GRAPH.run(cypher_query)
+    except GraphError:
+        logging.exception("Cypher query failed")
+        return jsonify(reply)
     reply['syscall_entries'] = [record['syscall'] for record in cursor]
     return jsonify(reply)
