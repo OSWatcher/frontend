@@ -71,6 +71,7 @@ def filesystem(os_id, fs_path=None):
 
 
 @app.route('/os/<os_id>/filesystem/search', methods=['POST'])
+@cross_origin()
 def filesystem_search(os_id):
     reply = {'status': 'failure'}
     filter = request.json
