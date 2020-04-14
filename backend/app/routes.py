@@ -86,12 +86,34 @@ def filesystem(os_id, fs_path=None):
 @app.route('/os/<os_id>/filesystem/search', methods=['POST'])
 @cross_origin()
 def filesystem_search(os_id):
+    """
+    Filesystem search using criterias provided in the POST request data
+    example of criteria
+    {
+        "setuid": true
+    }
+
+    {
+        "name": "tmp"
+    }
+
+    or even regex
+    {
+        "name": {
+            "type": "regex",
+            "value": ".*tmp.*"
+        }
+    }
+    :param os_id: uuid of OS node
+    :return:
+    """
     reply = {'status': 'failure'}
     filter = request.json
     if not filter:
         # a search request without a filter would return all the inodes
         # this is not acceptable
         return jsonify(reply)
+    logging.debug("filter: %s", filter)
     where_str_list = []
     for k, v in filter.items():
         if isinstance(v, bool):
