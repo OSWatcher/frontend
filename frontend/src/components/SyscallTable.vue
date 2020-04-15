@@ -32,11 +32,11 @@
 </template>
 
 <script>
-import axios from "axios";
+import axios from 'axios';
 
 
 export default {
-  name: "SyscallTable",
+  name: 'SyscallTable',
   props: {
     os: {
       required: true,
@@ -48,14 +48,14 @@ export default {
       is_loading: true,
       fields: [
         {
-          key: "index",
+          key: 'index',
           sortable: true
         },
         {
-          key: "address",
+          key: 'address',
         },
         {
-          key: "name",
+          key: 'name',
           sortable: true
         }
       ],
