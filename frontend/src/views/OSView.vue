@@ -9,9 +9,12 @@
           <b-tab title="Filesystem" active>
             <Filesystem :os="os_item"/>
           </b-tab>
-          <b-tab title="Syscalls">
-            <SyscallTable :os="os_item"/>
-          </b-tab>
+          <!-- syscall table can only be extracted with Volatility for Windows -->
+          <template v-if="os_item.type == 'Windows'">
+            <b-tab title="Syscalls">
+              <SyscallTable :os="os_item"/>
+            </b-tab>
+          </template>
           <b-tab title="Security">
             <Security :os="os_item"/>
           </b-tab>
