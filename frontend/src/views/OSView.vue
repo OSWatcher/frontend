@@ -25,13 +25,13 @@
 </template>
 
 <script>
-import axios from "axios";
-import Filesystem from "@/components/Filesystem.vue";
-import SyscallTable from "@/components/SyscallTable.vue";
-import Security from "@/components/Security.vue";
+import axios from 'axios';
+import Filesystem from '@/components/Filesystem.vue';
+import SyscallTable from '@/components/SyscallTable.vue';
+import Security from '@/components/Security.vue';
 
 export default {
-  name: "OSView",
+  name: 'OSView',
   components: {
     Filesystem,
     SyscallTable,

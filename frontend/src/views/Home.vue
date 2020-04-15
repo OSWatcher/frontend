@@ -16,10 +16,10 @@
 </template>
 
 <script>
-import axios from "axios";
+import axios from 'axios';
 
 export default {
-  name: "Home",
+  name: 'Home',
   data() {
     return {
       os_items: []
@@ -27,7 +27,7 @@ export default {
   },
   methods: {
     get_message() {
-      const url = "http://localhost:5000/os";
+      const url = 'http://localhost:5000/os';
       axios.get(url)
         .then((res) => {
           this.os_items = res.data.os;
