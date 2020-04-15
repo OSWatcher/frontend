@@ -12,6 +12,9 @@
           <b-tab title="Syscalls">
             <SyscallTable :os="os_item"/>
           </b-tab>
+          <b-tab title="Security">
+            <Security :os="os_item"/>
+          </b-tab>
         </b-tabs>
       </b-card>
     </template>
@@ -22,12 +25,14 @@
 import axios from "axios";
 import Filesystem from "@/components/Filesystem.vue";
 import SyscallTable from "@/components/SyscallTable.vue";
+import Security from "@/components/Security.vue";
 
 export default {
   name: "OSView",
   components: {
     Filesystem,
-    SyscallTable
+    SyscallTable,
+    Security
   },
   props: {
     id: {
