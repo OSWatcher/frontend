@@ -18,11 +18,11 @@
 </template>
 
 <script>
-import axios from "axios";
+import axios from 'axios';
 
 
 export default {
-  name: "Security",
+  name: 'Security',
   props: {
     os: {
       required: true,
@@ -38,7 +38,7 @@ export default {
   methods: {
     list_setuid() {
       const url = `http://localhost:5000/os/${this.os.id}/filesystem/search`;
-      const params = {"setuid": true};
+      const params = {'setuid': true};
 
       axios.post(url, params)
         .then((res) => {

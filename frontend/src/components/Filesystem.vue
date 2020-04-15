@@ -40,13 +40,13 @@
 </template>
 
 <script>
-import axios from "axios";
+import axios from 'axios';
 
-const path = require("path");
+const path = require('path');
 
 
 export default {
-  name: "Filesystem",
+  name: 'Filesystem',
   props: {
     os: {
       required: true,
@@ -56,7 +56,7 @@ export default {
   data() {
     return {
       is_loading: true,
-      fs_path: "/",
+      fs_path: '/',
       /*
         fs_path_items is the array to be rendered in the breadcrumb
         last item is active and link is disabled
@@ -74,7 +74,7 @@ export default {
           }
         ]
       */
-      fs_path_items: this.build_fs_parts("/"),
+      fs_path_items: this.build_fs_parts('/'),
       fs_folder_entries: [],
       fs_file_entries: []
     };
@@ -106,7 +106,7 @@ export default {
       // update this.fs_path_items
       // replace '/' by 'Root'
       var path_items = [];
-      var path_splitted = new_fs_path.split("/");
+      var path_splitted = new_fs_path.split('/');
       // special case for "/"
       // "/".split("/") will return ["", ""]
       // -> remove second empty string
@@ -115,17 +115,17 @@ export default {
       }
       for (var i = 0; i < path_splitted.length; i++) {
         var item = {
-          "part": path_splitted[i],
-          "active": false,
-          "disabled": false
+          'part': path_splitted[i],
+          'active': false,
+          'disabled': false
         };
         path_items.push(item);
       }
       // change first item to "Root"
-      path_items[0]["part"] = "Root";
+      path_items[0]['part'] = 'Root';
       // disable last item
-      path_items[path_items.length-1]["active"] = true;
-      path_items[path_items.length-1]["disabled"] = true;
+      path_items[path_items.length-1]['active'] = true;
+      path_items[path_items.length-1]['disabled'] = true;
       return path_items;
     },
     // events
@@ -140,7 +140,7 @@ export default {
       // skip 'Root'
       var path_parts = this.fs_path_items.map(item => item.part);
       var new_fs_path_parts = path_parts.slice(1, index + 1);
-      var new_fs_path = `/${new_fs_path_parts.join("/")}`;
+      var new_fs_path = `/${new_fs_path_parts.join('/')}`;
       this.fs_path = new_fs_path;
       this.list_fs_at(this.fs_path);
     }

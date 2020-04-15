@@ -1,44 +1,44 @@
 module.exports = {
-  "env": {
-    "browser": true,
-    "es6": true,
-    "node": true
+  'env': {
+    'browser': true,
+    'es6': true,
+    'node': true
   },
-  "extends": [
-    "eslint:recommended",
-    "plugin:vue/essential",
-    "plugin:@typescript-eslint/eslint-recommended"
+  'extends': [
+    'eslint:recommended',
+    'plugin:vue/essential',
+    'plugin:@typescript-eslint/eslint-recommended'
   ],
-  "globals": {
-    "Atomics": "readonly",
-    "SharedArrayBuffer": "readonly"
+  'globals': {
+    'Atomics': 'readonly',
+    'SharedArrayBuffer': 'readonly'
   },
-  "parserOptions": {
-    "ecmaVersion": 2018,
-    "parser": "@typescript-eslint/parser",
-    "sourceType": "module"
+  'parserOptions': {
+    'ecmaVersion': 2018,
+    'parser': '@typescript-eslint/parser',
+    'sourceType': 'module'
   },
-  "plugins": [
-    "vue",
-    "@typescript-eslint"
+  'plugins': [
+    'vue',
+    '@typescript-eslint'
   ],
-  "rules": {
-    "indent": [
-      "error",
+  'rules': {
+    'indent': [
+      'error',
       2
     ],
-    "linebreak-style": [
-      "error",
-      "unix"
+    'linebreak-style': [
+      'error',
+      'unix'
     ],
-    "quotes": [
-      "error",
-      "double"
+    'quotes': [
+      'error',
+      'single'
     ],
-    "semi": [
-      "error",
-      "always"
+    'semi': [
+      'error',
+      'always'
     ],
-    "no-unused-vars": process.env.NODE_ENV === "production" ? 2 : 1
+    'no-unused-vars': process.env.NODE_ENV === 'production' ? 2 : 1
   }
 };
