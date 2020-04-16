@@ -29,6 +29,7 @@
         striped
         hover
         bordered
+        head-variant="dark"
         :items="checksec_items_list"
         :fields="checksec_fields"
         :per-page="checksec_per_page" 
@@ -36,6 +37,76 @@
         :busy="is_loading"
         sort-by="path"
       >
+        <!-- custom formatting -->
+        <!-- relro: full/partial/no -->
+        <template v-slot:cell(relro)="data">
+          <b-badge v-if="data.value == 'full'" variant="success">
+            Full
+          </b-badge>
+          <b-badge v-else-if="data.value == 'no'" variant="danger">
+            No
+          </b-badge>
+          <b-badge v-else variant="warning">
+            Partial
+          </b-badge>
+        </template>
+        <!-- canary true/false -->
+        <template v-slot:cell(canary)="data">
+          <b-badge v-if="data.value == true" variant="success">
+            Yes
+          </b-badge>
+          <b-badge v-else variant="danger">
+            No
+          </b-badge>
+        </template>
+        <!-- nx true/false -->
+        <template v-slot:cell(nx)="data">
+          <b-badge v-if="data.value == true" variant="success">
+            Yes
+          </b-badge>
+          <b-badge v-else variant="danger">
+            No
+          </b-badge>
+        </template>
+        <!-- pie true/false -->
+        <template v-slot:cell(pie)="data">
+          <b-badge v-if="data.value == 'yes'" variant="success">
+            Yes
+          </b-badge>
+          <b-badge v-else-if="data.value == 'no'" variant="danger">
+            No
+          </b-badge>
+          <b-badge v-else variant="warning">
+            {{data.value}}
+          </b-badge>
+        </template>
+        <!-- runpath false/? -->
+        <template v-slot:cell(rpath)="data">
+          <b-badge v-if="data.value == false" variant="success">
+            No
+          </b-badge>
+          <b-badge v-else variant="danger">
+            {{data.value}}
+          </b-badge>
+        </template>
+        <!-- runpath true/false -->
+        <template v-slot:cell(runpath)="data">
+          <b-badge v-if="data.value == true" variant="danger">
+            Yes
+          </b-badge>
+          <b-badge v-else variant="success">
+            No
+          </b-badge>
+        </template>
+        <!-- symbols -->
+        <template v-slot:cell(symbols)="data">
+          <b-badge v-if="data.value == true" variant="danger">
+            Yes
+          </b-badge>
+          <b-badge v-else variant="success">
+            No
+          </b-badge>
+        </template>
       </b-table>
     </template>
   </div>
