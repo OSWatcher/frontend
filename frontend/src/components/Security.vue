@@ -107,6 +107,29 @@
             No
           </b-badge>
         </template>
+        <!-- fortify_source -->
+        <template v-slot:cell(fortify_source)="data">
+          <b-badge v-if="data.value == true" variant="success">
+            Yes
+          </b-badge>
+          <b-badge v-else variant="danger">
+            No
+          </b-badge>
+        </template>
+        <!-- virtual column fortify_score -->
+        <template v-slot:cell(fortify_score)="data">
+          <!-- fortify_source and no more functions to be fortified ? OK -->
+          <b-badge v-if="data.item.fortify_source && data.item.fortifyable == 0" variant="success">
+            100%
+          </b-badge>
+          <!-- fortify_source disabled and no more functions to be fortified ? BAD -->
+          <b-badge v-else-if="!data.item.fortify_source && data.item.fortifyable == 0" variant="danger">
+            0%
+          </b-badge>
+          <b-badge v-else variant="warning">
+            {{ Math.round((data.item.fortified *100) / data.item.fortifyable) }}
+          </b-badge>
+        </template>
       </b-table>
     </template>
   </div>
@@ -171,6 +194,14 @@ export default {
         {
           key: 'symbols',
           sortable: true,
+        },
+        {
+          key: 'fortify_source',
+          sortable: true,
+        },
+        {
+          key: 'fortify_score',
+          sortable: true
         },
       ],
       checksec_per_page: 10,
