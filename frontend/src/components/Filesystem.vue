@@ -41,6 +41,7 @@
 
 <script>
 import axios from 'axios';
+import config from '@/config.ts';
 
 const path = require('path');
 
@@ -81,7 +82,7 @@ export default {
   },
   methods: {
     list_fs_at(fs_path) {
-      const url = `http://localhost:5000/os/${this.os.id}/filesystem${fs_path}`;
+      const url = `${config.API_LOCATION}/os/${this.os.id}/filesystem${fs_path}`;
 
       axios.get(url)
         .then((res) => {

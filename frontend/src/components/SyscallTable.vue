@@ -33,6 +33,7 @@
 
 <script>
 import axios from 'axios';
+import config from '@/config.ts';
 
 
 export default {
@@ -71,7 +72,7 @@ export default {
   },
   methods: {
     list_syscalls() {
-      const url = `http://localhost:5000/os/${this.os.id}/syscall`;
+      const url = `${config.API_LOCATION}/os/${this.os.id}/syscall`;
 
       axios.get(url)
         .then((res) => {
