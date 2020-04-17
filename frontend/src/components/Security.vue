@@ -127,7 +127,7 @@
             0%
           </b-badge>
           <b-badge v-else variant="warning">
-            {{ Math.round((data.item.fortified *100) / data.item.fortifyable) }}
+            {{ Math.round((data.item.fortified *100) / data.item.fortifyable) }}%
           </b-badge>
         </template>
       </b-table>
