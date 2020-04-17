@@ -137,6 +137,7 @@
 
 <script>
 import axios from 'axios';
+import config from '@/config.ts';
 
 
 export default {
@@ -210,7 +211,7 @@ export default {
   },
   methods: {
     list_setuid() {
-      const url = `http://localhost:5000/os/${this.os.id}/filesystem/search`;
+      const url = `${config.API_LOCATION}/os/${this.os.id}/filesystem/search`;
       const params = {'setuid': true};
 
       axios.post(url, params)
@@ -222,7 +223,7 @@ export default {
         });
     },
     list_checksec() {
-      const url = `http://localhost:5000/os/${this.os.id}/filesystem/search`;
+      const url = `${config.API_LOCATION}/os/${this.os.id}/filesystem/search`;
       const params = {'checksec': true};
 
       axios.post(url, params)

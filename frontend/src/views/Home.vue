@@ -17,6 +17,7 @@
 
 <script>
 import axios from 'axios';
+import config from '@/config.ts';
 
 export default {
   name: 'Home',
@@ -27,7 +28,7 @@ export default {
   },
   methods: {
     get_message() {
-      const url = 'http://localhost:5000/os';
+      const url = `${config.API_LOCATION}/os`;
       axios.get(url)
         .then((res) => {
           this.os_items = res.data.os;

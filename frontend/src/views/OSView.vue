@@ -29,6 +29,7 @@ import axios from 'axios';
 import Filesystem from '@/components/Filesystem.vue';
 import SyscallTable from '@/components/SyscallTable.vue';
 import Security from '@/components/Security.vue';
+import config from '@/config.ts';
 
 export default {
   name: 'OSView',
@@ -50,7 +51,7 @@ export default {
   },
   created () {
     // query OS details from OS ID to get the OS type
-    const url = `http://localhost:5000/os/${this.id}`;
+    const url = `${config.API_LOCATION}/os/${this.id}`;
 
     axios.get(url)
       .then((res) => {
