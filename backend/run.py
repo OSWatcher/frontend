@@ -29,7 +29,7 @@ def main():
     logging.getLogger("neo4j.bolt").setLevel(logging.WARNING)
     logging.getLogger("neobolt").setLevel(logging.WARNING)
     # run server
-    app.run(debug=args['--debug'])
+    app.run(debug=args['--debug'], ssl_context='adhoc')
 
 
 if __name__ == "__main__":
