@@ -7,6 +7,8 @@ from flask import jsonify, request
 from flask_cors import cross_origin
 from neo4j import Driver, Result
 from neo4j.exceptions import DriverError
+from py2neo.cypher import cypher_escape
+from pprint import pformat
 
 from . import app
 
@@ -18,10 +20,14 @@ DEFAULT_REPLY: Dict[str, Any] = {
 }
 
 
+def cypher_unescape(value: str):
+    return value.strip('`')
+
+
 @app.route('/os', methods=['GET'])
 @cross_origin()
 def os():
-    reply = DEFAULT_REPLY
+    reply = DEFAULT_REPLY.copy()
     os_items: List[Dict[str, Any]] = []
     query = '''
     MATCH (o:OS)
@@ -53,7 +59,7 @@ def os():
 @app.route('/os/<os_id>', methods=['GET'])
 @cross_origin()
 def os_details(os_id):
-    reply = DEFAULT_REPLY
+    reply = DEFAULT_REPLY.copy()
     query = '''
     MATCH (o:OS)
     WHERE o.id = $os_id
@@ -79,33 +85,64 @@ def os_details(os_id):
         return jsonify(reply)
 
 
-# @app.route('/os/<os_id>/filesystem/', methods=['GET'])
-# @app.route('/os/<os_id>/filesystem/<path:fs_path>', methods=['GET'])
-# @cross_origin()
-# def filesystem(os_id, fs_path=None):
-#     reply = {'status': 'success'}
-#
-#     if fs_path is None:
-#         fs_path = PurePath('/')
-#     else:
-#         fs_path = PurePath('/') / unquote(fs_path)
-#
-#     cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_FILESYSTEM]->(root:GraphInode {{name: '/' }})".format(
-#         os_id=os_id)
-#     for part in fs_path.parts[1:]:
-#         subquery = "-[:HAS_CHILD]->(:GraphInode {{name: '{folder_name}'}})".format(folder_name=part)
-#         cypher_query += subquery
-#     cypher_query += "-[:HAS_CHILD]->(child:GraphInode) RETURN child"
-#     logging.debug(cypher_query)
-#     try:
-#         cursor = GRAPH.run(cypher_query)
-#     except GraphError:
-#         logging.exception("Cypher query failed")
-#         return jsonify(reply)
-#     reply['fs_entries'] = [record['child'] for record in cursor]
-#     return jsonify(reply)
-#
-#
+@app.route('/os/<os_id>/filesystem/', methods=['GET'])
+@app.route('/os/<os_id>/filesystem/<path:fs_path>', methods=['GET'])
+@cross_origin()
+def filesystem(os_id, fs_path=None):
+    reply = DEFAULT_REPLY.copy()
+
+    if fs_path is None:
+        fs_path = PurePath('/')
+    else:
+        fs_path = PurePath('/') / unquote(fs_path)
+    fs_entries = []
+    try:
+        with DRIVER.session() as session:
+            query_match = 'MATCH (o:OS)'
+            query_where: List[str] = ['WHERE o.id = $os_id']
+            params = {'os_id': os_id}
+            # take parts
+            # ['/', 'Program Files', ...]
+            fs_path_parts = fs_path.parts
+            # add root
+            query_match += '-[r_root:OWNS_FILESYSTEM]->(:Tree)'
+            query_where.append('AND r_root.name = $r_root')
+            params['r_root'] = cypher_escape(fs_path_parts[0])
+            # add rest of the paths
+            for index, path_part in enumerate(fs_path_parts[1:]):
+                rel_var = f'r{index}'
+                query_match += f'-[{rel_var}:HAS_CHILD_TREE]->(:Tree)'
+                query_where.append(f'AND {rel_var}.name = ${rel_var}')
+                params[rel_var] = cypher_escape(path_part)
+            # return children
+            query_match += '-[rel_child:HAS_CHILD_TREE|HAS_CHILD_BLOB]->()\n'
+            query = query_match + '\n'.join(query_where) + '\nRETURN rel_child.name as filename, type(rel_child) as child_type'
+            # run query
+            logging.debug('filesystem:query: %s, parameters: %s', pformat(query), pformat(params))
+            cursor = session.run(query, parameters=params)
+            # entry is like
+            # {
+            #   'name': 'explorer.exe'
+            #   'inode_type': 'DIR'
+            # }
+            for record in cursor:
+                entry = {
+                    'name': cypher_unescape(record['filename']),
+                    'inode_type': 'FILE'
+                }
+                if record['child_type'] == 'HAS_CHILD_TREE':
+                    entry['inode_type'] = 'DIR'
+                fs_entries.append(entry)
+    except DriverError as e:
+        logging.exception(e)
+        reply['error'] = str(e)
+    else:
+        reply['status'] = 'success'
+    finally:
+        reply['fs_entries'] = fs_entries
+        return jsonify(reply)
+
+
 # @app.route('/os/<os_id>/filesystem/search', methods=['POST'])
 # @cross_origin()
 # def filesystem_search(os_id):
