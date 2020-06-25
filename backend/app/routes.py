@@ -38,13 +38,12 @@ def os():
         reply['os'] = os_items
         with DRIVER.session() as session:
             cursor: Result = session.run(query)
-            os_item = {}
             for result in cursor:
                 cur_os = result['o']
-                os_item['id'] = cur_os['id']
-                os_item['name'] = cur_os['name']
-                os_item['insert_date'] = cur_os['insert_date']
-                os_item['type'] = cur_os['type']
+                os_item = {'id': cur_os['id'],
+                           'name': cur_os['name'],
+                           'insert_date': cur_os['insert_date'],
+                           'type': cur_os['type']}
                 os_items.append(os_item)
     except (DriverError, KeyError) as e:
         logging.exception('Cypher error')
