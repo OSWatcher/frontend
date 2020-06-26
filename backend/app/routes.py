@@ -220,17 +220,31 @@ def filesystem(os_id, fs_path=None):
 #     return jsonify(reply)
 #
 #
-# @app.route('/os/<os_id>/syscall', methods=['GET'])
-# @cross_origin()
-# def syscall(os_id):
-#     reply = {'status': 'success'}
-#     cypher_query = "MATCH (:OS {{id: '{os_id}'}})-[:OWNS_SYSCALL]->(syscall:Syscall) RETURN syscall".format(
-#         os_id=os_id)
-#     logging.debug(cypher_query)
-#     try:
-#         cursor = GRAPH.run(cypher_query)
-#     except GraphError:
-#         logging.exception("Cypher query failed")
-#         return jsonify(reply)
-#     reply['syscall_entries'] = [record['syscall'] for record in cursor]
-#     return jsonify(reply)
+@app.route('/os/<os_id>/syscall', methods=['GET'])
+@cross_origin()
+def syscall(os_id):
+    reply = DEFAULT_REPLY.copy()
+    syscall_entries = []
+    try:
+        with DRIVER.session() as session:
+            query = '''
+            MATCH (o:OS)-[:OWNS_SYSCALL]->(syscall:Syscall)
+            WHERE o.id = $os_id
+            RETURN syscall
+            '''
+            cursor = session.run(query, os_id=os_id)
+            for result in cursor:
+                cur_syscall = result['syscall']
+                item = {
+                    'name': cur_syscall['name'],
+                    'address': cur_syscall['address'],
+                    'index': cur_syscall['index']
+                }
+                syscall_entries.append(item)
+    except DriverError as e:
+        reply['error'] = str(e)
+    else:
+        reply['status'] = 'success'
+    finally:
+        reply['syscall_entries'] = syscall_entries
+        return jsonify(reply)
