@@ -1,6 +1,7 @@
 import logging
 from pathlib import PurePath
-from typing import List, Dict, Any
+from pprint import pformat
+from typing import Any, Dict, List
 from urllib.parse import unquote
 
 from flask import jsonify, request
@@ -8,16 +9,15 @@ from flask_cors import cross_origin
 from neo4j import Driver, Result
 from neo4j.exceptions import DriverError
 from py2neo.cypher import cypher_escape
-from pprint import pformat
 
 from . import app
-
 
 DRIVER: Driver = app.config['driver']
 DEFAULT_REPLY: Dict[str, Any] = {
     'status': 'failure',
     'error': 0
 }
+VALID_CRITERIA = ['=', '=~']
 
 
 def cypher_unescape(value: str):
@@ -142,84 +142,83 @@ def filesystem(os_id, fs_path=None):
         return jsonify(reply)
 
 
-# @app.route('/os/<os_id>/filesystem/search', methods=['POST'])
-# @cross_origin()
-# def filesystem_search(os_id):
-#     """
-#     Filesystem search using criterias provided in the POST request data
-#     example of criteria
-#     {
-#         "setuid": true
-#     }
-#
-#     {
-#         "name": "tmp"
-#     }
-#
-#     or even regex
-#     {
-#         "name": {
-#             "type": "regex",
-#             "value": ".*tmp.*"
-#         }
-#     }
-#     :param os_id: uuid of OS node
-#     :return:
-#     """
-#     reply = {'status': 'failure'}
-#     filter = request.json
-#     if not filter:
-#         # a search request without a filter would return all the inodes
-#         # this is not acceptable
-#         return jsonify(reply)
-#     logging.debug("filter: %s", filter)
-#     where_str_list = []
-#     for k, v in filter.items():
-#         if isinstance(v, bool):
-#             current_filter = f"inode.{k} = {v}"
-#         elif isinstance(v, str):
-#             current_filter = f"inode.{k} = '{v}'"
-#         elif isinstance(v, dict):
-#             # complex query
-#             try:
-#                 type = v['type']
-#                 value = v['value']
-#             except KeyError:
-#                 return jsonify(reply)
-#             else:
-#                 # redouble backslack because of JSON
-#                 value = value.replace('\\', '\\\\')
-#                 logging.info(value)
-#                 # one type is supported: regex
-#                 if type != 'regex':
-#                     return jsonify(reply)
-#                 current_filter = f"inode.{k} =~ '{value}'"
-#         else:
-#             return jsonify(reply)
-#         where_str_list.append(current_filter)
-#     inode_where = ' AND '.join(where_str_list)
-#     cypher_query = \
-#         f"MATCH (os:OS)-[*]->(inode:GraphInode)\n" \
-#         f"WHERE os.id = '{os_id}' AND {inode_where}\n" \
-#         "RETURN inode"
-#     logging.debug(cypher_query)
-#     try:
-#         cursor = GRAPH.run(cypher_query)
-#     except GraphError:
-#         logging.exception("Cypher query failed")
-#         return jsonify(reply)
-#     graph_inodes_properties = [k for k, v in GraphInode.__dict__.items() if isinstance(v, Property)]
-#     search_result = []
-#     for record in cursor:
-#         current_result = {}
-#         for prop in graph_inodes_properties:
-#             current_result[prop] = record['inode'][prop]
-#         search_result.append(current_result)
-#     reply['result'] = search_result
-#     reply['status'] = 'success'
-#     return jsonify(reply)
-#
-#
+@app.route('/os/<os_id>/filesystem/search', methods=['POST'])
+@cross_origin()
+def filesystem_search(os_id):
+    """
+    Filesystem search using criterias provided in the POST request data.
+    example of search criteria
+    default criteria is =
+    [
+        {
+            "prop": "name",
+            "value": "tmp",
+            "criteria": "="
+        }
+    ]
+
+    :param os_id: uuid of OS node
+    :return:
+    """
+    reply = DEFAULT_REPLY.copy()
+    filter_list = request.json
+    if not filter_list:
+        # a search request without a filter would return all the inodes
+        # this is not acceptable
+        return jsonify(reply)
+    logging.debug("filter: %s", filter_list)
+    search_result = []
+    try:
+        with DRIVER.session() as session:
+            query = '''
+            MATCH (o:OS)
+            WHERE o.id = $os_id
+            WITH o
+            MATCH path = (o)-[r*]->(b:Blob)
+            WHERE type(last(r)) = 'HAS_CHILD_BLOB'\n
+            '''
+            # build where statement
+            where_stmt = []
+            relationship_properties = ['name', 'setuid', 'setgid', 'sticky']
+            params = {'os_id': os_id}
+            for index, filt in enumerate(filter_list):
+                prop = filt['prop']
+                crit = filt.get('criteria', '=')
+                # sanitize criteria
+                if crit not in VALID_CRITERIA:
+                    raise RuntimeError(f'Invalid criteria {crit}')
+                val_param_name = f'filter_{index}'
+                params[val_param_name] = filt['val']
+                if prop in relationship_properties:
+                    cur_where = f'AND last(r).{prop} {crit} ${val_param_name}'
+                else:
+                    cur_where = f'AND b.{prop} {crit} ${val_param_name}'
+                where_stmt.append(cur_where)
+            query += '\n'.join(where_stmt)
+            # add RETURN
+            query += '\nRETURN path'
+            logging.debug('filesystem:search: %s, %s', pformat(query), pformat(params))
+            cursor = session.run(query, parameters=params)
+            for result in cursor:
+                path_part_list = [cypher_unescape(r['name']) for r in result['path'].relationships]
+                bin_path = PurePath('/')
+                # skip /
+                for part in path_part_list[1:]:
+                    bin_path /= part
+                item = {
+                    'path': str(bin_path)
+                }
+                search_result.append(item)
+    except (DriverError, KeyError, RuntimeError) as e:
+        logging.exception(e)
+        reply['error'] = str(e)
+    else:
+        reply['status'] = 'success'
+    finally:
+        reply['result'] = search_result
+        return jsonify(reply)
+
+
 @app.route('/os/<os_id>/syscall', methods=['GET'])
 @cross_origin()
 def syscall(os_id):
