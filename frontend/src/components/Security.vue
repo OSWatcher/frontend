@@ -212,7 +212,10 @@ export default {
   methods: {
     list_setuid() {
       const url = `${config.API_LOCATION}/os/${this.os.id}/filesystem/search`;
-      const params = {'setuid': true};
+      const params = [{
+        'prop': 'setuid',
+        'val': true
+      }];
 
       axios.post(url, params)
         .then((res) => {
@@ -224,7 +227,10 @@ export default {
     },
     list_checksec() {
       const url = `${config.API_LOCATION}/os/${this.os.id}/filesystem/search`;
-      const params = {'checksec': true};
+      const params = [{
+        'prop': 'checksec',
+        'val': true
+      }];
 
       axios.post(url, params)
         .then((res) => {
