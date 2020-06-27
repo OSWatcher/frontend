@@ -101,7 +101,7 @@ export default {
         });
     },
     inode_is_dir(inode_type) {
-      return inode_type == 16384 ? true : false;
+      return inode_type == 'DIR' ? true : false;
     },
     build_fs_parts(new_fs_path) {
       // update this.fs_path_items
