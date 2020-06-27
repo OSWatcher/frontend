@@ -23,4 +23,4 @@ session = driver.session()
 app.config['driver'] = driver
 
 # define routes
-from . import routes    # noqa: E402,F401
+from . import routes  # noqa: E402,F401

@@ -9,11 +9,12 @@ Options:
 """
 
 import logging
-# local
-from app import app
+
 # 3rd
 from docopt import docopt
 
+# local
+from app import app
 
 LOG_FORMAT = "%(asctime)s %(levelname)s:%(name)s:%(message)s"
 
