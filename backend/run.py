@@ -5,6 +5,7 @@ Usage: app.py [options]
 
 Options:
     -h --help                       Display this message
+    -l ADDRESS --listen ADDRESS     Listen address [Default: 127.0.0.1]
     -d --debug                      Enable debug output
 """
 
@@ -24,13 +25,14 @@ def main():
     level = logging.INFO
     if args['--debug']:
         level = logging.DEBUG
+    listen_addr = args['--listen']
     logging.basicConfig(level=level, format=LOG_FORMAT)
     # suppress py2neo protocol output
     logging.getLogger("httpstream").setLevel(logging.WARNING)
     logging.getLogger("neo4j").setLevel(logging.WARNING)
     logging.getLogger("neobolt").setLevel(logging.WARNING)
     # run server
-    app.run(debug=args['--debug'], ssl_context='adhoc')
+    app.run(host=listen_addr, debug=args['--debug'], ssl_context='adhoc')
 
 
 if __name__ == "__main__":
