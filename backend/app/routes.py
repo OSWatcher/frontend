@@ -114,8 +114,8 @@ def filesystem(os_id, fs_path=None):
                 query_where.append(f'AND {rel_var}.name = ${rel_var}')
                 params[rel_var] = cypher_escape(path_part)
             # return children
-            query_match += '-[rel_child:HAS_CHILD_TREE|HAS_CHILD_BLOB]->()\n'
-            query = query_match + '\n'.join(query_where) + '\nRETURN rel_child.name as filename, type(rel_child) as child_type'
+            query_match += '-[rel_child:HAS_CHILD_TREE|HAS_CHILD_BLOB]->(b)\n'
+            query = query_match + '\n'.join(query_where) + '\nRETURN rel_child.name as filename, type(rel_child) as child_type, b'
             # run query
             logging.debug('filesystem:query: %s, parameters: %s', pformat(query), pformat(params))
             cursor = session.run(query, parameters=params)
@@ -131,6 +131,10 @@ def filesystem(os_id, fs_path=None):
                 }
                 if record['child_type'] == 'HAS_CHILD_TREE':
                     entry['inode_type'] = 'DIR'
+                else:
+                    # add mime_type and file_type
+                    entry['mime_type'] = record['b']['mime_type']
+                    entry['file_type'] = record['b']['file_type']
                 fs_entries.append(entry)
     except DriverError as e:
         logging.exception(e)
