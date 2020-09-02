@@ -210,9 +210,10 @@ def filesystem_search(os_id):
                 # skip /
                 for part in path_part_list[1:]:
                     bin_path /= part
-                item = {
-                    'path': str(bin_path)
-                }
+                item = result['path'].end_node.__dict__['_properties']
+                # add 'path' and 'name' keys for checksec table
+                item['path'] = str(bin_path)
+                item['name'] = bin_path.name
                 search_result.append(item)
     except (DriverError, KeyError, RuntimeError) as e:
         logging.exception(e)
