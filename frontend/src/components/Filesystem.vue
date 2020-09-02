@@ -30,8 +30,18 @@
             v-for="entry in fs_file_entries"
             :key="entry.id"
           >
-            <b-icon icon="file-earmark"></b-icon>
-            {{entry.name}}
+            <div class="row">
+              <b-icon icon="file-earmark"></b-icon>
+              <div class="col">
+                {{entry.name}}
+              </div>
+              <div class="col">
+                <b-badge variant="info">{{entry.mime_type}}</b-badge>
+              </div>
+              <div class="col">
+                <b-badge variant="secondary">{{entry.file_type}}</b-badge>
+              </div>
+            </div>
           </b-list-group-item>
         </b-list-group>
       </div>
