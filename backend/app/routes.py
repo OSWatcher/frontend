@@ -115,7 +115,8 @@ def filesystem(os_id, fs_path=None):
                 params[rel_var] = cypher_escape(path_part)
             # return children
             query_match += '-[rel_child:HAS_CHILD_TREE|HAS_CHILD_BLOB]->(b)\n'
-            query = query_match + '\n'.join(query_where) + '\nRETURN rel_child.name as filename, type(rel_child) as child_type, b'
+            query = query_match + '\n'.join(query_where) + '\nRETURN rel_child.name as filename, ' \
+                                                           'type(rel_child) as child_type, b'
             # run query
             logging.debug('filesystem:query: %s, parameters: %s', pformat(query), pformat(params))
             cursor = session.run(query, parameters=params)
