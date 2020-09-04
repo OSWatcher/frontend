@@ -15,7 +15,7 @@
               <SyscallTable :os="os_item"/>
             </b-tab>
           </template>
-          <b-tab title="Security">
+          <b-tab title="Security" v-if="os_item.type == 'Linux'">
             <Security :os="os_item"/>
           </b-tab>
         </b-tabs>
