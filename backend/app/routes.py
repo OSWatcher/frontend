@@ -233,17 +233,17 @@ def syscall(os_id):
     try:
         with DRIVER.session() as session:
             query = '''
-            MATCH (o:OS)-[:OWNS_SYSCALL]->(syscall:Syscall)
+            MATCH (o:OS)-[r:OWNS_SYSCALL]->(syscall:Syscall)
             WHERE o.id = $os_id
-            RETURN syscall
+            RETURN syscall.name, r.index, r.address
             '''
             cursor = session.run(query, os_id=os_id)
             for result in cursor:
-                cur_syscall = result['syscall']
+                name, index, address = result
                 item = {
-                    'name': cur_syscall['name'],
-                    'address': cur_syscall['address'],
-                    'index': cur_syscall['index']
+                    'name': name,
+                    'address': address,
+                    'index': index
                 }
                 syscall_entries.append(item)
     except DriverError as e:
