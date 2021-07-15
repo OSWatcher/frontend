@@ -13,14 +13,13 @@ app = Flask(__name__)
 Bootstrap(app)
 
 # Load configuration
-app.config.from_pyfile(APP_DIR / 'config.cfg')
+app.config.from_pyfile(APP_DIR / "config.cfg")
 
 # init neo4j driver
-driver = GraphDatabase.driver(uri=app.config['NEO4J_URI'],
-                              auth=(app.config['NEO4J_USER'], app.config['NEO4J_PASS']))
+driver = GraphDatabase.driver(uri=app.config["NEO4J_URI"], auth=(app.config["NEO4J_USER"], app.config["NEO4J_PASS"]))
 session = driver.session()
 # make driver object available
-app.config['driver'] = driver
+app.config["driver"] = driver
 
 # define routes
 from . import routes  # noqa: E402,F401

@@ -24,19 +24,19 @@ LOG_FORMAT = "%(asctime)s %(levelname)s:%(name)s:%(message)s"
 def main():
     args = docopt(__doc__)
     level = logging.INFO
-    if args['--debug']:
+    if args["--debug"]:
         level = logging.DEBUG
-    listen_addr = args['--listen']
-    context = args['--ssl']
-    if ':' in context:
-        context = tuple(context.split(':'))
+    listen_addr = args["--listen"]
+    context = args["--ssl"]
+    if ":" in context:
+        context = tuple(context.split(":"))
     logging.basicConfig(level=level, format=LOG_FORMAT)
     # suppress py2neo protocol output
     logging.getLogger("httpstream").setLevel(logging.WARNING)
     logging.getLogger("neo4j").setLevel(logging.WARNING)
     logging.getLogger("neobolt").setLevel(logging.WARNING)
     # run server
-    app.run(host=listen_addr, debug=args['--debug'], ssl_context=context)
+    app.run(host=listen_addr, debug=args["--debug"], ssl_context=context)
 
 
 if __name__ == "__main__":
