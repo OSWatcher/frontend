@@ -71,9 +71,12 @@ onMounted(async () => {
             <strong>{{ branchName }}</strong>
           </div>
           <ul class="list-group list-group-flush">
-            <li class="list-group-item" v-for="commit in commits" :key="commit.hash">
-              {{ commit.name }}
-              <br>
+            <li class="list-group-item"
+                v-for="commit in commits"
+                :key="commit.hash">
+              <router-link :to="`/os/${commit.hash}`">
+                {{ commit.name }}
+              </router-link>
             </li>
           </ul>
         </div>
