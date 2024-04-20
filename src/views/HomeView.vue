@@ -61,17 +61,32 @@ onMounted(async () => {
 });
 </script>
 
-
 <template>
-  <main>
-    <h1>Branches</h1>
-    <div v-for="(commits, branchName) in branchesWithCommits" :key="branchName">
-      <h2>{{ branchName }}</h2>
-      <ul>
-        <li v-for="commit in commits" :key="commit.hash">
-          {{ commit.name }}
-        </li>
-      </ul>
+  <main class="container mt-3">
+    <h1 class="mb-4">Branches</h1>
+    <div class="row">
+      <div class="col-12 col-md-6 col-lg-4 mb-3" v-for="(commits, branchName) in branchesWithCommits" :key="branchName">
+        <div class="card">
+          <div class="card-header">
+            <strong>{{ branchName }}</strong>
+          </div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item" v-for="commit in commits" :key="commit.hash">
+              {{ commit.name }}
+              <br>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </main>
 </template>
+
+<style>
+.badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 75px;
+  display: inline-block;
+}
+</style>
