@@ -120,7 +120,6 @@ const onBreadcrumbClicked = (index) => {
 
 <template>
   <div>
-    <h2>Filesystem</h2>
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
         <li
