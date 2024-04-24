@@ -12,10 +12,10 @@ const currentTab = ref('filesystem')
 // tabs visibility
 const tabVisibility = ref({
   filesystem: true, // Filesystem is always visible
-  registry: false,
+  registry: false
 })
 
-getCommitCapabilities = gql`
+const getCommitCapabilities = gql`
   query Query($commitHash: String!) {
     getCommitExtractedDataLabels(commit_hash: $commitHash)
   }
@@ -23,11 +23,14 @@ getCommitCapabilities = gql`
 
 onMounted(async () => {
   try {
-    const response = await gqlClient.query({ query: getCommitCapabilities })
-    const labels = response.data.getCommitExtractedDataLabels;
+    const response = await gqlClient.query({
+      query: getCommitCapabilities,
+      variables: { commitHash: os_hash }
+    })
+    const labels = response.data.getCommitExtractedDataLabels
     // registry ?
     if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
-      tabVisibility.value.registry = true;
+      tabVisibility.value.registry = true
     }
   } catch (error) {
     console.error('Error fetching OS capabilities', error)
@@ -39,12 +42,12 @@ onMounted(async () => {
   <div class="container">
     <!-- tabs -->
     <ul class="nav nav-tabs">
-      <li class="nav-item" :class="{ 'active': currentTab === 'filesystem' }">
+      <li class="nav-item" :class="{ active: currentTab === 'filesystem' }">
         <a href="#" class="nav-link" @click="currentTab = 'filesystem'">Filesystem</a>
       </li>
     </ul>
     <!-- tab content -->
-    <div class="tab-pane" :class="{ 'active': currentTab === 'filesystem' }" id="filesystem">
+    <div class="tab-pane" :class="{ active: currentTab === 'filesystem' }" id="filesystem">
       <FilesystemTree :os_hash="os_hash" />
     </div>
   </div>
