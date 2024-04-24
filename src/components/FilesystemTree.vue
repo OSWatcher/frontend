@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import { gql } from '@apollo/client/core'
 import TreeExplorer from '@/components/TreeExplorer.vue'
@@ -12,10 +12,26 @@ const props = defineProps({
 })
 
 const fsPath = ref('/')
+// the root hash of the filesystem
+const fs_root = ref(null)
 
-const GET_TREE_AT_PATH = gql`
-  query Query($commitHash: String!, $path: String!) {
-    getTreeAtPath(commit_hash: $commitHash, path: $path)
+const GET_FS_ROOT = gql`
+  query Commits($where: CommitWhere) {
+    commits(where: $where) {
+      filesystemConnection {
+        edges {
+          node {
+            hash
+          }
+        }
+      }
+    }
+  }
+`
+
+const TRAVERSE_PATH = gql`
+  query Query($tree_hash: String!, $path: String!) {
+    traversePath(tree_hash: $tree_hash, path: $path)
   }
 `
 
@@ -50,10 +66,10 @@ const LIST_ENTRIES_FOR_TREE = gql`
 async function listFsAt(path: string) {
   // Here you would use the useQuery hook from Apollo Client Vue to fetch data
   const response = await gqlClient.query({
-    query: GET_TREE_AT_PATH,
-    variables: { commitHash: props.os_hash, path }
+    query: TRAVERSE_PATH,
+    variables: { tree_hash: fs_root.value, path }
   })
-  const tree_hash = response.data['getTreeAtPath']
+  const tree_hash = response.data['traversePath']
   // get children
   const children = await gqlClient.query({
     query: LIST_ENTRIES_FOR_TREE,
@@ -81,10 +97,20 @@ function parseFSEntries(new_data) {
   folders = folders.sort((a, b) => a.name.localeCompare(b.name))
   return { files, folders }
 }
+
+// onMounted, use GET_FS_ROOT to get the root of the filesystem
+onMounted(async () => {
+  const response = await gqlClient.query({
+    query: GET_FS_ROOT,
+    variables: { where: { hash: props.os_hash } }
+  })
+  const tree_hash = response.data['commits'][0]['filesystemConnection']['edges'][0]['node']['hash']
+  fs_root.value = tree_hash
+})
 </script>
 
 <template>
-  <TreeExplorer :initialPath="fsPath" :getEntries="listFsAt">
+  <TreeExplorer v-if="fs_root" :initialPath="fsPath" :getEntries="listFsAt">
     <template #default="{ entries, onEntryClick }">
       <a
         href="#"
