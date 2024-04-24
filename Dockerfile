@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install
 
 # Copy TypeScript, Vue, ESLint, and other configuration files
-COPY tsconfig.json .eslintrc.js vue.config.js ./
+COPY tsconfig.json .eslintrc.cjs vue.config.js ./
 
 # Copy the rest of the source code
 COPY src/ src/
