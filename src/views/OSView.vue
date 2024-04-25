@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
+import RegistryTree from '@/components/RegistryTree.vue'
 import gqlClient from '@/graphql-client'
 import { gql } from '@apollo/client/core'
 
@@ -45,10 +46,25 @@ onMounted(async () => {
       <li class="nav-item" :class="{ active: currentTab === 'filesystem' }">
         <a href="#" class="nav-link" @click="currentTab = 'filesystem'">Filesystem</a>
       </li>
+      <li
+        class="nav-item"
+        :class="{ active: currentTab === 'registry' }"
+        v-if="tabVisibility.registry"
+      >
+        <a href="#" class="nav-link" @click="currentTab = 'registry'">Registry</a>
+      </li>
     </ul>
     <!-- tab content -->
     <div class="tab-pane" :class="{ active: currentTab === 'filesystem' }" id="filesystem">
       <FilesystemTree :os_hash="os_hash" />
+    </div>
+    <div
+      class="tab-pane"
+      :class="{ active: currentTab === 'registry' }"
+      id="registry"
+      v-if="tabVisibility.registry"
+    >
+      <RegistryTree :os_hash="os_hash" />
     </div>
   </div>
 </template>
