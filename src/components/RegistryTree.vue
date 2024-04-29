@@ -21,14 +21,11 @@ const root = '/'
 const registryHiveHashes = ref({})
 
 // declare mapping of S32_CONFIG + '/SAM' to HKLM/SAM
-const HIVE_MAPPING_HKLM = {
+const HIVE_MAPPING = {
   [`${S32_CONFIG}/SAM`]: 'HKEY_LOCAL_MACHINE/SAM',
   [`${S32_CONFIG}/SECURITY`]: 'HKEY_LOCAL_MACHINE/SECURITY',
   [`${S32_CONFIG}/SOFTWARE`]: 'HKEY_LOCAL_MACHINE/SOFTWARE',
-  [`${S32_CONFIG}/SYSTEM`]: 'HKEY_LOCAL_MACHINE/SYSTEM'
-}
-
-const HIVE_MAPPING_HKU = {
+  [`${S32_CONFIG}/SYSTEM`]: 'HKEY_LOCAL_MACHINE/SYSTEM',
   [`${S32_CONFIG}/DEFAULT`]: 'HKEY_USERS/.Default'
 }
 
@@ -105,9 +102,19 @@ async function listFsAt(path: string) {
     // without HKLM prefix
     // return {folders: [{ name: 'SAM' }, { name: 'SECURITY' }, { name: 'SOFTWARE' }, { name: 'SYSTEM' }]}
     return {
-      folders: Object.values(HIVE_MAPPING_HKLM).map((hive) => ({ name: hive.split('/')[1] })),
+      folders: Object.values(HIVE_MAPPING)
+        .filter(hive => hive.startsWith('HKEY_LOCAL_MACHINE'))
+        .map(hive => ({ name: hive.split('/')[1] })),
       files: []
-    }
+    };
+  }
+  if (path === `/${HKU}`) {
+    return {
+      folders: Object.values(HIVE_MAPPING)
+        .filter(hive => hive.startsWith('HKEY_USERS'))
+        .map(hive => ({ name: hive.split('/')[1] })),
+      files: []
+    };
   }
   const path_parts = path.split('/').filter(Boolean)
   switch (path_parts[0]) {
@@ -164,7 +171,7 @@ onMounted(async () => {
   // use Promise.all to fetch all registry blob at once
   // return mapping of registry hive name to blob hash
   const registryBlobs = await Promise.all(
-    Object.keys(HIVE_MAPPING_HKLM).map(async (path) => {
+    Object.keys(HIVE_MAPPING).map(async (path) => {
       const response = await gqlClient.query({
         query: TRAVERSE_PATH,
         variables: { tree_hash: fs_root.value, path }
@@ -179,7 +186,7 @@ onMounted(async () => {
         query: HAS_WINREG,
         variables: { where: { hash: blobHash } }
       })
-      const hiveName = Object.values(HIVE_MAPPING_HKLM)[index]
+      const hiveName = Object.values(HIVE_MAPPING)[index]
       const winRegHash = response.data.blobs[0].has_winreg.hash
       return { hiveName, winRegHash }
     })
