@@ -1,0 +1,125 @@
+import { gql } from '@apollo/client/core'
+
+// home
+const fetchAllBranches = gql`
+  query {
+    branches {
+      name
+    }
+  }
+`
+
+const fetchCommitHistory = gql`
+  query ($branchName: String!) {
+    fetchCommitHistory(branch_name: $branchName) {
+      hash
+      name
+      date
+    }
+  }
+`
+
+// osview
+const getCommitCapabilities = gql`
+  query Query($commitHash: String!) {
+    getCommitExtractedDataLabels(commit_hash: $commitHash)
+  }
+`
+
+// registry
+const GET_FS_ROOT = gql`
+  query Commits($where: CommitWhere) {
+    commits(where: $where) {
+      filesystemConnection {
+        edges {
+          node {
+            hash
+          }
+        }
+      }
+    }
+  }
+`
+
+const HAS_WINREG = gql`
+  query ($where: BlobWhere) {
+    blobs(where: $where) {
+      has_winreg {
+        hash
+      }
+    }
+  }
+`
+
+const TRAVERSE_PATH = gql`
+  query Query($tree_hash: String!, $path: String!) {
+    traversePath(tree_hash: $tree_hash, path: $path)
+  }
+`
+
+const LIST_ENTRIES_FOR_KEY = gql`
+  query WinRegKeys($where: WinRegKeyWhere) {
+    winRegKeys(where: $where) {
+      child_keysConnection {
+        edges {
+          node {
+            hash
+          }
+        }
+        edges {
+          properties {
+            name
+          }
+        }
+      }
+      child_valuesConnection {
+        edges {
+          node {
+            hash
+          }
+          properties {
+            name
+          }
+        }
+      }
+    }
+  }
+`
+
+const LIST_ENTRIES_FOR_TREE = gql`
+  query Query($where: TreeWhere) {
+    trees(where: $where) {
+      child_blobsConnection {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+          }
+        }
+      }
+      child_treesConnection {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+          }
+        }
+      }
+    }
+  }
+`
+
+export {
+  fetchAllBranches,
+  fetchCommitHistory,
+  getCommitCapabilities,
+  GET_FS_ROOT,
+  HAS_WINREG,
+  TRAVERSE_PATH,
+  LIST_ENTRIES_FOR_KEY,
+  LIST_ENTRIES_FOR_TREE
+}

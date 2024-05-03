@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
-import { gql } from '@apollo/client/core'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { TRAVERSE_PATH, LIST_ENTRIES_FOR_KEY, GET_FS_ROOT, HAS_WINREG } from '@/queries'
 
 const props = defineProps({
   os_hash: {
@@ -30,65 +30,6 @@ const HIVE_MAPPING = {
 }
 
 const fs_root = ref(null)
-
-const GET_FS_ROOT = gql`
-  query Commits($where: CommitWhere) {
-    commits(where: $where) {
-      filesystemConnection {
-        edges {
-          node {
-            hash
-          }
-        }
-      }
-    }
-  }
-`
-
-const HAS_WINREG = gql`
-  query ($where: BlobWhere) {
-    blobs(where: $where) {
-      has_winreg {
-        hash
-      }
-    }
-  }
-`
-
-const TRAVERSE_PATH = gql`
-  query Query($tree_hash: String!, $path: String!) {
-    traversePath(tree_hash: $tree_hash, path: $path)
-  }
-`
-
-const LIST_ENTRIES_FOR_KEY = gql`
-  query WinRegKeys($where: WinRegKeyWhere) {
-    winRegKeys(where: $where) {
-      child_keysConnection {
-        edges {
-          node {
-            hash
-          }
-        }
-        edges {
-          properties {
-            name
-          }
-        }
-      }
-      child_valuesConnection {
-        edges {
-          node {
-            hash
-          }
-          properties {
-            name
-          }
-        }
-      }
-    }
-  }
-`
 
 async function listFsAt(path: string) {
   if (path === '/') {
