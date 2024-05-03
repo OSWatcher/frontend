@@ -4,8 +4,8 @@ import { onMounted, markRaw, reactive } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
 import RegistryTree from '@/components/RegistryTree.vue'
 import gqlClient from '@/graphql-client'
-import { gql } from '@apollo/client/core'
 import { BTabs, BTab } from 'bootstrap-vue-next'
+import { getCommitCapabilities } from '@/queries'
 
 const route = useRoute()
 const os_hash = route.params.os_hash
@@ -13,12 +13,6 @@ const os_hash = route.params.os_hash
 const tabs = reactive({
   filesystem: { title: 'Filesystem', component: markRaw(FilesystemTree) }
 })
-
-const getCommitCapabilities = gql`
-  query Query($commitHash: String!) {
-    getCommitExtractedDataLabels(commit_hash: $commitHash)
-  }
-`
 
 onMounted(async () => {
   try {
