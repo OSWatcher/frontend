@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
+import { createBootstrap } from 'bootstrap-vue-next'
 // bootstrap
-import 'bootstrap/dist/css/bootstrap.min.css'
-import 'bootstrap/dist/js/bootstrap.bundle.min.js' // Includes Popper.js
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 // bootstrap-icons
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
@@ -9,7 +10,7 @@ import App from './App.vue'
 import router from './router'
 
 const app = createApp(App)
-
+app.use(createBootstrap()) // Important
 app.use(router)
 
 app.mount('#app')
