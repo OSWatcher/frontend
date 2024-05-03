@@ -103,26 +103,27 @@ async function listFsAt(path: string) {
     // return {folders: [{ name: 'SAM' }, { name: 'SECURITY' }, { name: 'SOFTWARE' }, { name: 'SYSTEM' }]}
     return {
       folders: Object.values(HIVE_MAPPING)
-        .filter(hive => hive.startsWith('HKEY_LOCAL_MACHINE'))
-        .map(hive => ({ name: hive.split('/')[1] })),
+        .filter((hive) => hive.startsWith('HKEY_LOCAL_MACHINE'))
+        .map((hive) => ({ name: hive.split('/')[1] })),
       files: []
-    };
+    }
   }
   if (path === `/${HKU}`) {
     return {
       folders: Object.values(HIVE_MAPPING)
-        .filter(hive => hive.startsWith('HKEY_USERS'))
-        .map(hive => ({ name: hive.split('/')[1] })),
+        .filter((hive) => hive.startsWith('HKEY_USERS'))
+        .map((hive) => ({ name: hive.split('/')[1] })),
       files: []
-    };
+    }
   }
   const path_parts = path.split('/').filter(Boolean)
   switch (path_parts[0]) {
     case HKLM:
-    case HKU:
+    case HKU: {
       const hive_key = path_parts.slice(0, 2).join('/')
       const rest_path = path_parts.slice(2).join('/')
       return await listRegistryEntries(registryHiveHashes.value[hive_key], `/${rest_path}`)
+    }
     default:
       // throw error
       throw new Error(`Invalid path: ${path}`)
@@ -196,9 +197,6 @@ onMounted(async () => {
   registryKeys.forEach(({ hiveName, winRegHash }) => {
     registryHiveHashes.value[hiveName] = winRegHash
   })
-
-  // Log the final registry hive hashes
-  console.log('Registry Hive Hashes:', registryHiveHashes.value)
 })
 </script>
 
