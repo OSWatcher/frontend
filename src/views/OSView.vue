@@ -1,19 +1,17 @@
 <script setup>
 import { useRoute } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, markRaw, reactive } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
 import RegistryTree from '@/components/RegistryTree.vue'
 import gqlClient from '@/graphql-client'
 import { gql } from '@apollo/client/core'
+import { BTabs, BTab } from 'bootstrap-vue-next'
 
 const route = useRoute()
 const os_hash = route.params.os_hash
-// current tab
-const currentTab = ref('filesystem')
-// tabs visibility
-const tabVisibility = ref({
-  filesystem: true, // Filesystem is always visible
-  registry: false
+// v-if isn't supported, we need to build the tabs variable and insert entries instead
+const tabs = reactive({
+  filesystem: { title: 'Filesystem', component: markRaw(FilesystemTree) }
 })
 
 const getCommitCapabilities = gql`
@@ -31,7 +29,7 @@ onMounted(async () => {
     const labels = response.data.getCommitExtractedDataLabels
     // registry ?
     if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
-      tabVisibility.value.registry = true
+      tabs.registry = { title: 'Registry', component: markRaw(RegistryTree) }
     }
   } catch (error) {
     console.error('Error fetching OS capabilities', error)
@@ -41,31 +39,11 @@ onMounted(async () => {
 
 <template>
   <div class="container">
-    <!-- tabs -->
-    <ul class="nav nav-tabs">
-      <li class="nav-item" :class="{ active: currentTab === 'filesystem' }">
-        <a href="#" class="nav-link" @click="currentTab = 'filesystem'">Filesystem</a>
-      </li>
-      <li
-        class="nav-item"
-        :class="{ active: currentTab === 'registry' }"
-        v-if="tabVisibility.registry"
-      >
-        <a href="#" class="nav-link" @click="currentTab = 'registry'">Registry</a>
-      </li>
-    </ul>
-    <!-- tab content -->
-    <div class="tab-pane" :class="{ active: currentTab === 'filesystem' }" id="filesystem">
-      <FilesystemTree :os_hash="os_hash" />
-    </div>
-    <div
-      class="tab-pane"
-      :class="{ active: currentTab === 'registry' }"
-      id="registry"
-      v-if="tabVisibility.registry"
-    >
-      <RegistryTree :os_hash="os_hash" />
-    </div>
+    <b-tabs content-class="mt-3">
+      <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
+        <component :is="tab.component" :os_hash="os_hash" />
+      </b-tab>
+    </b-tabs>
   </div>
 </template>
 
