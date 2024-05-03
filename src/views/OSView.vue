@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute } from 'vue-router'
-import { onMounted, ref, markRaw, reactive } from 'vue'
+import { onMounted, markRaw, reactive } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
 import RegistryTree from '@/components/RegistryTree.vue'
 import gqlClient from '@/graphql-client'
