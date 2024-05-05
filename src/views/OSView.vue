@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { onMounted, markRaw, reactive } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
 import RegistryTree from '@/components/RegistryTree.vue'
+import PDBExplorer from '@/components/PDBExplorer.vue'
 import gqlClient from '@/graphql-client'
 import { BTabs, BTab } from 'bootstrap-vue-next'
 import { getCommitCapabilities } from '@/queries'
@@ -24,6 +25,10 @@ onMounted(async () => {
     // registry ?
     if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
       tabs.registry = { title: 'Registry', component: markRaw(RegistryTree) }
+    }
+    // symbols ?
+    if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
+      tabs.symbols = { title: 'Symbols', component: markRaw(PDBExplorer) }
     }
   } catch (error) {
     console.error('Error fetching OS capabilities', error)
