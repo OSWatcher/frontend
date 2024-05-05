@@ -56,7 +56,13 @@ onMounted(async () => {
           </div>
           <ul class="list-group list-group-flush">
             <li class="list-group-item" v-for="commit in commits" :key="commit.hash">
-              <router-link :to="`/os/${commit.hash}`">
+              <router-link
+                :to="{
+                  name: 'OSView',
+                  params: { os_hash: commit.hash },
+                  query: { os_title: commit.name }
+                }"
+              >
                 {{ commit.name }}
               </router-link>
             </li>
