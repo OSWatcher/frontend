@@ -113,6 +113,27 @@ const LIST_ENTRIES_FOR_TREE = gql`
   }
 `
 
+const LIST_SYMBOLS = gql`
+  query Blobs($where: BlobWhere) {
+    blobs(where: $where) {
+      hash
+      has_symbolConnection {
+        totalCount
+        edges {
+          node {
+            name
+          }
+        }
+        edges {
+          properties {
+            address
+          }
+        }
+      }
+    }
+  }
+`
+
 export {
   fetchAllBranches,
   fetchCommitHistory,
@@ -121,5 +142,6 @@ export {
   HAS_WINREG,
   TRAVERSE_PATH,
   LIST_ENTRIES_FOR_KEY,
-  LIST_ENTRIES_FOR_TREE
+  LIST_ENTRIES_FOR_TREE,
+  LIST_SYMBOLS
 }

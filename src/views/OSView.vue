@@ -31,7 +31,7 @@ onMounted(async () => {
     }
     // symbols ?
     if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
-      tabs.symbols = { title: 'Symbols', component: markRaw(PDBExplorer) }
+      tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorer) }
     }
   } catch (error) {
     console.error('Error fetching OS capabilities', error)

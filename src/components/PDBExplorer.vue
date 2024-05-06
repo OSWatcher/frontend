@@ -6,7 +6,9 @@ to locate /Windows/System32/ntoskrnl.exe and display its symbols.
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
+import { TRAVERSE_PATH, GET_FS_ROOT } from '@/queries'
+import { BTabs, BTab, BCard, BRow, BCol } from 'bootstrap-vue-next'
+import SymbolView from '@/components/pdb/SymbolView.vue'
 
 const NTOSKRNL_PATH = '/Windows/System32/ntoskrnl.exe'
 
@@ -17,6 +19,7 @@ const props = defineProps({
   }
 })
 
+const blob_name = ref('ntoskrnl.exe')
 const blob_hash = ref(null)
 
 onMounted(async () => {
@@ -38,7 +41,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <h1>PDB Explorer for {{ blob_hash }}</h1>
+  <div class="container">
+    <BRow>
+      <BCol cols="4">
+        <BCard :title="blob_name"></BCard>
+      </BCol>
+    </BRow>
+    <BTabs content-class="mt-3" v-if="blob_hash">
+      <BTab title="Symbols">
+        <SymbolView :blob_hash="blob_hash" />
+      </BTab>
+    </BTabs>
   </div>
 </template>
