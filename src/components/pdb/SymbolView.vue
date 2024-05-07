@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { defineProps, ref, onMounted } from 'vue'
+import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { LIST_SYMBOLS } from '@/queries'
-import { BTable, BPagination, BSpinner } from 'bootstrap-vue-next'
+import { BTable, BPagination } from 'bootstrap-vue-next'
 
 const props = defineProps({
   blob_hash: {
@@ -10,58 +10,75 @@ const props = defineProps({
     required: true
   }
 })
-const isLoading = ref(false)
 const symbols = ref([])
+// BTable fields
 const fields = ref([
   { key: 'name', sortable: true },
-  { key: 'address', sortable: true }
+  { key: 'address', sortable: false }
 ])
-const perPage = ref(20)
+// BTable pagination
+const isLoading = ref(false)
+const perPage = ref(50)
 const currentPage = ref(1)
-const sortDesc = ref(false)
+const totalSymbols = ref(0)
 
-onMounted(async () => {
+// Fetch symbols based on current page
+async function fetchSymbols() {
   isLoading.value = true
+  const offset = (currentPage.value - 1) * perPage.value
   try {
     const response = await gqlClient.query({
       query: LIST_SYMBOLS,
-      variables: { where: { hash: props.blob_hash } }
+      variables: {
+        options: {
+          limit: perPage.value,
+          offset: offset,
+          sort: { name: 'ASC' }
+        },
+        where: {
+          blob: {
+            hash: props.blob_hash
+          }
+        },
+        blobConnectionWhere2: {
+          node: {
+            hash: props.blob_hash
+          }
+        },
+        symbolsAggregateWhere2: {
+          blob: {
+            hash: props.blob_hash
+          }
+        }
+      }
     })
-    if (response.data && response.data.blobs.length > 0) {
-      // Assuming blobs is an array and has_symbolConnection contains the needed data
-      symbols.value = response.data.blobs[0].has_symbolConnection.edges.map((edge) => ({
-        name: edge.node.name,
-        address: edge.properties.address
+    if (response.data) {
+      totalSymbols.value = response.data.symbolsAggregate.count
+      symbols.value = response.data.symbols.map((symbol) => ({
+        name: symbol.name,
+        address: symbol.blobConnection.edges[0]?.properties.address || 'No address found'
       }))
-      // Sort by name or address as needed
-      symbols.value.sort((a, b) => a.name.localeCompare(b.name))
     }
   } catch (error) {
     console.error('Error fetching symbols:', error)
   } finally {
     isLoading.value = false
   }
-})
+}
+
+// React to page changes
+watch(currentPage, fetchSymbols, { immediate: true })
 </script>
 
 <template>
-  <div class="container mt-3">
-    <BSpinner v-if="isLoading"></BSpinner>
+  <div class="container mt-3 position-relative">
     <BTable
-      v-if="symbols && symbols.length"
       :items="symbols"
       :fields="fields"
-      :per-page="perPage"
-      :current-page="currentPage"
-      v-model:sort-desc="sortDesc"
       responsive="sm"
-    >
-    </BTable>
-    <BPagination
-      v-model="currentPage"
-      :total-rows="symbols.length"
-      :per-page="perPage"
-      aria-controls="my-table"
-    ></BPagination>
+      class="mb-3"
+      :busy="isLoading"
+    ></BTable>
+    <BPagination v-model="currentPage" :total-rows="totalSymbols" :per-page="perPage"></BPagination>
   </div>
 </template>
