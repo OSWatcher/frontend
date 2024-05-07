@@ -114,19 +114,49 @@ const LIST_ENTRIES_FOR_TREE = gql`
 `
 
 const LIST_SYMBOLS = gql`
-  query Blobs($where: BlobWhere) {
-    blobs(where: $where) {
-      hash
-      has_symbolConnection {
-        totalCount
-        edges {
-          node {
-            name
-          }
-        }
+  query ListSymbols(
+    $options: SymbolOptions
+    $where: SymbolWhere
+    $blobConnectionWhere2: SymbolBlobConnectionWhere
+    $symbolsAggregateWhere2: SymbolWhere
+  ) {
+    symbolsAggregate(where: $symbolsAggregateWhere2) {
+      count
+    }
+    symbols(where: $where, options: $options) {
+      name
+      blobConnection(where: $blobConnectionWhere2) {
         edges {
           properties {
             address
+          }
+        }
+      }
+    }
+  }
+`
+
+const LIST_WINSTRUCT = gql`
+  query Blobs($where: BlobWhere) {
+    blobs(where: $where) {
+      hash
+      has_struct {
+        name
+        kind
+        size
+        fields {
+          name
+          offset
+          type {
+            hash
+            type
+            name
+            array_counter
+            bit_length
+            bit_position
+            subtype {
+              type
+            }
           }
         }
       }
@@ -143,5 +173,6 @@ export {
   TRAVERSE_PATH,
   LIST_ENTRIES_FOR_KEY,
   LIST_ENTRIES_FOR_TREE,
-  LIST_SYMBOLS
+  LIST_SYMBOLS,
+  LIST_WINSTRUCT
 }
