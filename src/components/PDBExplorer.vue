@@ -9,6 +9,7 @@ import gqlClient from '@/graphql-client'
 import { TRAVERSE_PATH, GET_FS_ROOT } from '@/queries'
 import { BTabs, BTab, BCard, BRow, BCol } from 'bootstrap-vue-next'
 import SymbolView from '@/components/pdb/SymbolView.vue'
+import StructView from '@/components/pdb/StructView.vue'
 
 const NTOSKRNL_PATH = '/Windows/System32/ntoskrnl.exe'
 
@@ -48,6 +49,9 @@ onMounted(async () => {
       </BCol>
     </BRow>
     <BTabs content-class="mt-3" v-if="blob_hash">
+      <BTab title="Structs">
+        <StructView :blob_hash="blob_hash" />
+      </BTab>
       <BTab title="Symbols">
         <SymbolView :blob_hash="blob_hash" />
       </BTab>
