@@ -14,8 +14,8 @@ const structs = ref([])
 // BTable fields
 const fields = ref([
   { key: 'name', sortable: true },
-  { key: 'kind', sortable: false },
-  { key: 'size', sortable: false }
+  { key: 'kind', sortable: true },
+  { key: 'size', sortable: true }
 ])
 // BTable pagination
 const isLoading = ref(false)
@@ -78,12 +78,24 @@ watch(currentPage, fetchStructs, { immediate: true })
 
       <template #row-details="data">
         <BCard>
-          <BTable
+          <!-- If the struct is an enum -->
+          <BTable v-if="data.item.kind === 'Enum'"
             :items="data.item.fields"
             :fields="[
-              { key: 'offset', sortable: true },
-              { key: 'name', sortable: true },
-              { key: 'type', sortable: false }
+              { key: 'name', label: 'Name', sortable: true },
+              { key: 'offset', label: 'Value', sortable: true }
+            ]"
+            :sort-by="[{ key: 'name', order: 'asc' }]"
+            small
+          />
+
+          <!-- If the struct is not an enum -->
+          <BTable v-else
+            :items="data.item.fields"
+            :fields="[
+              { key: 'offset', label: 'Offset', sortable: true },
+              { key: 'name', label: 'Name', sortable: true },
+              { key: 'type', label: 'Type', sortable: false }
             ]"
             :sort-by="[{ key: 'offset', order: 'asc' }]"
             small
