@@ -118,9 +118,8 @@ const LIST_SYMBOLS = gql`
     $options: SymbolOptions
     $where: SymbolWhere
     $blobConnectionWhere2: SymbolBlobConnectionWhere
-    $symbolsAggregateWhere2: SymbolWhere
   ) {
-    symbolsAggregate(where: $symbolsAggregateWhere2) {
+    symbolsAggregate(where: $where) {
       count
     }
     symbols(where: $where, options: $options) {
@@ -137,27 +136,20 @@ const LIST_SYMBOLS = gql`
 `
 
 const LIST_WINSTRUCT = gql`
-  query Blobs($where: BlobWhere) {
-    blobs(where: $where) {
-      hash
-      has_struct {
+  query ListWinStruct($where: WinStructWhere, $options: WinStructOptions) {
+    winStructsAggregate(where: $where) {
+      count
+    }
+    winStructs(where: $where, options: $options) {
+      name
+      kind
+      size
+      fields {
         name
-        kind
-        size
-        fields {
+        offset
+        type {
           name
-          offset
-          type {
-            hash
-            type
-            name
-            array_counter
-            bit_length
-            bit_position
-            subtype {
-              type
-            }
-          }
+          type
         }
       }
     }
