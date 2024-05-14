@@ -67,7 +67,7 @@ watch(currentPage, fetchStructs, { immediate: true })
 
 <template>
   <div class="container mt-3">
-    <b-table :items="structs" :fields="fields" responsive>
+    <b-table :items="structs" :fields="fields" responsive :busy="isLoading">
       <!-- Scoped slot for the 'name' field including the toggle button -->
       <template #cell(name)="row">
         <b-button @click="row.toggleDetails" class="me-2" :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
