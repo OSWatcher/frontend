@@ -18,7 +18,10 @@ const HKU = 'HKEY_USERS'
 const root = '/'
 
 // ref
-const registryHiveHashes = ref({})
+interface RegistryHiveHashes {
+  [key: string]: string; // Replace 'any' with the actual type of winRegHash if known
+}
+const registryHiveHashes = ref<RegistryHiveHashes>({})
 
 // declare mapping of S32_CONFIG + '/SAM' to HKLM/SAM
 const HIVE_MAPPING = {
@@ -85,20 +88,20 @@ async function listRegistryEntries(hive_hash: string, path: string) {
   return parseFSEntries(children.data.winRegKeys[0])
 }
 
-function parseFSEntries(new_data) {
-  let files = new_data.child_valuesConnection.edges.map((edge) => ({
+function parseFSEntries(new_data: any) {
+  let files = new_data.child_valuesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
-  let folders = new_data.child_keysConnection.edges.map((edge) => ({
+  let folders = new_data.child_keysConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
   // Then, sort the files and folders by name
-  files = files.sort((a, b) => a.name.localeCompare(b.name))
-  folders = folders.sort((a, b) => a.name.localeCompare(b.name))
+  files = files.sort((a: any, b: any) => a.name.localeCompare(b.name))
+  folders = folders.sort((a: any, b: any) => a.name.localeCompare(b.name))
   return { files, folders }
 }
 
