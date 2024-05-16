@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
-import { gql } from '@apollo/client/core'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
 
 const props = defineProps({
   os_hash: {
@@ -14,53 +14,6 @@ const props = defineProps({
 const fsPath = ref('/')
 // the root hash of the filesystem
 const fs_root = ref(null)
-
-const GET_FS_ROOT = gql`
-  query Commits($where: CommitWhere) {
-    commits(where: $where) {
-      filesystemConnection {
-        edges {
-          node {
-            hash
-          }
-        }
-      }
-    }
-  }
-`
-
-const TRAVERSE_PATH = gql`
-  query Query($tree_hash: String!, $path: String!) {
-    traversePath(tree_hash: $tree_hash, path: $path)
-  }
-`
-
-const LIST_ENTRIES_FOR_TREE = gql`
-  query Query($where: TreeWhere) {
-    trees(where: $where) {
-      child_blobsConnection {
-        edges {
-          properties {
-            name
-          }
-          node {
-            hash
-          }
-        }
-      }
-      child_treesConnection {
-        edges {
-          properties {
-            name
-          }
-          node {
-            hash
-          }
-        }
-      }
-    }
-  }
-`
 
 // Fetch filesystem at the given path
 async function listFsAt(path: string) {
@@ -78,16 +31,16 @@ async function listFsAt(path: string) {
   return parseFSEntries(children.data.trees[0])
 }
 
-function parseFSEntries(new_data) {
+function parseFSEntries(new_data: { child_blobsConnection: { edges: any[] }, child_treesConnection: { edges: any[] } }) {
   // update fsFolderEntries and fsFileEntries
   // both should be arrays of Objects like
   // [{ name: 'folder1', hash: 'hash1' }, ...]
-  let files = new_data.child_blobsConnection.edges.map((edge) => ({
+  let files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
-  let folders = new_data.child_treesConnection.edges.map((edge) => ({
+  let folders = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
