@@ -11,16 +11,16 @@ COPY package*.json ./
 RUN npm install
 
 # Copy TypeScript, Vue, ESLint, and other configuration files
-COPY tsconfig.json .eslintrc.cjs vue.config.js ./
+COPY tsconfig.json tsconfig.node.json tsconfig.app.json .eslintrc.cjs vue.config.js vite.config.ts ./
 
 # Copy the rest of the source code
 COPY src/ src/
-COPY public/ public/
+COPY index.html .
 
 # allow legacy crypto
 ENV NODE_OPTIONS=--openssl-legacy-provider
 # Build the application for production with minification
-RUN npm run build
+RUN npm run build-only
 
 # Production stage: Use a smaller node image to run the built application
 FROM node:21-alpine as production-stage
