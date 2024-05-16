@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
-import { gql } from '@apollo/client/core'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { TRAVERSE_PATH, LIST_ENTRIES_FOR_KEY, GET_FS_ROOT, HAS_WINREG } from '@/queries'
 
 const props = defineProps({
   os_hash: {
@@ -18,7 +18,10 @@ const HKU = 'HKEY_USERS'
 const root = '/'
 
 // ref
-const registryHiveHashes = ref({})
+interface RegistryHiveHashes {
+  [key: string]: string; // Replace 'any' with the actual type of winRegHash if known
+}
+const registryHiveHashes = ref<RegistryHiveHashes>({})
 
 // declare mapping of S32_CONFIG + '/SAM' to HKLM/SAM
 const HIVE_MAPPING = {
@@ -30,65 +33,6 @@ const HIVE_MAPPING = {
 }
 
 const fs_root = ref(null)
-
-const GET_FS_ROOT = gql`
-  query Commits($where: CommitWhere) {
-    commits(where: $where) {
-      filesystemConnection {
-        edges {
-          node {
-            hash
-          }
-        }
-      }
-    }
-  }
-`
-
-const HAS_WINREG = gql`
-  query ($where: BlobWhere) {
-    blobs(where: $where) {
-      has_winreg {
-        hash
-      }
-    }
-  }
-`
-
-const TRAVERSE_PATH = gql`
-  query Query($tree_hash: String!, $path: String!) {
-    traversePath(tree_hash: $tree_hash, path: $path)
-  }
-`
-
-const LIST_ENTRIES_FOR_KEY = gql`
-  query WinRegKeys($where: WinRegKeyWhere) {
-    winRegKeys(where: $where) {
-      child_keysConnection {
-        edges {
-          node {
-            hash
-          }
-        }
-        edges {
-          properties {
-            name
-          }
-        }
-      }
-      child_valuesConnection {
-        edges {
-          node {
-            hash
-          }
-          properties {
-            name
-          }
-        }
-      }
-    }
-  }
-`
 
 async function listFsAt(path: string) {
   if (path === '/') {
@@ -144,20 +88,20 @@ async function listRegistryEntries(hive_hash: string, path: string) {
   return parseFSEntries(children.data.winRegKeys[0])
 }
 
-function parseFSEntries(new_data) {
-  let files = new_data.child_valuesConnection.edges.map((edge) => ({
+function parseFSEntries(new_data: any) {
+  let files = new_data.child_valuesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
-  let folders = new_data.child_keysConnection.edges.map((edge) => ({
+  let folders = new_data.child_keysConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
   // Then, sort the files and folders by name
-  files = files.sort((a, b) => a.name.localeCompare(b.name))
-  folders = folders.sort((a, b) => a.name.localeCompare(b.name))
+  files = files.sort((a: any, b: any) => a.name.localeCompare(b.name))
+  folders = folders.sort((a: any, b: any) => a.name.localeCompare(b.name))
   return { files, folders }
 }
 

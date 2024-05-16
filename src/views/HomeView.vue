@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import gqlClient from '@/graphql-client'
-import { gql } from '@apollo/client/core'
+import { fetchAllBranches, fetchCommitHistory } from '@/queries'
 
 interface Commit {
   hash: string
@@ -14,26 +14,6 @@ interface BranchesWithCommits {
 }
 
 const branchesWithCommits = ref<BranchesWithCommits>({})
-
-// fetch all branches
-const fetchAllBranches = gql`
-  query {
-    branches {
-      name
-    }
-  }
-`
-
-// fetch commit history for a given branch
-const fetchCommitHistory = gql`
-  query ($branchName: String!) {
-    fetchCommitHistory(branch_name: $branchName) {
-      hash
-      name
-      date
-    }
-  }
-`
 
 // Fetch all branches on component mount
 onMounted(async () => {
@@ -76,7 +56,13 @@ onMounted(async () => {
           </div>
           <ul class="list-group list-group-flush">
             <li class="list-group-item" v-for="commit in commits" :key="commit.hash">
-              <router-link :to="`/os/${commit.hash}`">
+              <router-link
+                :to="{
+                  name: 'OSView',
+                  params: { os_hash: commit.hash },
+                  query: { os_title: commit.name }
+                }"
+              >
                 {{ commit.name }}
               </router-link>
             </li>
