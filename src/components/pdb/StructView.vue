@@ -3,6 +3,7 @@ import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { LIST_WINSTRUCT } from '@/queries'
 import { BTable, BPagination, BButton, BCard } from 'bootstrap-vue-next'
+import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next';
 
 const props = defineProps({
   blob_hash: {
@@ -10,13 +11,32 @@ const props = defineProps({
     required: true
   }
 })
-const structs = ref([])
+
+interface WinStructField {
+  name: string;
+  offset: number;
+  type: {
+    name: string;
+  };
+}
+
+interface WinStruct {
+  name: string;
+  kind: string;
+  size: number;
+  fields: WinStructField[];
+}
+
+
+const structs = ref<TableItem<WinStruct>[]>([])
 // BTable fields
-const fields = ref([
+const fields = ref<Exclude<TableFieldRaw<WinStruct>, string>[]>([
   { key: 'name', sortable: true },
   { key: 'kind', sortable: true },
   { key: 'size', sortable: true }
 ])
+
+
 // BTable pagination
 const isLoading = ref(false)
 const perPage = ref(50)
@@ -45,9 +65,9 @@ async function fetchStructs() {
     })
     if (response.data) {
       totalStructs.value = response.data.winStructsAggregate.count
-      structs.value = response.data.winStructs.map((struct) => ({
+      structs.value = response.data.winStructs.map((struct: any) => ({
         ...struct,
-        fields: struct.fields.map((field) => ({
+        fields: struct.fields.map((field: any) => ({
           name: field.name,
           offset: field.offset,
           type: field.type.name || 'Unknown'
@@ -67,7 +87,7 @@ watch(currentPage, fetchStructs, { immediate: true })
 
 <template>
   <div class="container mt-3">
-    <b-table :items="structs" :fields="fields" responsive :busy="isLoading">
+    <BTable :items="structs" :fields="fields" responsive :busy="isLoading">
       <!-- Scoped slot for the 'name' field including the toggle button -->
       <template #cell(name)="row">
         <b-button @click="row.toggleDetails" class="me-2" :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
@@ -102,7 +122,7 @@ watch(currentPage, fetchStructs, { immediate: true })
           />
         </BCard>
       </template>
-    </b-table>
+    </BTable>
     <b-pagination
       v-model="currentPage"
       :total-rows="totalStructs"

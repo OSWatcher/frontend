@@ -3,6 +3,7 @@ import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { LIST_SYMBOLS } from '@/queries'
 import { BTable, BPagination } from 'bootstrap-vue-next'
+import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next';
 
 const props = defineProps({
   blob_hash: {
@@ -10,9 +11,16 @@ const props = defineProps({
     required: true
   }
 })
-const symbols = ref([])
+
+// Define the data structure for symbols
+interface Symbol {
+  name: string;
+  address: string;
+}
+
+const symbols = ref<TableItem<Symbol>[]>([])
 // BTable fields
-const fields = ref([
+const fields = ref<Exclude<TableFieldRaw<Symbol>, string>[]>([
   { key: 'name', sortable: true },
   { key: 'address', sortable: false }
 ])
@@ -54,7 +62,7 @@ async function fetchSymbols() {
     })
     if (response.data) {
       totalSymbols.value = response.data.symbolsAggregate.count
-      symbols.value = response.data.symbols.map((symbol) => ({
+      symbols.value = response.data.symbols.map((symbol: any) => ({
         name: symbol.name,
         address: symbol.blobConnection.edges[0]?.properties.address || 'No address found'
       }))

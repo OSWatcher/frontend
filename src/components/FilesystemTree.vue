@@ -31,16 +31,16 @@ async function listFsAt(path: string) {
   return parseFSEntries(children.data.trees[0])
 }
 
-function parseFSEntries(new_data) {
+function parseFSEntries(new_data: { child_blobsConnection: { edges: any[] }, child_treesConnection: { edges: any[] } }) {
   // update fsFolderEntries and fsFileEntries
   // both should be arrays of Objects like
   // [{ name: 'folder1', hash: 'hash1' }, ...]
-  let files = new_data.child_blobsConnection.edges.map((edge) => ({
+  let files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
 
-  let folders = new_data.child_treesConnection.edges.map((edge) => ({
+  let folders = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
     hash: edge.node.hash
   }))
