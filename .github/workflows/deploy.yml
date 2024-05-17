@@ -42,6 +42,7 @@ jobs:
         run: npm run build-only
         env:
           NODE_ENV: production
+          VITE_GRAPHEOS_API_URI: https://api.grapheos.app
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
