@@ -43,6 +43,7 @@ jobs:
         env:
           NODE_ENV: production
           VITE_GRAPHEOS_API_URI: https://api.grapheos.app
+          VITE_GRAPHEORS_OBJECT_STORAGE_URI: https://storage.grapheos.app
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
