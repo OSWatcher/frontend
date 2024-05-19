@@ -2,7 +2,10 @@
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { BButton } from 'bootstrap-vue-next'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
+
+const VITE_OBJECT_STORAGE_URL = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
 
 const props = defineProps({
   os_hash: {
@@ -51,6 +54,11 @@ function parseFSEntries(new_data: { child_blobsConnection: { edges: any[] }, chi
   return { files, folders }
 }
 
+// Generate the download URL for a given hash
+function getDownloadUrl(hash: string): string {
+  return `${VITE_OBJECT_STORAGE_URL}/objects/${hash}`
+}
+
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
 onMounted(async () => {
   const response = await gqlClient.query({
@@ -77,9 +85,18 @@ onMounted(async () => {
       </a>
     </template>
     <template #file="{ entries }">
-      <div class="list-group-item" v-for="entry in entries" :key="entry.id">
-        <i class="bi-file-earmark"></i>
-        {{ entry.name }}
+      <div class="list-group-item d-flex justify-content-between align-items-center" v-for="entry in entries" :key="entry.id">
+        <div>
+          <i class="bi-file-earmark"></i>
+          {{ entry.name }}
+        </div>
+        <a
+          :href="getDownloadUrl(entry.hash)"
+          :download="`${entry.hash}_${entry.name}`"
+          class="btn btn-primary"
+        >
+          Download
+        </a>
       </div>
     </template>
   </TreeExplorer>
