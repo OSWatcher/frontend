@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { BNavbar, BNavbarBrand, vBColorMode } from 'bootstrap-vue-next'
 </script>
 
 <template>
-  <header class="navbar py-3">
+  <BNavbar v-b-color-mode="'dark'">
     <div class="container">
-      <nav>
-        <RouterLink to="/" class="navbar-brand">Home</RouterLink>
-      </nav>
+      <BNavbarBrand to="/">
+        <img
+          src="@/assets/logo.png"
+          alt="OSWatcher logo">
+      </BNavbarBrand>
     </div>
-  </header>
-
+  </BNavbar>
   <RouterView />
 </template>
 
-<style>
+<style scoped>
 .navbar {
-  background-color: #3B5998; /* Example blue color */
-  color: white; /* Text color */
+  background-color: #3b4a6b;
 }
 
-.navbar-brand {
-  color: white; /* Text color for the brand */
-}
-
-.navbar-brand:hover {
-  color: #FFD700; /* Hover color for the brand */
+.navbar-brand img {
+  width: 13.3rem;
 }
 </style>
