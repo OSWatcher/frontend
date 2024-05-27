@@ -19,7 +19,7 @@ const root = '/'
 
 // ref
 interface RegistryHiveHashes {
-  [key: string]: string; // Replace 'any' with the actual type of winRegHash if known
+  [key: string]: string // Replace 'any' with the actual type of winRegHash if known
 }
 const registryHiveHashes = ref<RegistryHiveHashes>({})
 

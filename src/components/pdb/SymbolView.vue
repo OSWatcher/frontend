@@ -3,7 +3,7 @@ import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { LIST_SYMBOLS } from '@/queries'
 import { BTable, BPagination } from 'bootstrap-vue-next'
-import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next';
+import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
 
 const props = defineProps({
   blob_hash: {
@@ -14,8 +14,8 @@ const props = defineProps({
 
 // Define the data structure for symbols
 interface Symbol {
-  name: string;
-  address: string;
+  name: string
+  address: string
 }
 
 const symbols = ref<TableItem<Symbol>[]>([])
