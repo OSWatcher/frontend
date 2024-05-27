@@ -156,6 +156,16 @@ const LIST_WINSTRUCT = gql`
   }
 `
 
+const SEARCH_FS = gql`
+  query Search($searchTerm: String!) {
+    search(search_term: $searchTerm) {
+      commit_name
+      commit_hash
+      path
+    }
+  }
+`
+
 export {
   fetchAllBranches,
   fetchCommitHistory,
@@ -166,5 +176,6 @@ export {
   LIST_ENTRIES_FOR_KEY,
   LIST_ENTRIES_FOR_TREE,
   LIST_SYMBOLS,
-  LIST_WINSTRUCT
+  LIST_WINSTRUCT,
+  SEARCH_FS
 }
