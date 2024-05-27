@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import { BButton } from 'bootstrap-vue-next'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
 
 const VITE_OBJECT_STORAGE_URL = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
@@ -34,7 +33,10 @@ async function listFsAt(path: string) {
   return parseFSEntries(children.data.trees[0])
 }
 
-function parseFSEntries(new_data: { child_blobsConnection: { edges: any[] }, child_treesConnection: { edges: any[] } }) {
+function parseFSEntries(new_data: {
+  child_blobsConnection: { edges: any[] }
+  child_treesConnection: { edges: any[] }
+}) {
   // update fsFolderEntries and fsFileEntries
   // both should be arrays of Objects like
   // [{ name: 'folder1', hash: 'hash1' }, ...]
@@ -85,7 +87,11 @@ onMounted(async () => {
       </a>
     </template>
     <template #file="{ entries }">
-      <div class="list-group-item d-flex justify-content-between align-items-center" v-for="entry in entries" :key="entry.id">
+      <div
+        class="list-group-item d-flex justify-content-between align-items-center"
+        v-for="entry in entries"
+        :key="entry.id"
+      >
         <div>
           <i class="bi-file-earmark"></i>
           {{ entry.name }}

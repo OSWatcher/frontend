@@ -3,7 +3,7 @@ import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { LIST_WINSTRUCT } from '@/queries'
 import { BTable, BPagination, BButton, BCard } from 'bootstrap-vue-next'
-import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next';
+import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
 
 const props = defineProps({
   blob_hash: {
@@ -13,20 +13,19 @@ const props = defineProps({
 })
 
 interface WinStructField {
-  name: string;
-  offset: number;
+  name: string
+  offset: number
   type: {
-    name: string;
-  };
+    name: string
+  }
 }
 
 interface WinStruct {
-  name: string;
-  kind: string;
-  size: number;
-  fields: WinStructField[];
+  name: string
+  kind: string
+  size: number
+  fields: WinStructField[]
 }
-
 
 const structs = ref<TableItem<WinStruct>[]>([])
 // BTable fields
@@ -35,7 +34,6 @@ const fields = ref<Exclude<TableFieldRaw<WinStruct>, string>[]>([
   { key: 'kind', sortable: true },
   { key: 'size', sortable: true }
 ])
-
 
 // BTable pagination
 const isLoading = ref(false)
@@ -90,7 +88,12 @@ watch(currentPage, fetchStructs, { immediate: true })
     <BTable :items="structs" :fields="fields" responsive :busy="isLoading">
       <!-- Scoped slot for the 'name' field including the toggle button -->
       <template #cell(name)="row">
-        <b-button @click="row.toggleDetails" class="me-2" :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
+        <b-button
+          @click="row.toggleDetails"
+          class="me-2"
+          :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'"
+          size="sm"
+        >
           <i :class="row.detailsShowing ? 'bi-three-dots' : 'bi-plus-lg'"></i>
         </b-button>
         {{ row.item.name }}
@@ -99,7 +102,8 @@ watch(currentPage, fetchStructs, { immediate: true })
       <template #row-details="data">
         <BCard>
           <!-- If the struct is an enum -->
-          <BTable v-if="data.item.kind === 'Enum'"
+          <BTable
+            v-if="data.item.kind === 'Enum'"
             :items="data.item.fields"
             :fields="[
               { key: 'name', label: 'Name', sortable: true },
@@ -110,7 +114,8 @@ watch(currentPage, fetchStructs, { immediate: true })
           />
 
           <!-- If the struct is not an enum -->
-          <BTable v-else
+          <BTable
+            v-else
             :items="data.item.fields"
             :fields="[
               { key: 'offset', label: 'Offset', sortable: true },

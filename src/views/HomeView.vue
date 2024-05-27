@@ -43,10 +43,7 @@ onMounted(async () => {
 
 <template>
   <main class="container mt-3">
-    
-    <h2 class="mb-4">
-      <i class="bi bi-git"></i> Branches
-    </h2>
+    <h2 class="mb-4"><i class="bi bi-git"></i> Branches</h2>
     <div class="row">
       <div
         class="col-12 col-md-6 col-lg-4 mb-3"
