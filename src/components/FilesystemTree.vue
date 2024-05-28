@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
@@ -10,10 +10,31 @@ const props = defineProps({
   os_hash: {
     type: String,
     required: true
+  },
+  path: {
+    type: String,
+    default: '/'
   }
 })
 
-const fsPath = ref('/')
+// define a computed property to hold both the parent directory and the filename of the path
+// if path is '/', then the filename can be null
+const pathParts = computed(() => {
+  let filename = null
+  let parentDir = '/' // Set parentDir to '/' when props.initialPath is '/'
+
+  if (props.path !== '/') {
+    const parts = props.path.split('/')
+    filename = parts.pop()
+    parentDir = parts.join('/')
+    if (parentDir === '') {
+      parentDir = '/'
+    }
+  }
+
+  return { parentDir, filename }
+})
+
 // the root hash of the filesystem
 const fs_root = ref(null)
 
@@ -73,7 +94,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TreeExplorer v-if="fs_root" :initialPath="fsPath" :getEntries="listFsAt">
+  <TreeExplorer
+    v-if="fs_root"
+    :path_dir="pathParts.parentDir"
+    :filename_highlight="pathParts.filename"
+    :getEntries="listFsAt"
+  >
     <template #default="{ entries, onEntryClick }">
       <a
         href="#"
