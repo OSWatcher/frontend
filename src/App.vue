@@ -11,13 +11,16 @@ import {
   BForm,
   BTable,
   BPagination,
-  type TableFieldRaw
+  type TableFieldRaw,
+  type TableItem
 } from 'bootstrap-vue-next'
+import { useRouter } from 'vue-router'
 import gqlClient from '@/graphql-client'
 import { SEARCH_FS } from '@/queries'
 
 interface SearchResult {
   commit_name: string
+  commit_hash: string
   path: string
 }
 
@@ -32,6 +35,8 @@ const search_results = ref([])
 const currentPage = ref(1)
 const perPage = ref(20)
 const isLoading = ref(false)
+
+const router = useRouter() // Use the <BNavbarNav>Vue Router
 
 const handleShortcut = (event: KeyboardEvent) => {
   if (event.ctrlKey && event.key === 'k') {
@@ -49,11 +54,9 @@ const performSearch = async () => {
     })
     search_results.value = response.data.search
     currentPage.value = 1 // Reset to first page on new search
-    console.log('Search results:', search_results.value)
   } catch (error) {
     console.error('Error searching the database:', error)
   } finally {
-    console.log('Search complete')
     isLoading.value = false
   }
 }
@@ -69,6 +72,14 @@ const clearSearchResults = () => {
   search_term.value = ''
 }
 
+const handleRowClicked = (item: TableItem<SearchResult>) => {
+  showModal.value = false
+  router.push({
+    path: `/os/${item.commit_hash}`,
+    query: { os_title: item.commit_name, filesystem: item.path }
+  })
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleShortcut)
 })
@@ -79,12 +90,12 @@ const openModal = () => {
 </script>
 
 <template>
-  <BNavbar toggleable="lg" v-b-color-mode="'dark'">
-    <div class="container">
+  <BNavbar toggleable="lg" v-b-color-mode="'dark'" class="d-flex justify-content-between">
+    <div class="d-flex align-items-center justify-content-start w-100">
       <BNavbarBrand to="/">
         <img src="@/assets/logo.png" alt="OSWatcher logo" />
       </BNavbarBrand>
-      <BNavForm class="d-flex">
+      <BNavForm>
         <BButton @click="openModal" variant="outline-light">
           Search
           <kbd class="ms-2">Ctrl K</kbd>
@@ -108,10 +119,11 @@ const openModal = () => {
       class="my-2"
     />
     <BTable
-      v-if="search_results.length"
+      v-if="search_results.length || isLoading"
       :items="paginatedResults"
       :fields="fields"
       :busy="isLoading"
+      @row-clicked="handleRowClicked"
       striped
       hover
     />
