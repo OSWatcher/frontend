@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import { BButton } from 'bootstrap-vue-next'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
 
 const VITE_OBJECT_STORAGE_URL = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
@@ -11,10 +10,31 @@ const props = defineProps({
   os_hash: {
     type: String,
     required: true
+  },
+  path: {
+    type: String,
+    default: '/'
   }
 })
 
-const fsPath = ref('/')
+// define a computed property to hold both the parent directory and the filename of the path
+// if path is '/', then the filename can be null
+const pathParts = computed(() => {
+  let filename = null
+  let parentDir = '/' // Set parentDir to '/' when props.initialPath is '/'
+
+  if (props.path !== '/') {
+    const parts = props.path.split('/')
+    filename = parts.pop()
+    parentDir = parts.join('/')
+    if (parentDir === '') {
+      parentDir = '/'
+    }
+  }
+
+  return { parentDir, filename }
+})
+
 // the root hash of the filesystem
 const fs_root = ref(null)
 
@@ -34,7 +54,10 @@ async function listFsAt(path: string) {
   return parseFSEntries(children.data.trees[0])
 }
 
-function parseFSEntries(new_data: { child_blobsConnection: { edges: any[] }, child_treesConnection: { edges: any[] } }) {
+function parseFSEntries(new_data: {
+  child_blobsConnection: { edges: any[] }
+  child_treesConnection: { edges: any[] }
+}) {
   // update fsFolderEntries and fsFileEntries
   // both should be arrays of Objects like
   // [{ name: 'folder1', hash: 'hash1' }, ...]
@@ -71,7 +94,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TreeExplorer v-if="fs_root" :initialPath="fsPath" :getEntries="listFsAt">
+  <TreeExplorer
+    v-if="fs_root"
+    :path_dir="pathParts.parentDir"
+    :filename_highlight="pathParts.filename"
+    :getEntries="listFsAt"
+  >
     <template #default="{ entries, onEntryClick }">
       <a
         href="#"
@@ -85,7 +113,11 @@ onMounted(async () => {
       </a>
     </template>
     <template #file="{ entries }">
-      <div class="list-group-item d-flex justify-content-between align-items-center" v-for="entry in entries" :key="entry.id">
+      <div
+        class="list-group-item d-flex justify-content-between align-items-center"
+        v-for="entry in entries"
+        :key="entry.id"
+      >
         <div>
           <i class="bi-file-earmark"></i>
           {{ entry.name }}
