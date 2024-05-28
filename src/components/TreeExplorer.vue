@@ -1,3 +1,80 @@
+<script setup>
+import { ref, watch, defineProps } from 'vue'
+import { BSpinner } from 'bootstrap-vue-next'
+
+const props = defineProps({
+  getEntries: {
+    type: Function, // Function to fetch entries from an API
+    required: true
+  },
+  path_dir: {
+    type: String,
+    default: '/'
+  },
+  filename_highlight: {
+    type: String,
+    default: null
+  }
+})
+
+// we need to keep a local copy of the path_dir prop for own our navigation
+const path_dir = ref(props.path_dir)
+const pathItems = ref([])
+const folderEntries = ref([])
+const fileEntries = ref([])
+const isLoading = ref(false) // Loading state to control spinner visibility
+
+// add a watcher to the path_dir prop
+watch(
+  () => props.path_dir,
+  (newValue) => {
+    path_dir.value = newValue
+  },
+  { immediate: true }
+)
+
+// Watch for pathParts changes
+watch(
+  path_dir,
+  async (new_path_dir) => {
+    isLoading.value = true // Set loading to true when data fetch starts
+    try {
+      const { folders, files } = await props.getEntries(new_path_dir)
+      folderEntries.value = folders
+      fileEntries.value = files
+      pathItems.value = buildBreadcrumb(new_path_dir)
+      // TODO: if filename_highlight is not null, we should highlight it in the UI
+    } finally {
+      isLoading.value = false // Set loading to false when data fetch completes
+    }
+  },
+  { immediate: true }
+)
+
+function buildBreadcrumb(newFsPath) {
+  let parts = newFsPath === '/' ? [''] : newFsPath.split('/')
+  return parts.map((part, index) => ({
+    part: index === 0 ? 'Root' : part,
+    active: index === parts.length - 1,
+    disabled: index === parts.length - 1
+  }))
+}
+
+function handleEntryClick(entry) {
+  if (path_dir.value === '/') path_dir.value += entry.name
+  else path_dir.value += '/' + entry.name
+}
+
+function handleBreadcrumbClick(index) {
+  if (index === 0) {
+    path_dir.value = '/'
+  } else {
+    let newPathParts = pathItems.value.slice(1, index + 1).map((item) => item.part)
+    path_dir.value = `/${newPathParts.join('/')}`
+  }
+}
+</script>
+
 <template>
   <div>
     <nav aria-label="breadcrumb">
@@ -33,62 +110,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, watch, defineProps } from 'vue'
-import { BSpinner } from 'bootstrap-vue-next'
-
-const props = defineProps({
-  initialPath: String,
-  getEntries: Function // Function to fetch entries from an API
-})
-
-const path = ref(props.initialPath)
-const pathItems = ref([])
-const folderEntries = ref([])
-const fileEntries = ref([])
-const isLoading = ref(false) // Loading state to control spinner visibility
-
-// Watch for path changes and fetch new data
-watch(
-  path,
-  async (newPath) => {
-    isLoading.value = true // Set loading to true when data fetch starts
-    try {
-      const { folders, files } = await props.getEntries(newPath)
-      folderEntries.value = folders
-      fileEntries.value = files
-      pathItems.value = buildBreadcrumb(newPath)
-    } finally {
-      isLoading.value = false // Set loading to false when data fetch completes
-    }
-  },
-  { immediate: true }
-)
-
-function buildBreadcrumb(newFsPath) {
-  let parts = newFsPath === '/' ? [''] : newFsPath.split('/')
-  return parts.map((part, index) => ({
-    part: index === 0 ? 'Root' : part,
-    active: index === parts.length - 1,
-    disabled: index === parts.length - 1
-  }))
-}
-
-function handleEntryClick(entry) {
-  if (path.value === '/') path.value += entry.name
-  else path.value += '/' + entry.name
-}
-
-function handleBreadcrumbClick(index) {
-  if (index === 0) {
-    path.value = '/'
-  } else {
-    let newPathParts = pathItems.value.slice(1, index + 1).map((item) => item.part)
-    path.value = `/${newPathParts.join('/')}`
-  }
-}
-</script>
 
 <style>
 .tree-explorer {
