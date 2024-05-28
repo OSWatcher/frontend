@@ -1,34 +1,19 @@
-name: Lint
+name: CI
 
 on: [pull_request]
 
 jobs:
-  backend:
-
+  checks:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        check: ['format-check', 'lint']
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.7'
-    - name: Lint with flake8
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+
+    - name: check ${{ matrix.check}}
       run: |
-        pip install flake8
-        flake8 --show-source --statistics --max-line-length=127 backend
-
-  frontend:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-node@v1
-      with:
-        node-version: '10.x'
-    - name: Lint with npm
-      run: |
-        cd frontend
         npm install
-        npm run lint
+        npm run ${{ matrix.check}}
