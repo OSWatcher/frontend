@@ -12,7 +12,6 @@ const route = useRoute()
 const os_hash = ref(route.params.os_hash)
 const os_title = ref(route.query.os_title)
 const filesystem = ref(route.query.filesystem)
-console.log('filesystem:', filesystem)
 // v-if isn't supported, we need to build the tabs variable and insert entries instead
 const tabs = reactive({
   filesystem: { title: 'Filesystem', component: markRaw(FilesystemTree) }
