@@ -1,12 +1,28 @@
 <script setup lang="ts">
 import { ref, watch, defineProps } from 'vue'
-import { BSpinner } from 'bootstrap-vue-next'
+import { BTable, } from 'bootstrap-vue-next'
+import TreeNodeType from '@/types'
 import path from 'path'
 
 const props = defineProps({
   getEntries: {
     type: Function, // Function to fetch entries from an API
     required: true
+  },
+  fields: {
+    type: Array,
+    required: true
+  },
+  // which field to use as the name of the entry
+  // to handle how to enter into a directory
+  field_path: {
+    type: String,
+    default: 'name'
+  },
+  // which field defines the type of the entry (Blob or Tree)
+  field_type: {
+    type: String,
+    default: 'type'
   },
   path_dir: {
     type: String,
@@ -20,10 +36,12 @@ const props = defineProps({
 
 // we need to keep a local copy of the path_dir prop for own our navigation
 const path_dir = ref(props.path_dir)
+// table entries
+const items = ref([])
+// breacrumb items
 const pathItems = ref([])
-const folderEntries = ref([])
-const fileEntries = ref([])
-const isLoading = ref(false) // Loading state to control spinner visibility
+// busy state
+const isLoading = ref(false)
 
 // add a watcher to the path_dir prop
 watch(
@@ -40,9 +58,7 @@ watch(
   async (new_path_dir) => {
     isLoading.value = true // Set loading to true when data fetch starts
     try {
-      const { folders, files } = await props.getEntries(new_path_dir)
-      folderEntries.value = folders
-      fileEntries.value = files
+      items.value = await props.getEntries(new_path_dir)
       pathItems.value = buildBreadcrumb(new_path_dir)
       // TODO: if filename_highlight is not null, we should highlight it in the UI
     } finally {
@@ -65,8 +81,9 @@ function buildBreadcrumb(newFsPath: string) {
   }))
 }
 
-function handleEntryClick(entry) {
-  path_dir.value = path.join(path_dir.value, entry.name)
+function enterDirectory(item) {
+  if (item[props.field_type] === TreeNodeType.Tree)
+    path_dir.value = path.join(path_dir.value, item[props.field_path])
 }
 
 function handleBreadcrumbClick(index: number) {
@@ -100,37 +117,23 @@ function handleBreadcrumbClick(index: number) {
       </ol>
     </nav>
 
-    <div id="tree-explorer" class="list-group">
-      <!-- Show spinner when data is loading -->
-      <BSpinner
-        v-if="isLoading"
-        type="border"
-        small
-        class="position-absolute"
-        style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-      >
-      </BSpinner>
-      <!-- Conditional rendering based on loading state -->
-      <template v-if="!isLoading">
-        <slot :entries="folderEntries" :onEntryClick="handleEntryClick"></slot>
-        <slot name="file" :entries="fileEntries"></slot>
+    <BTable
+      :busy="isLoading"
+      :items="items"
+      :fields="props.fields"
+      :selectable="true"
+      :noSelectOnClick="true"
+      @row-clicked="enterDirectory"
+    >
+      <template v-for="field in props.fields" #[`cell(${field.key})`]="data">
+        <!-- Define a scoped slot for each field's key -->
+        <slot :name="`cell(${field.key})`" :data="data"> </slot>
       </template>
-    </div>
+    </BTable>
   </div>
 </template>
 
 <style>
-.tree-explorer {
-  position: relative;
-}
-
-.spinner-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
 .nav-tabs {
   margin-bottom: 1rem;
 }

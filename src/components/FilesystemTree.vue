@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
+import TreeNodeType from '@/types'
 
 const VITE_OBJECT_STORAGE_URL = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
 
@@ -16,6 +17,8 @@ const props = defineProps({
     default: '/'
   }
 })
+
+const fields = [{ key: 'name', sortable: true }]
 
 // define a computed property to hold both the parent directory and the filename of the path
 // if path is '/', then the filename can be null
@@ -51,30 +54,25 @@ async function listFsAt(path: string) {
     query: LIST_ENTRIES_FOR_TREE,
     variables: { where: { hash: tree_hash } }
   })
-  return parseFSEntries(children.data.trees[0])
+  const data = children.data.trees[0]
+  return parseFSEntries(data)
 }
 
 function parseFSEntries(new_data: {
   child_blobsConnection: { edges: any[] }
   child_treesConnection: { edges: any[] }
 }) {
-  // update fsFolderEntries and fsFileEntries
-  // both should be arrays of Objects like
-  // [{ name: 'folder1', hash: 'hash1' }, ...]
-  let files = new_data.child_blobsConnection.edges.map((edge: any) => ({
+  // output should be an array of items like
+  // [{ name: 'file1', type: TreeNodeType.Blob }, { name: 'dir1', type: TreeNodeType.Tree }]
+  const files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    hash: edge.node.hash
+    type: TreeNodeType.Blob
   }))
-
-  let folders = new_data.child_treesConnection.edges.map((edge: any) => ({
+  const dirs = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    hash: edge.node.hash
+    type: TreeNodeType.Tree
   }))
-
-  // Then, sort the files and folders by name
-  files = files.sort((a, b) => a.name.localeCompare(b.name))
-  folders = folders.sort((a, b) => a.name.localeCompare(b.name))
-  return { files, folders }
+  return [...dirs, ...files]
 }
 
 // Generate the download URL for a given hash
@@ -99,51 +97,17 @@ onMounted(async () => {
     :path_dir="pathParts.parentDir"
     :filename_highlight="pathParts.filename"
     :getEntries="listFsAt"
+    :fields="fields"
   >
-    <template #default="{ entries, onEntryClick }">
-      <a
-        href="#"
-        class="list-group-item"
-        v-for="entry in entries"
-        :key="entry.id"
-        @click="onEntryClick(entry)"
-      >
-        <i class="bi-folder-fill"></i>
-        {{ entry.name }}
-      </a>
-    </template>
-    <template #file="{ entries }">
-      <div
-        class="list-group-item d-flex justify-content-between align-items-center"
-        v-for="entry in entries"
-        :key="entry.id"
-      >
-        <div>
-          <i class="bi-file-earmark"></i>
-          {{ entry.name }}
-        </div>
-        <a
-          :href="getDownloadUrl(entry.hash)"
-          :download="`${entry.hash}_${entry.name}`"
-          class="btn btn-primary"
-        >
-          Download
-        </a>
-      </div>
+    <template #cell(name)="props">
+      <i v-if="props.data.item.type === TreeNodeType.Blob" class="bi-file-earmark"></i>
+      <i v-else class="bi-folder-fill"></i>
+      {{ props.data.item.name }}
     </template>
   </TreeExplorer>
 </template>
 
 <style scoped>
-.list-group {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-#filesystem {
-  height: 30rem;
-  overflow: auto;
-}
-
 .breadcrumb {
   margin-bottom: 0; /* Bootstrap's breadcrumb has bottom margin, reset it if needed */
   background-color: #f5f5f5; /* Or any gray color you prefer */
