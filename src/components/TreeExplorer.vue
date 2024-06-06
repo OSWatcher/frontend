@@ -62,6 +62,8 @@ watch(
     isLoading.value = true // Set loading to true when data fetch starts
     try {
       items.value = await props.getEntries(new_path_dir)
+      // sort
+      items.value = sortTreeThenName(items.value)
       pathItems.value = buildBreadcrumb(new_path_dir)
       // TODO: if filename_highlight is not null, we should highlight it in the UI
     } finally {
@@ -100,6 +102,17 @@ function handleBreadcrumbClick(index: number) {
     // Join the parts with '/' and set the path, ensuring a leading slash
     path_dir.value = `/${newPathParts.join('/')}`
   }
+}
+
+function sortTreeThenName(entries) {
+  return entries.sort((a, b) => {
+    // First compare by type
+    if (a[props.field_type] !== b[props.field_type]) {
+      return a[props.field_type] === TreeNodeType.Tree ? -1 : 1
+    }
+    // Then compare by name
+    return a[props.field_path].localeCompare(b[props.field_path])
+  })
 }
 </script>
 
