@@ -100,9 +100,27 @@ onMounted(async () => {
     :fields="fields"
   >
     <template #cell(name)="props">
-      <i v-if="props.data.item.type === TreeNodeType.Blob" class="bi-file-earmark"></i>
-      <i v-else class="bi-folder-fill"></i>
-      {{ props.data.item.name }}
+      <div class="row-container">
+        <div>
+          <div v-if="props.data.item.type === TreeNodeType.Blob">
+            <i class="bi-file-earmark"></i>
+            {{ props.data.item.name }}
+          </div>
+          <div v-else>
+            <i class="bi-folder-fill"></i>
+            {{ props.data.item.name }}
+          </div>
+        </div>
+        <div v-if="props.data.item.type === TreeNodeType.Blob">
+          <a
+            :href="getDownloadUrl(props.data.item.hash)"
+            :download="`${props.data.item.hash}_${props.data.item.name}`"
+            class="btn btn-primary"
+          >
+            Download
+          </a>
+        </div>
+      </div>
     </template>
   </TreeExplorer>
 </template>
@@ -113,5 +131,11 @@ onMounted(async () => {
   background-color: #f5f5f5; /* Or any gray color you prefer */
   padding: 1rem; /* Adjust padding to match your design */
   border-radius: 0.25rem; /* Optional: if you want rounded corners */
+}
+
+.row-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>
