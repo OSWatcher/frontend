@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import gqlClient from '@/graphql-client'
+import { BTable, BButton, TableItem } from 'bootstrap-vue-next'
 import { fetchAllBranches, fetchCommitHistory } from '@/queries'
 
 interface Commit {
@@ -13,10 +14,19 @@ interface BranchesWithCommits {
   [key: string]: Commit[]
 }
 
+const fields = [
+  { key: 'name', label: 'Commit Name' },
+  { key: 'view', label: '' }
+]
+
 const branchesWithCommits = ref<BranchesWithCommits>({})
+const selectedCommits = ref<TableItem<Commit>[]>([])
+const commitTableRef = ref<(InstanceType<typeof BTable> | null)[]>([]) // Reference to the BTable component
+const isLoading = ref(false)
 
 // Fetch all branches on component mount
 onMounted(async () => {
+  isLoading.value = true
   try {
     const response = await gqlClient.query({ query: fetchAllBranches })
     const branches = response.data.branches
@@ -37,8 +47,39 @@ onMounted(async () => {
     branchesWithCommits.value = commitsByBranch
   } catch (error) {
     console.error('Error fetching branches and commits:', error)
+  } finally {
+    isLoading.value = false
   }
 })
+
+function handleSelection(selections: TableItem<Commit>[]) {
+  if (selections.length > 2) {
+    // we need to unselect manually the last selection
+    // identify the last selection
+    const newSelections = selections.filter(
+      (selection) => !selectedCommits.value.includes(selection)
+    )
+    const new_selection = newSelections[0]
+
+    // Find the index in the commits array for the branch
+    let index = -1
+    for (const branch in branchesWithCommits.value) {
+      index = branchesWithCommits.value[branch].findIndex(
+        (item: Commit) => item.hash === new_selection.hash
+      )
+      if (index !== -1) {
+        break
+      }
+    }
+
+    const commit_table = commitTableRef.value[0]
+    // Ensure the commitTableRef is initialized
+    if (commit_table && index !== -1) {
+      commit_table.unselectRow(index)
+    }
+  }
+  selectedCommits.value = selections
+}
 </script>
 
 <template>
@@ -51,22 +92,34 @@ onMounted(async () => {
         :key="branchName"
       >
         <div class="card">
-          <div class="card-header">
+          <div class="card-header d-flex justify-content-between align-items-center">
             <strong>{{ branchName }}</strong>
+            <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2">
+              Diff
+            </BButton>
           </div>
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item" v-for="commit in commits" :key="commit.hash">
-              <router-link
+          <BTable
+            ref="commitTableRef"
+            :busy="isLoading"
+            :items="commits"
+            :fields="fields"
+            :selectable="true"
+            select-mode="multi"
+            @selection="handleSelection"
+          >
+            <template #cell(view)="data">
+              <BButton
                 :to="{
                   name: 'OSView',
-                  params: { os_hash: commit.hash },
-                  query: { os_title: commit.name }
+                  params: { os_hash: data.item.hash },
+                  query: { os_title: data.item.name }
                 }"
+                variant="primary"
               >
-                {{ commit.name }}
-              </router-link>
-            </li>
-          </ul>
+                View
+              </BButton>
+            </template>
+          </BTable>
         </div>
       </div>
     </div>
