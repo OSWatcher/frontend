@@ -1,11 +1,28 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, defineProps } from 'vue'
-import { BSpinner } from 'bootstrap-vue-next'
+import { BTable, BPagination } from 'bootstrap-vue-next'
+import TreeNodeType from '@/types'
+import path from 'path'
 
 const props = defineProps({
   getEntries: {
     type: Function, // Function to fetch entries from an API
     required: true
+  },
+  fields: {
+    type: Array,
+    required: true
+  },
+  // which field to use as the name of the entry
+  // to handle how to enter into a directory
+  field_path: {
+    type: String,
+    default: 'name'
+  },
+  // which field defines the type of the entry (Blob or Tree)
+  field_type: {
+    type: String,
+    default: 'type'
   },
   path_dir: {
     type: String,
@@ -19,10 +36,15 @@ const props = defineProps({
 
 // we need to keep a local copy of the path_dir prop for own our navigation
 const path_dir = ref(props.path_dir)
+// table entries
+const items = ref([])
+// breacrumb items
 const pathItems = ref([])
-const folderEntries = ref([])
-const fileEntries = ref([])
-const isLoading = ref(false) // Loading state to control spinner visibility
+// busy state
+const isLoading = ref(false)
+// pagination
+const perPage = ref(50)
+const currentPage = ref(1)
 
 // add a watcher to the path_dir prop
 watch(
@@ -39,9 +61,9 @@ watch(
   async (new_path_dir) => {
     isLoading.value = true // Set loading to true when data fetch starts
     try {
-      const { folders, files } = await props.getEntries(new_path_dir)
-      folderEntries.value = folders
-      fileEntries.value = files
+      items.value = await props.getEntries(new_path_dir)
+      // sort
+      items.value = sortTreeThenName(items.value)
       pathItems.value = buildBreadcrumb(new_path_dir)
       // TODO: if filename_highlight is not null, we should highlight it in the UI
     } finally {
@@ -51,27 +73,46 @@ watch(
   { immediate: true }
 )
 
-function buildBreadcrumb(newFsPath) {
-  let parts = newFsPath === '/' ? [''] : newFsPath.split('/')
-  return parts.map((part, index) => ({
-    part: index === 0 ? 'Root' : part,
+function buildBreadcrumb(newFsPath: string) {
+  const normalizedPath = path.normalize(newFsPath)
+
+  // Split the normalized path into parts
+  const parts = normalizedPath.split(path.sep)
+
+  return parts.map((part: string, index: number) => ({
+    part: index === 0 && part === '' ? 'Root' : part,
     active: index === parts.length - 1,
     disabled: index === parts.length - 1
   }))
 }
 
-function handleEntryClick(entry) {
-  if (path_dir.value === '/') path_dir.value += entry.name
-  else path_dir.value += '/' + entry.name
+function enterDirectory(item) {
+  if (item[props.field_type] === TreeNodeType.Tree)
+    path_dir.value = path.join(path_dir.value, item[props.field_path])
 }
 
-function handleBreadcrumbClick(index) {
+function handleBreadcrumbClick(index: number) {
+  // If the clicked index is 0, set the path to the root directory
   if (index === 0) {
     path_dir.value = '/'
   } else {
+    // Slice the pathItems array to get the parts up to the clicked index (excluding the root)
     let newPathParts = pathItems.value.slice(1, index + 1).map((item) => item.part)
+
+    // Join the parts with '/' and set the path, ensuring a leading slash
     path_dir.value = `/${newPathParts.join('/')}`
   }
+}
+
+function sortTreeThenName(entries) {
+  return entries.sort((a, b) => {
+    // First compare by type
+    if (a[props.field_type] !== b[props.field_type]) {
+      return a[props.field_type] === TreeNodeType.Tree ? -1 : 1
+    }
+    // Then compare by name
+    return a[props.field_path].localeCompare(b[props.field_path])
+  })
 }
 </script>
 
@@ -92,37 +133,33 @@ function handleBreadcrumbClick(index) {
       </ol>
     </nav>
 
-    <div id="tree-explorer" class="list-group">
-      <!-- Show spinner when data is loading -->
-      <BSpinner
-        v-if="isLoading"
-        type="border"
-        small
-        class="position-absolute"
-        style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-      >
-      </BSpinner>
-      <!-- Conditional rendering based on loading state -->
-      <template v-if="!isLoading">
-        <slot :entries="folderEntries" :onEntryClick="handleEntryClick"></slot>
-        <slot name="file" :entries="fileEntries"></slot>
+    <BPagination
+      v-if="items.length > perPage"
+      v-model="currentPage"
+      :total-rows="items.length"
+      :per-page="perPage"
+      align="center"
+      class="mb-3"
+    />
+    <BTable
+      :busy="isLoading"
+      :items="items"
+      :fields="props.fields"
+      :current-page="currentPage"
+      :per-page="perPage"
+      :selectable="true"
+      :noSelectOnClick="true"
+      @row-clicked="enterDirectory"
+    >
+      <template v-for="field in props.fields" #[`cell(${field.key})`]="data">
+        <!-- Define a scoped slot for each field's key -->
+        <slot :name="`cell(${field.key})`" :data="data"> </slot>
       </template>
-    </div>
+    </BTable>
   </div>
 </template>
 
 <style>
-.tree-explorer {
-  position: relative;
-}
-
-.spinner-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
 .nav-tabs {
   margin-bottom: 1rem;
 }
