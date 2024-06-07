@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, defineProps } from 'vue'
 import { BSpinner } from 'bootstrap-vue-next'
+import path from 'path'
 
 const props = defineProps({
   getEntries: {
@@ -51,25 +52,32 @@ watch(
   { immediate: true }
 )
 
-function buildBreadcrumb(newFsPath) {
-  let parts = newFsPath === '/' ? [''] : newFsPath.split('/')
-  return parts.map((part, index) => ({
-    part: index === 0 ? 'Root' : part,
+function buildBreadcrumb(newFsPath: string) {
+  const normalizedPath = path.normalize(newFsPath)
+
+  // Split the normalized path into parts
+  const parts = normalizedPath.split(path.sep)
+
+  return parts.map((part: string, index: number) => ({
+    part: index === 0 && part === '' ? 'Root' : part,
     active: index === parts.length - 1,
     disabled: index === parts.length - 1
   }))
 }
 
 function handleEntryClick(entry) {
-  if (path_dir.value === '/') path_dir.value += entry.name
-  else path_dir.value += '/' + entry.name
+  path_dir.value = path.join(path_dir.value, entry.name)
 }
 
-function handleBreadcrumbClick(index) {
+function handleBreadcrumbClick(index: number) {
+  // If the clicked index is 0, set the path to the root directory
   if (index === 0) {
     path_dir.value = '/'
   } else {
+    // Slice the pathItems array to get the parts up to the clicked index (excluding the root)
     let newPathParts = pathItems.value.slice(1, index + 1).map((item) => item.part)
+
+    // Join the parts with '/' and set the path, ensuring a leading slash
     path_dir.value = `/${newPathParts.join('/')}`
   }
 }
