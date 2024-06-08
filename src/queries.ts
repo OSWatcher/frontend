@@ -30,6 +30,7 @@ const getCommitCapabilities = gql`
 const GET_FS_ROOT = gql`
   query Commits($where: CommitWhere) {
     commits(where: $where) {
+      hash
       filesystemConnection {
         edges {
           node {
@@ -167,24 +168,34 @@ const SEARCH_FS = gql`
 `
 
 const DIFF_COMMITS = gql`
-query DiffCommits($baseCommitHash: String!, $diffeeCommitHash: String!, $path: String!, $maxDepth: Int) {
-  diffCommitsAt(base_commit_hash: $baseCommitHash, diffee_commit_hash: $diffeeCommitHash, path: $path, max_depth: $maxDepth) {
-    newitems {
-      path
-      type
-    }
-    moditems {
-      path
-      type
-      old_hash
-      new_hash
-    }
-    delitems {
-      path
-      type
+  query DiffCommits(
+    $baseCommitHash: String!
+    $diffeeCommitHash: String!
+    $path: String!
+    $maxDepth: Int
+  ) {
+    diffCommitsAt(
+      base_commit_hash: $baseCommitHash
+      diffee_commit_hash: $diffeeCommitHash
+      at_path: $path
+      max_depth: $maxDepth
+    ) {
+      newitems {
+        path
+        type
+      }
+      moditems {
+        path
+        type
+        old_hash
+        new_hash
+      }
+      delitems {
+        path
+        type
+      }
     }
   }
-}
 `
 
 export {
