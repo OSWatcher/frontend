@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import { BTable, BButton, TableItem } from 'bootstrap-vue-next'
 import { fetchAllBranches, fetchCommitHistory } from '@/queries'
@@ -80,6 +80,23 @@ function handleSelection(selections: TableItem<Commit>[]) {
   }
   selectedCommits.value = selections
 }
+
+const diffViewLink = computed(() => {
+  if (selectedCommits.value.length !== 2) {
+    return {}
+  }
+  return {
+    name: 'DiffView',
+    params: {
+      base_hash: selectedCommits.value[0]?.hash,
+      diffee_hash: selectedCommits.value[1]?.hash
+    },
+    query: {
+      base_name: selectedCommits.value[0]?.name,
+      diffee_name: selectedCommits.value[1]?.name
+    }
+  }
+})
 </script>
 
 <template>
@@ -94,7 +111,12 @@ function handleSelection(selections: TableItem<Commit>[]) {
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <strong>{{ branchName }}</strong>
-            <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2">
+            <BButton
+              variant="primary"
+              class="ms-auto"
+              :disabled="selectedCommits.length !== 2"
+              :to="diffViewLink"
+            >
               Diff
             </BButton>
           </div>
