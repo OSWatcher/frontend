@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { BCard } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
 import TreeNodeType from '@/types'
@@ -36,6 +36,8 @@ const diffee_commit = {
 }
 // tree explorer
 const fields = [{ key: 'name', sortable: true }]
+// our current path
+const at_path = ref('/')
 
 async function diffFsAt(new_path: string) {
   try {
@@ -44,7 +46,7 @@ async function diffFsAt(new_path: string) {
       variables: {
         baseCommitHash: base_commit.hash,
         diffeeCommitHash: diffee_commit.hash,
-        path: '/',
+        path: new_path,
         maxDepth: 0
       }
     })
@@ -63,13 +65,13 @@ function parse_diff_reponse(response: any): DiffObj[] {
       "newitems": [],
       "moditems": [
         {
-          "path": "/pagefile.sys",
+          "path": "pagefile.sys",
           "type": "BLOB",
           "old_hash": "e54bbcfba0fd4c05ea20d30221fed6b6b296229f",
           "new_hash": "c85a61c40538fdbab4e5bc414491499fa9b22ecd"
         },
         {
-          "path": "/System Volume Information",
+          "path": "System Volume Information",
           "type": "TREE",
           "old_hash": "5973de3656a2afe1b98d92b780e0f78168c1b18f",
           "new_hash": "32a03e4b7302f1e7d2330ae680b41016125e09e8"
@@ -78,12 +80,12 @@ function parse_diff_reponse(response: any): DiffObj[] {
       ],
       "delitems": [
         {
-          "path": "/hiberfil.sys",
+          "path": "hiberfil.sys",
           "type": "BLOB",
           "old_hash": "ff6bf70d744440df52c98b70cfc8572454d349dd"
         },
         {
-          "path": "/Boot",
+          "path": "Boot",
           "type": "TREE",
           "old_hash": "3b2b61ad6407764a1d8a94e98308d952027db73a"
         }
@@ -173,7 +175,7 @@ onMounted(async () => {
         </h4>
       </div>
     </BCard>
-    <TreeExplorer path_dir="/" :getEntries="diffFsAt" :fields="fields">
+    <TreeExplorer :path_dir="at_path" :getEntries="diffFsAt" :fields="fields">
       <template #cell(name)="props">
         <div class="row-container">
           <div>
