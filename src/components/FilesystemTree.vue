@@ -4,8 +4,7 @@ import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
 import TreeNodeType from '@/types'
-
-const VITE_OBJECT_STORAGE_URL = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
+import { getDownloadUrl } from '@/download'
 
 const props = defineProps({
   os_hash: {
@@ -73,11 +72,6 @@ function parseFSEntries(new_data: {
     type: TreeNodeType.Tree
   }))
   return [...dirs, ...files]
-}
-
-// Generate the download URL for a given hash
-function getDownloadUrl(hash: string): string {
-  return `${VITE_OBJECT_STORAGE_URL}/objects/${hash}`
 }
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
