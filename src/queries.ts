@@ -166,6 +166,27 @@ const SEARCH_FS = gql`
   }
 `
 
+const DIFF_COMMITS = gql`
+query DiffCommits($baseCommitHash: String!, $diffeeCommitHash: String!, $path: String!, $maxDepth: Int) {
+  diffCommitsAt(base_commit_hash: $baseCommitHash, diffee_commit_hash: $diffeeCommitHash, path: $path, max_depth: $maxDepth) {
+    newitems {
+      path
+      type
+    }
+    moditems {
+      path
+      type
+      old_hash
+      new_hash
+    }
+    delitems {
+      path
+      type
+    }
+  }
+}
+`
+
 export {
   fetchAllBranches,
   fetchCommitHistory,
@@ -177,5 +198,6 @@ export {
   LIST_ENTRIES_FOR_TREE,
   LIST_SYMBOLS,
   LIST_WINSTRUCT,
-  SEARCH_FS
+  SEARCH_FS,
+  DIFF_COMMITS
 }
