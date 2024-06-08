@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { onMounted, markRaw, reactive, ref, watch } from 'vue'
 import FilesystemTree from '@/components/FilesystemTree.vue'
