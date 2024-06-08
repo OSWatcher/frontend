@@ -61,6 +61,10 @@ function handleSelection(selections: TableItem<Commit>[]) {
     )
     const new_selection = newSelections[0]
 
+    // if not undefined
+    if (!new_selection) {
+      return
+    }
     // Find the index in the commits array for the branch
     let index = -1
     for (const branch in branchesWithCommits.value) {
@@ -76,6 +80,8 @@ function handleSelection(selections: TableItem<Commit>[]) {
     // Ensure the commitTableRef is initialized
     if (commit_table && index !== -1) {
       commit_table.unselectRow(index)
+      // remove new_selection from selections
+      selections = selections.filter((selection) => selection.hash !== new_selection.hash)
     }
   }
   selectedCommits.value = selections
