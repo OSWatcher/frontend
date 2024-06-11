@@ -183,6 +183,7 @@ const DIFF_COMMITS = gql`
       newitems {
         path
         type
+        new_hash
       }
       moditems {
         path
@@ -193,6 +194,7 @@ const DIFF_COMMITS = gql`
       delitems {
         path
         type
+        old_hash
       }
     }
   }

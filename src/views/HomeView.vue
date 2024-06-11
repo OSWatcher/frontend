@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
-import { BTable, BButton, TableItem } from 'bootstrap-vue-next'
+import { BCard, BTable, BButton, TableItem } from 'bootstrap-vue-next'
 import { fetchAllBranches, fetchCommitHistory } from '@/queries'
 
 interface Commit {

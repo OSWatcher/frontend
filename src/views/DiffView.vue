@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { onMounted, ref } from 'vue'
-import { BCard } from 'bootstrap-vue-next'
+import { BCard, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
 import TreeNodeType from '@/types'
 import { GET_FS_ROOT, DIFF_COMMITS } from '@/queries'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { getDownloadUrl } from '@/download'
 
 enum DiffType {
   NEW,
@@ -118,29 +119,21 @@ function parse_diff_reponse(response: any): DiffObj[] {
 }
 */
   const diffCommitsAt = response.data['diffCommitsAt']
-  const newitems = diffCommitsAt.newitems.map((item: any) => ({
+
+  const mapItem = (item, diffType, rowVariant) => ({
     name: item.path,
     type: item.type === 'BLOB' ? TreeNodeType.Blob : TreeNodeType.Tree,
-    diffType: DiffType.NEW,
-    new_hash: item.new_hash,
-    _rowVariant: 'success'
-  }))
-  const moditems = diffCommitsAt.moditems.map((item: any) => ({
-    name: item.path,
-    type: item.type === 'BLOB' ? TreeNodeType.Blob : TreeNodeType.Tree,
-    diffType: DiffType.MOD,
-    old_hash: item.old_hash,
-    new_hash: item.new_hash,
-    _rowVariant: 'warning'
-  }))
-  const delitems = diffCommitsAt.delitems.map((item: any) => ({
-    name: item.path,
-    type: item.type === 'BLOB' ? TreeNodeType.Blob : TreeNodeType.Tree,
-    diffType: DiffType.DEL,
-    old_hash: item.old_hash,
-    _rowVariant: 'danger'
-  }))
-  return [...newitems, ...moditems, ...delitems]
+    diffType,
+    old_hash: item.old_hash || null,
+    new_hash: item.new_hash || null,
+    _rowVariant: rowVariant
+  })
+
+  const newItems = diffCommitsAt.newitems.map((item) => mapItem(item, DiffType.NEW, 'success'))
+  const modItems = diffCommitsAt.moditems.map((item) => mapItem(item, DiffType.MOD, 'warning'))
+  const delItems = diffCommitsAt.delitems.map((item) => mapItem(item, DiffType.DEL, 'danger'))
+
+  return [...newItems, ...modItems, ...delItems]
 }
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
@@ -186,6 +179,38 @@ onMounted(async () => {
             <div v-else>
               <i class="bi-folder-fill"></i>
               {{ props.data.item.name }}
+            </div>
+          </div>
+          <div>
+            <div v-if="props.data.item.type === TreeNodeType.Blob">
+              <div v-if="props.data.item.diffType === DiffType.NEW">
+                <a
+                  :href="getDownloadUrl(props.data.item.new_hash)"
+                  :download="`${props.data.item.new_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
+                  Download
+                </a>
+              </div>
+              <div v-else-if="props.data.item.diffType === DiffType.DEL">
+                <a
+                  :href="getDownloadUrl(props.data.item.old_hash)"
+                  :download="`${props.data.item.old_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
+                  Download
+                </a>
+              </div>
+              <div v-else>
+                <BDropdown text="Download" variant="primary">
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)"
+                    >Old</BDropdownItem
+                  >
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)"
+                    >New</BDropdownItem
+                  >
+                </BDropdown>
+              </div>
             </div>
           </div>
         </div>
