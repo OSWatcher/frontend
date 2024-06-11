@@ -65,11 +65,13 @@ function parseFSEntries(new_data: {
   // [{ name: 'file1', type: TreeNodeType.Blob }, { name: 'dir1', type: TreeNodeType.Tree }]
   const files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: TreeNodeType.Blob
+    type: TreeNodeType.Blob,
+    hash: edge.node.hash
   }))
   const dirs = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: TreeNodeType.Tree
+    type: TreeNodeType.Tree,
+    hash: edge.node.hash
   }))
   return [...dirs, ...files]
 }
