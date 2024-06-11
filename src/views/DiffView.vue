@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { onMounted, ref } from 'vue'
-import { BCard } from 'bootstrap-vue-next'
+import { BCard, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
 import TreeNodeType from '@/types'
 import { GET_FS_ROOT, DIFF_COMMITS } from '@/queries'
 import TreeExplorer from '@/components/TreeExplorer.vue'
+import { getDownloadUrl } from '@/download'
 
 enum DiffType {
   NEW,
@@ -186,6 +187,38 @@ onMounted(async () => {
             <div v-else>
               <i class="bi-folder-fill"></i>
               {{ props.data.item.name }}
+            </div>
+          </div>
+          <div>
+            <div v-if="props.data.item.type === TreeNodeType.Blob">
+              <div v-if="props.data.item.diffType === DiffType.NEW">
+                <a
+                  :href="getDownloadUrl(props.data.item.new_hash)"
+                  :download="`${props.data.item.new_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
+                  Download
+                </a>
+              </div>
+              <div v-else-if="props.data.item.diffType === DiffType.DEL">
+                <a
+                  :href="getDownloadUrl(props.data.item.old_hash)"
+                  :download="`${props.data.item.old_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
+                  Download
+                </a>
+              </div>
+              <div v-else>
+                <BDropdown text="Download" variant="primary">
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)"
+                    >Old</BDropdownItem
+                  >
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)"
+                    >New</BDropdownItem
+                  >
+                </BDropdown>
+              </div>
             </div>
           </div>
         </div>
