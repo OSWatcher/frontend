@@ -23,6 +23,7 @@ const branchesWithCommits = ref<BranchesWithCommits>({})
 const selectedCommits = ref<TableItem<Commit>[]>([])
 const commitTableRef = ref<(InstanceType<typeof BTable> | null)[]>([]) // Reference to the BTable component
 const isLoading = ref(false)
+const maintenanceMode = ref(false)
 
 // Fetch all branches on component mount
 onMounted(async () => {
@@ -47,6 +48,7 @@ onMounted(async () => {
     branchesWithCommits.value = commitsByBranch
   } catch (error) {
     console.error('Error fetching branches and commits:', error)
+    maintenanceMode.value = true
   } finally {
     isLoading.value = false
   }
@@ -107,47 +109,54 @@ const diffViewLink = computed(() => {
 
 <template>
   <main class="container mt-3">
-    <h2 class="mb-4"><i class="bi bi-git"></i> Branches</h2>
-    <div class="row">
-      <div
-        class="col-12 col-md-6 col-lg-4 mb-3"
-        v-for="(commits, branchName) in branchesWithCommits"
-        :key="branchName"
-      >
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>{{ branchName }}</strong>
-            <BButton
-              variant="primary"
-              class="ms-auto"
-              :disabled="selectedCommits.length !== 2"
-              :to="diffViewLink"
-            >
-              Diff
-            </BButton>
-          </div>
-          <BTable
-            ref="commitTableRef"
-            :busy="isLoading"
-            :items="commits"
-            :fields="fields"
-            :selectable="true"
-            select-mode="multi"
-            @selection="handleSelection"
-          >
-            <template #cell(view)="data">
+    <div v-if="maintenanceMode">
+      <BCard>
+        <h1><i class="bi bi-tools"></i> Maintenance</h1>
+      </BCard>
+    </div>
+    <div v-else>
+      <h2 class="mb-4"><i class="bi bi-git"></i> Branches</h2>
+      <div class="row">
+        <div
+          class="col-12 col-md-6 col-lg-4 mb-3"
+          v-for="(commits, branchName) in branchesWithCommits"
+          :key="branchName"
+        >
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <strong>{{ branchName }}</strong>
               <BButton
-                :to="{
-                  name: 'OSView',
-                  params: { os_hash: data.item.hash },
-                  query: { os_title: data.item.name }
-                }"
                 variant="primary"
+                class="ms-auto"
+                :disabled="selectedCommits.length !== 2"
+                :to="diffViewLink"
               >
-                View
+                Diff
               </BButton>
-            </template>
-          </BTable>
+            </div>
+            <BTable
+              ref="commitTableRef"
+              :busy="isLoading"
+              :items="commits"
+              :fields="fields"
+              :selectable="true"
+              select-mode="multi"
+              @selection="handleSelection"
+            >
+              <template #cell(view)="data">
+                <BButton
+                  :to="{
+                    name: 'OSView',
+                    params: { os_hash: data.item.hash },
+                    query: { os_title: data.item.name }
+                  }"
+                  variant="primary"
+                >
+                  View
+                </BButton>
+              </template>
+            </BTable>
+          </div>
         </div>
       </div>
     </div>
