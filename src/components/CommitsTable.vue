@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
-import { BTable, BButton, BButtonGroup, BFormCheckbox } from 'bootstrap-vue-next'
+import { BTable, BButton, BButtonGroup, BFormCheckbox, BBadge } from 'bootstrap-vue-next'
 import type { Commit, BranchesWithCommits } from '@/types'
 import CommitTable from '@/components/CommitsTable.vue'
 
-defineProps<{
+const props = defineProps<{
   branch: string
   fields: any[]
   branchesWithCommits: BranchesWithCommits
@@ -16,6 +16,14 @@ const emit = defineEmits(['handleCheckboxChange'])
 
 function handleCheckboxChange(item: Commit, checked: boolean) {
   emit('handleCheckboxChange', item, checked)
+}
+
+function getCommitPosition(commit: Commit): number {
+  return props.selectedCommits.findIndex((selectedCommit) => selectedCommit.hash === commit.hash)
+}
+
+function getCommitLabel(position: number): string {
+  return position === 0 ? 'Base' : 'Target'
 }
 </script>
 
@@ -62,6 +70,9 @@ function handleCheckboxChange(item: Commit, checked: boolean) {
             button-variant="outline-warning"
           >
             <i class="bi bi-file-diff-fill"></i>Diff
+            <BBadge v-if="getCommitPosition(data.item) !== -1" variant="success" pill>
+              {{ getCommitLabel(getCommitPosition(data.item)) }}
+            </BBadge>
           </BFormCheckbox>
         </BButtonGroup>
       </div>
