@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
-import { BCard, BTable, BButton, TableItem } from 'bootstrap-vue-next'
-import { fetchAllBranches, fetchCommitHistory } from '@/queries'
+import { BCard, BTable, BButton, TableItem, BFormCheckbox, BButtonGroup } from 'bootstrap-vue-next'
+import { fetchCommitHistory } from '@/queries'
+
+const MAIN_BRANCH: string = 'master'
 
 interface Commit {
   hash: string
   name: string
   date: string
+  selected?: boolean
 }
 
+// store the commit history for each branch
 interface BranchesWithCommits {
   [key: string]: Commit[]
 }
@@ -18,34 +22,55 @@ const fields = [
   { key: 'name', label: 'Commit Name' },
   { key: 'view', label: '' }
 ]
-
+// dictionary to store the commit history for each branch
 const branchesWithCommits = ref<BranchesWithCommits>({})
 const selectedCommits = ref<TableItem<Commit>[]>([])
-const commitTableRef = ref<(InstanceType<typeof BTable> | null)[]>([]) // Reference to the BTable component
 const isLoading = ref(false)
 const maintenanceMode = ref(false)
 
-// Fetch all branches on component mount
+/*
+fetches the commit history for master branch
+and for each commit in the master branch, fetches the commit history as well, if any
+stores the results in branchesWithCommits
+*/
 onMounted(async () => {
   isLoading.value = true
   try {
-    const response = await gqlClient.query({ query: fetchAllBranches })
-    const branches = response.data.branches
+    const response = await gqlClient.query({
+      query: fetchCommitHistory,
+      variables: { branchName: MAIN_BRANCH }
+    })
 
-    // Initialize an empty object to store commits for each branch
-    const commitsByBranch: BranchesWithCommits = {}
+    // map each commit to a new object
+    // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
+    // showing details for the commit
+    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map((c: Commit) => ({
+      ...c,
+      selected: false
+    }))
 
-    // Use a loop to fetch commits for each branch
-    for (const branch of branches) {
-      const commitResponse = await gqlClient.query({
+    // for each commit returned, try to fetch commit history, if any
+    for (const commit of branchesWithCommits.value[MAIN_BRANCH]) {
+      const response = await gqlClient.query({
         query: fetchCommitHistory,
-        variables: { branchName: branch.name }
+        variables: { branchName: commit.name }
       })
-      commitsByBranch[branch.name] = commitResponse.data.fetchCommitHistory
+      // test whether the response.data.fetchCommitHistory is an empty array
+      if (response.data.fetchCommitHistory.length > 0) {
+        // truncate the response up to commit with hash equal to commit.name (excluding it)
+        const index = response.data.fetchCommitHistory.findIndex(
+          (c: Commit) => c.hash === commit.hash
+        )
+        const data = response.data.fetchCommitHistory.slice(0, index)
+        // map each commit to a new object
+        // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
+        // showing details for the commit
+        branchesWithCommits.value[commit.name] = data.map((c: Commit) => ({
+          ...c,
+          selected: false
+        }))
+      }
     }
-
-    // Once all commit histories are fetched, update the reactive variable
-    branchesWithCommits.value = commitsByBranch
   } catch (error) {
     console.error('Error fetching branches and commits:', error)
     maintenanceMode.value = true
@@ -54,39 +79,18 @@ onMounted(async () => {
   }
 })
 
-function handleSelection(selections: TableItem<Commit>[]) {
-  if (selections.length > 2) {
-    // we need to unselect manually the last selection
-    // identify the last selection
-    const newSelections = selections.filter(
-      (selection) => !selectedCommits.value.includes(selection)
-    )
-    const new_selection = newSelections[0]
-
-    // if not undefined
-    if (!new_selection) {
-      return
+function handleCheckboxChange(item: Commit, checked: boolean) {
+  item.selected = checked
+  if (checked) {
+    if (selectedCommits.value.length < 2) {
+      selectedCommits.value.push(item)
+    } else {
+      alert('You can only select up to 2 commits.')
+      item.selected = false
     }
-    // Find the index in the commits array for the branch
-    let index = -1
-    for (const branch in branchesWithCommits.value) {
-      index = branchesWithCommits.value[branch].findIndex(
-        (item: Commit) => item.hash === new_selection.hash
-      )
-      if (index !== -1) {
-        break
-      }
-    }
-
-    const commit_table = commitTableRef.value[0]
-    // Ensure the commitTableRef is initialized
-    if (commit_table && index !== -1) {
-      commit_table.unselectRow(index)
-      // remove new_selection from selections
-      selections = selections.filter((selection) => selection.hash !== new_selection.hash)
-    }
+  } else {
+    selectedCommits.value = selectedCommits.value.filter((commit) => commit.hash !== item.hash)
   }
-  selectedCommits.value = selections
 }
 
 const diffViewLink = computed(() => {
@@ -109,55 +113,97 @@ const diffViewLink = computed(() => {
 
 <template>
   <main class="container mt-3">
+    <!-- Maintenance mode display -->
     <div v-if="maintenanceMode">
       <BCard>
         <h1><i class="bi bi-tools"></i> Maintenance</h1>
       </BCard>
     </div>
+
+    <!-- Main content when not in maintenance mode -->
     <div v-else>
-      <h2 class="mb-4"><i class="bi bi-git"></i> Branches</h2>
-      <div class="row">
-        <div
-          class="col-12 col-md-6 col-lg-4 mb-3"
-          v-for="(commits, branchName) in branchesWithCommits"
-          :key="branchName"
-        >
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <strong>{{ branchName }}</strong>
-              <BButton
-                variant="primary"
-                class="ms-auto"
-                :disabled="selectedCommits.length !== 2"
-                :to="diffViewLink"
-              >
-                Diff
-              </BButton>
-            </div>
-            <BTable
-              ref="commitTableRef"
-              :busy="isLoading"
-              :items="commits"
-              :fields="fields"
-              :selectable="true"
-              select-mode="multi"
-              @selection="handleSelection"
-            >
-              <template #cell(view)="data">
-                <BButton
-                  :to="{
-                    name: 'OSView',
-                    params: { os_hash: data.item.hash },
-                    query: { os_title: data.item.name }
-                  }"
-                  variant="primary"
-                >
+      <h2 class="mb-4"><i class="bi bi-git"></i> {{ MAIN_BRANCH }} Branch</h2>
+
+      <!-- Main card containing the branch and commit information -->
+      <div class="card">
+        <!-- Card header with branch name and Diff button -->
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>{{ MAIN_BRANCH }}</strong>
+          <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
+            Diff
+          </BButton>
+        </div>
+
+        <!-- Main table displaying commits from the main branch -->
+        <BTable :busy="isLoading" :items="branchesWithCommits[MAIN_BRANCH]" :fields="fields" responsive="md"
+          select-mode="multi">
+          <!-- Scoped slot for the 'name' field including the toggle button -->
+          <template #cell(name)="row">
+            <b-button v-if="branchesWithCommits[row.item.name]" @click="row.toggleDetails" class="me-2"
+              :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
+              <i :class="row.detailsShowing ? 'bi-three-dots' : 'bi-plus-lg'"></i>
+            </b-button>
+            <span v-else class="me-2 d-inline-block" style="width: 24px"></span>
+            {{ row.item.name }}
+          </template>
+
+          <!-- Custom cell for View button -->
+          <template #cell(view)="data">
+            <div class="d-flex justify-content-center align-items-center">
+              <BButtonGroup>
+                <BButton :to="{
+                  name: 'OSView',
+                  params: { os_hash: data.item.hash },
+                  query: { os_title: data.item.name }
+                }" variant="primary">
                   View
                 </BButton>
+                <BFormCheckbox v-model="data.item.selected"
+                  @change="handleCheckboxChange(data.item, $event.target.checked)"
+                  :disabled="!data.item.selected && selectedCommits.length >= 2" button
+                  button-variant="outline-warning">
+                  <i class="bi bi-file-diff-fill"></i>Diff
+                </BFormCheckbox>
+              </BButtonGroup>
+            </div>
+          </template>
+
+          <!-- Row details template for expanded commits (associated branches) -->
+          <template #row-details="row">
+            <BTable v-if="branchesWithCommits[row.item.name]" :items="branchesWithCommits[row.item.name]"
+              :fields="fields" select-mode="multi">
+              <template #cell(name)="subrow">
+                <b-button v-if="branchesWithCommits[subrow.item.name]" @click="row.toggleDetails" class="me-2"
+                  :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
+                  <i :class="row.detailsShowing ? 'bi-three-dots' : 'bi-plus-lg'"></i>
+                </b-button>
+                <span v-else class="me-2 d-inline-block" style="width: 24px"></span>
+                <!-- Placeholder element -->
+                {{ subrow.item.name }}
+              </template>
+
+              <template #cell(view)="data">
+                <div class="d-flex justify-content-center align-items-center">
+                  <BButtonGroup>
+                    <BButton :to="{
+                      name: 'OSView',
+                      params: { os_hash: data.item.hash },
+                      query: { os_title: data.item.name }
+                    }" variant="primary">
+                      View
+                    </BButton>
+                    <BFormCheckbox v-model="data.item.selected"
+                      @change="handleCheckboxChange(data.item, $event.target.checked)"
+                      :disabled="!data.item.selected && selectedCommits.length >= 2" button
+                      button-variant="outline-warning">
+                      <i class="bi bi-file-diff-fill"></i>Diff
+                    </BFormCheckbox>
+                  </BButtonGroup>
+                </div>
               </template>
             </BTable>
-          </div>
-        </div>
+          </template>
+        </BTable>
       </div>
     </div>
   </main>
@@ -169,5 +215,9 @@ const diffViewLink = computed(() => {
   text-overflow: ellipsis;
   max-width: 75px;
   display: inline-block;
+}
+
+.b-table {
+  margin-bottom: 0rem;
 }
 </style>
