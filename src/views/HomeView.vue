@@ -1,22 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
-import { BCard, BTable, BButton, TableItem, BFormCheckbox, BButtonGroup } from 'bootstrap-vue-next'
+import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
 import { fetchCommitHistory } from '@/queries'
+import type { Commit, BranchesWithCommits } from '@/types'
+import CommitTable from '@/components/CommitsTable.vue'
 
 const MAIN_BRANCH: string = 'master'
-
-interface Commit {
-  hash: string
-  name: string
-  date: string
-  selected?: boolean
-}
-
-// store the commit history for each branch
-interface BranchesWithCommits {
-  [key: string]: Commit[]
-}
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
@@ -129,81 +119,23 @@ const diffViewLink = computed(() => {
         <!-- Card header with branch name and Diff button -->
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>{{ MAIN_BRANCH }}</strong>
-          <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
+          <BButton
+            variant="primary"
+            class="ms-auto"
+            :disabled="selectedCommits.length !== 2"
+            :to="diffViewLink"
+          >
             Diff
           </BButton>
         </div>
-
-        <!-- Main table displaying commits from the main branch -->
-        <BTable :busy="isLoading" :items="branchesWithCommits[MAIN_BRANCH]" :fields="fields" responsive="md"
-          select-mode="multi">
-          <!-- Scoped slot for the 'name' field including the toggle button -->
-          <template #cell(name)="row">
-            <b-button v-if="branchesWithCommits[row.item.name]" @click="row.toggleDetails" class="me-2"
-              :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
-              <i :class="row.detailsShowing ? 'bi-three-dots' : 'bi-plus-lg'"></i>
-            </b-button>
-            <span v-else class="me-2 d-inline-block" style="width: 24px"></span>
-            {{ row.item.name }}
-          </template>
-
-          <!-- Custom cell for View button -->
-          <template #cell(view)="data">
-            <div class="d-flex justify-content-center align-items-center">
-              <BButtonGroup>
-                <BButton :to="{
-                  name: 'OSView',
-                  params: { os_hash: data.item.hash },
-                  query: { os_title: data.item.name }
-                }" variant="primary">
-                  View
-                </BButton>
-                <BFormCheckbox v-model="data.item.selected"
-                  @change="handleCheckboxChange(data.item, $event.target.checked)"
-                  :disabled="!data.item.selected && selectedCommits.length >= 2" button
-                  button-variant="outline-warning">
-                  <i class="bi bi-file-diff-fill"></i>Diff
-                </BFormCheckbox>
-              </BButtonGroup>
-            </div>
-          </template>
-
-          <!-- Row details template for expanded commits (associated branches) -->
-          <template #row-details="row">
-            <BTable v-if="branchesWithCommits[row.item.name]" :items="branchesWithCommits[row.item.name]"
-              :fields="fields" select-mode="multi">
-              <template #cell(name)="subrow">
-                <b-button v-if="branchesWithCommits[subrow.item.name]" @click="row.toggleDetails" class="me-2"
-                  :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'" size="sm">
-                  <i :class="row.detailsShowing ? 'bi-three-dots' : 'bi-plus-lg'"></i>
-                </b-button>
-                <span v-else class="me-2 d-inline-block" style="width: 24px"></span>
-                <!-- Placeholder element -->
-                {{ subrow.item.name }}
-              </template>
-
-              <template #cell(view)="data">
-                <div class="d-flex justify-content-center align-items-center">
-                  <BButtonGroup>
-                    <BButton :to="{
-                      name: 'OSView',
-                      params: { os_hash: data.item.hash },
-                      query: { os_title: data.item.name }
-                    }" variant="primary">
-                      View
-                    </BButton>
-                    <BFormCheckbox v-model="data.item.selected"
-                      @change="handleCheckboxChange(data.item, $event.target.checked)"
-                      :disabled="!data.item.selected && selectedCommits.length >= 2" button
-                      button-variant="outline-warning">
-                      <i class="bi bi-file-diff-fill"></i>Diff
-                    </BFormCheckbox>
-                  </BButtonGroup>
-                </div>
-              </template>
-            </BTable>
-          </template>
-        </BTable>
+        <CommitTable
+          :branch="MAIN_BRANCH"
+          :fields="fields"
+          :branchesWithCommits="branchesWithCommits"
+          :selectedCommits="selectedCommits"
+          :isLoading="isLoading"
+          @handleCheckboxChange="handleCheckboxChange"
+        />
       </div>
     </div>
   </main>
@@ -215,9 +147,5 @@ const diffViewLink = computed(() => {
   text-overflow: ellipsis;
   max-width: 75px;
   display: inline-block;
-}
-
-.b-table {
-  margin-bottom: 0rem;
 }
 </style>
