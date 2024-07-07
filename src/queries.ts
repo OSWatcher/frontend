@@ -1,25 +1,29 @@
 import { gql } from '@apollo/client/core'
 
 // home
-const fetchAllBranches = gql`
-  query {
-    branches {
-      name
-    }
-  }
-`
-
 const fetchCommitHistory = gql`
   query ($branchName: String!) {
     fetchCommitHistory(branch_name: $branchName) {
       hash
       name
+      description
       date
     }
   }
 `
 
 // osview
+const fetchCommitDetails = gql`
+  query Commits($where: CommitWhere) {
+    commits(where: $where) {
+      hash
+      name
+      description
+      date
+    }
+  }
+`
+
 const getCommitCapabilities = gql`
   query Query($commitHash: String!) {
     getCommitExtractedDataLabels(commit_hash: $commitHash)
@@ -201,8 +205,8 @@ const DIFF_COMMITS = gql`
 `
 
 export {
-  fetchAllBranches,
   fetchCommitHistory,
+  fetchCommitDetails,
   getCommitCapabilities,
   GET_FS_ROOT,
   HAS_WINREG,
