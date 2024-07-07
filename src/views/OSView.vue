@@ -6,7 +6,8 @@ import RegistryTree from '@/components/RegistryTree.vue'
 import PDBExplorer from '@/components/PDBExplorer.vue'
 import gqlClient from '@/graphql-client'
 import { BTabs, BTab, BSpinner, BCard, BRow, BCol } from 'bootstrap-vue-next'
-import { getCommitCapabilities } from '@/queries'
+import { fetchCommitDetails, getCommitCapabilities } from '@/queries'
+import { Commit } from '@/types'
 
 const route = useRoute()
 const os_hash = ref(route.params.os_hash)
@@ -17,10 +18,18 @@ const tabs = reactive({
   filesystem: { title: 'Filesystem', component: markRaw(FilesystemTree) }
 })
 const isLoading = ref(false)
+const commit = ref({} as Commit)
 
 onMounted(async () => {
   isLoading.value = true
   try {
+    // load commit details
+    const response_commit = await gqlClient.query({
+      query: fetchCommitDetails,
+      variables: { where: { hash: os_hash.value } }
+    })
+    commit.value = response_commit.data.commits[0]
+
     const response = await gqlClient.query({
       query: getCommitCapabilities,
       variables: { commitHash: os_hash.value }
@@ -55,7 +64,11 @@ watch(
   <div class="container">
     <BRow>
       <BCol cols="4">
-        <BCard :title="os_title" class="mb-3 p-3"></BCard>
+        <BCard :title="os_title" class="mb-3 p-3">
+          <BCardText>
+            {{ commit.description }}
+          </BCardText>
+        </BCard>
       </BCol>
       <BCol>
         <BSpinner v-if="isLoading"></BSpinner>
