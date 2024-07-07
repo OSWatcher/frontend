@@ -32,7 +32,6 @@ function getCommitLabel(position: number): string {
     :busy="isLoading"
     :items="branchesWithCommits[branch]"
     :fields="fields"
-    responsive="md"
     select-mode="multi"
   >
     <template #cell(name)="row">
@@ -47,6 +46,10 @@ function getCommitLabel(position: number): string {
       </b-button>
       <span v-else class="me-2 d-inline-block" style="width: 24px"></span>
       {{ row.item.name }}
+    </template>
+
+    <template #cell(description)="row">
+      {{ row.item.description }}
     </template>
 
     <template #cell(view)="data">

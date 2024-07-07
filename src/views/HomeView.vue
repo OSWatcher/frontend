@@ -10,6 +10,7 @@ const MAIN_BRANCH: string = 'master'
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
+  { key: 'description', label: 'Description' },
   { key: 'view', label: '' }
 ]
 // dictionary to store the commit history for each branch
