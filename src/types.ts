@@ -6,6 +6,7 @@ enum TreeNodeType {
 interface Commit {
   hash: string
   name: string
+  description: string
   date: string
   selected?: boolean
 }
