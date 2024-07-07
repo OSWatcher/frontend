@@ -6,6 +6,7 @@ const fetchCommitHistory = gql`
     fetchCommitHistory(branch_name: $branchName) {
       hash
       name
+      description
       date
     }
   }
