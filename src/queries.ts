@@ -13,6 +13,17 @@ const fetchCommitHistory = gql`
 `
 
 // osview
+const fetchCommitDetails = gql`
+  query Commits($where: CommitWhere) {
+    commits(where: $where) {
+      hash
+      name
+      description
+      date
+    }
+  }
+`
+
 const getCommitCapabilities = gql`
   query Query($commitHash: String!) {
     getCommitExtractedDataLabels(commit_hash: $commitHash)
@@ -195,6 +206,7 @@ const DIFF_COMMITS = gql`
 
 export {
   fetchCommitHistory,
+  fetchCommitDetails,
   getCommitCapabilities,
   GET_FS_ROOT,
   HAS_WINREG,
