@@ -52,7 +52,11 @@ async function diffFsAt(new_path: string) {
         atPath: new_path, // Path to diff
         maxDepth: 0, // Max depth for the diff
         filter: ['Blob'] // Filter criteria (empty for now)
-      }
+      },
+      // disable caching for this query
+      // Apollo Client cache is very slow
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all'
     })
     return parse_diff_reponse(response) // Parse the response
   } catch (error) {
