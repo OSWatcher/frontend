@@ -5,7 +5,7 @@ import FilesystemTree from '@/components/FilesystemTree.vue'
 import RegistryTree from '@/components/RegistryTree.vue'
 import PDBExplorer from '@/components/PDBExplorer.vue'
 import gqlClient from '@/graphql-client'
-import { BTabs, BTab, BSpinner, BCard, BRow, BCol } from 'bootstrap-vue-next'
+import { BTabs, BTab, BSpinner, BCard, BRow, BCol, BCardText } from 'bootstrap-vue-next'
 import { fetchCommitDetails, getCommitCapabilities } from '@/queries'
 import { Commit } from '@/types'
 
