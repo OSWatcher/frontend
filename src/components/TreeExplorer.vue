@@ -42,9 +42,6 @@ const items = ref([])
 const pathItems = ref([])
 // busy state
 const isLoading = ref(false)
-// pagination
-const perPage = ref(50)
-const currentPage = ref(1)
 
 // add a watcher to the path_dir prop
 watch(
@@ -133,20 +130,10 @@ function sortTreeThenName(entries) {
       </ol>
     </nav>
 
-    <BPagination
-      v-if="items.length > perPage"
-      v-model="currentPage"
-      :total-rows="items.length"
-      :per-page="perPage"
-      align="center"
-      class="mb-3"
-    />
     <BTable
       :busy="isLoading"
       :items="items"
       :fields="props.fields"
-      :current-page="currentPage"
-      :per-page="perPage"
       :selectable="true"
       :noSelectOnClick="true"
       @row-clicked="enterDirectory"
