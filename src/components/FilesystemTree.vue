@@ -42,10 +42,9 @@ const fs_root = ref(null)
 
 // Fetch filesystem at the given path
 async function listFsAt(path: string) {
-  // Here you would use the useQuery hook from Apollo Client Vue to fetch data
   const response = await gqlClient.query({
     query: TRAVERSE_PATH,
-    variables: { tree_hash: fs_root.value, path }
+    variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
   })
   const tree_hash = response.data['traversePath']
   // get children
@@ -88,13 +87,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TreeExplorer
-    v-if="fs_root"
-    :path_dir="pathParts.parentDir"
-    :filename_highlight="pathParts.filename"
-    :getEntries="listFsAt"
-    :fields="fields"
-  >
+  <TreeExplorer v-if="fs_root" :path_dir="pathParts.parentDir" :filename_highlight="pathParts.filename"
+    :getEntries="listFsAt" :fields="fields">
     <template #cell(name)="props">
       <div class="row-container">
         <div>
@@ -108,11 +102,8 @@ onMounted(async () => {
           </div>
         </div>
         <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <a
-            :href="getDownloadUrl(props.data.item.hash)"
-            :download="`${props.data.item.hash}_${props.data.item.name}`"
-            class="btn btn-primary"
-          >
+          <a :href="getDownloadUrl(props.data.item.hash)" :download="`${props.data.item.hash}_${props.data.item.name}`"
+            class="btn btn-primary">
             Download
           </a>
         </div>
@@ -123,10 +114,14 @@ onMounted(async () => {
 
 <style scoped>
 .breadcrumb {
-  margin-bottom: 0; /* Bootstrap's breadcrumb has bottom margin, reset it if needed */
-  background-color: #f5f5f5; /* Or any gray color you prefer */
-  padding: 1rem; /* Adjust padding to match your design */
-  border-radius: 0.25rem; /* Optional: if you want rounded corners */
+  margin-bottom: 0;
+  /* Bootstrap's breadcrumb has bottom margin, reset it if needed */
+  background-color: #f5f5f5;
+  /* Or any gray color you prefer */
+  padding: 1rem;
+  /* Adjust padding to match your design */
+  border-radius: 0.25rem;
+  /* Optional: if you want rounded corners */
 }
 
 .row-container {
