@@ -57,8 +57,8 @@ const HAS_WINREG = gql`
 `
 
 const TRAVERSE_PATH = gql`
-  query Query($tree_hash: String!, $path: String!) {
-    traversePath(tree_hash: $tree_hash, path: $path)
+  query Query($parent_label: String!, $tree_hash: String!, $path: String!) {
+    traversePath(parent_label: $parent_label, tree_hash: $tree_hash, path: $path)
   }
 `
 
