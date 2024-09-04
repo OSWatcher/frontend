@@ -171,34 +171,33 @@ const SEARCH_FS = gql`
   }
 `
 
-const DIFF_COMMITS = gql`
-  query DiffCommits(
-    $baseCommitHash: String!
-    $diffeeCommitHash: String!
-    $path: String!
+const DIFF_NODES = gql`
+  query DiffNodes(
+    $parentLabel: String!
+    $baseNodeHash: String!
+    $diffeeNodeHash: String!
+    $atPath: String!
     $maxDepth: Int
+    $filter: [String!]
   ) {
-    diffCommitsAt(
-      base_commit_hash: $baseCommitHash
-      diffee_commit_hash: $diffeeCommitHash
-      at_path: $path
+    diffNodesAt(
+      parent_label: $parentLabel
+      base_node_hash: $baseNodeHash
+      diffee_node_hash: $diffeeNodeHash
+      at_path: $atPath
       max_depth: $maxDepth
+      filter: $filter
     ) {
-      newitems {
-        path
-        type
-        new_hash
+      status
+      type
+      path
+      new_props {
+        hash
+        properties
       }
-      moditems {
-        path
-        type
-        old_hash
-        new_hash
-      }
-      delitems {
-        path
-        type
-        old_hash
+      old_props {
+        hash
+        properties
       }
     }
   }
@@ -216,5 +215,5 @@ export {
   LIST_SYMBOLS,
   LIST_WINSTRUCT,
   SEARCH_FS,
-  DIFF_COMMITS
+  DIFF_NODES
 }
