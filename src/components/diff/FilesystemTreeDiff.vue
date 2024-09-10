@@ -1,26 +1,11 @@
 <script setup lang="ts">
 import { defineProps, ref, onMounted } from 'vue'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import TreeNodeType from '@/types'
+import TreeNodeType, { DiffObj, DiffType } from '@/types'
 import { getDownloadUrl } from '@/download'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES, GET_FS_ROOT } from '@/queries'
 import { BDropdown, BDropdownItem } from 'bootstrap-vue-next'
-
-enum DiffType {
-  NEW,
-  MOD,
-  DEL
-}
-
-interface DiffObj {
-  name: string
-  type: TreeNodeType
-  diffType: DiffType
-  old_hash: string | null
-  new_hash: string | null
-  _rowVariant: string
-}
 
 const props = defineProps({
   base_commit: {
@@ -138,7 +123,12 @@ onMounted(async () => {
 
 <template>
   <div v-if="base_commit.fs_root_hash && diffee_commit.fs_root_hash">
-    <TreeExplorer :path_dir="at_path" :getEntries="diffFsAt" :fields="fields" :export_max_depth_available="true">
+    <TreeExplorer
+      :path_dir="at_path"
+      :getEntries="diffFsAt"
+      :fields="fields"
+      :export_max_depth_available="true"
+    >
       <template #cell(name)="props">
         <div class="row-container">
           <div>
@@ -154,21 +144,31 @@ onMounted(async () => {
           <div>
             <div v-if="props.data.item.type === TreeNodeType.Blob">
               <div v-if="props.data.item.diffType === DiffType.NEW">
-                <a :href="getDownloadUrl(props.data.item.new_hash)"
-                  :download="`${props.data.item.new_hash}_${props.data.item.name}`" class="btn btn-primary">
+                <a
+                  :href="getDownloadUrl(props.data.item.new_hash)"
+                  :download="`${props.data.item.new_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
                   Download
                 </a>
               </div>
               <div v-else-if="props.data.item.diffType === DiffType.DEL">
-                <a :href="getDownloadUrl(props.data.item.old_hash)"
-                  :download="`${props.data.item.old_hash}_${props.data.item.name}`" class="btn btn-primary">
+                <a
+                  :href="getDownloadUrl(props.data.item.old_hash)"
+                  :download="`${props.data.item.old_hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
                   Download
                 </a>
               </div>
               <div v-else>
                 <BDropdown text="Download" variant="primary">
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)">Old</BDropdownItem>
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)">New</BDropdownItem>
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)"
+                    >Old</BDropdownItem
+                  >
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)"
+                    >New</BDropdownItem
+                  >
                 </BDropdown>
               </div>
             </div>

@@ -1,4 +1,4 @@
-enum TreeNodeType {
+export enum TreeNodeType {
   Blob,
   Tree
 }
@@ -23,3 +23,18 @@ interface BranchesWithCommits {
 
 export default TreeNodeType
 export type { Commit, BranchesWithCommits }
+
+export enum DiffType {
+  NEW,
+  MOD,
+  DEL
+}
+
+export interface DiffObj {
+  name: string
+  type: TreeNodeType
+  diffType: DiffType
+  old_hash: string | null
+  new_hash: string | null
+  _rowVariant: string
+}
