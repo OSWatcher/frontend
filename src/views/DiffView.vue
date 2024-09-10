@@ -1,128 +1,51 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { onMounted, ref } from 'vue'
-import { BCard, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
+import { markRaw, onMounted, reactive, ref } from 'vue'
+import { BCard, BTabs, BTab } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
-import TreeNodeType from '@/types'
-import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
-import TreeExplorer from '@/components/TreeExplorer.vue'
-import { getDownloadUrl } from '@/download'
-
-enum DiffType {
-  NEW,
-  MOD,
-  DEL
-}
-
-interface DiffObj {
-  name: string
-  type: TreeNodeType
-  diffType: DiffType
-  old_hash: string | null
-  new_hash: string | null
-  _rowVariant: string
-}
+import { getCommitCapabilities } from '@/queries'
+import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
 
 // get route params
 const route = useRoute()
 const base_commit = ref({
-  hash: route.params.base_hash,
-  name: route.query.base_name,
+  hash: route.params.base_hash as string,
+  name: route.query.base_name as string,
   fs_root_hash: ''
 })
 const diffee_commit = ref({
-  hash: route.params.diffee_hash,
-  name: route.query.diffee_name,
+  hash: route.params.diffee_hash as string,
+  name: route.query.diffee_name as string,
   fs_root_hash: ''
 })
-// tree explorer
-const fields = [{ key: 'name', sortable: true }]
-// our current path
-const at_path = ref('/')
 
-// Function to fetch filesystem diff at a given path
-async function diffFsAt(
-  new_path: string,
-  max_depth: number | null = 0,
-  to_export: boolean = false
-) {
-  try {
-    const response = await gqlClient.query({
-      query: DIFF_NODES, // Use the updated DIFF_NODES query
-      variables: {
-        parentLabel: 'Tree', // Set the parent label
-        baseNodeHash: base_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
-        diffeeNodeHash: diffee_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
-        atPath: new_path, // Path to diff
-        maxDepth: max_depth, // Max depth for the diff
-        filter: ['Blob'] // Filter criteria (empty for now)
-      },
-      // disable caching for this query
-      // Apollo Client cache is very slow
-      fetchPolicy: 'no-cache',
-      errorPolicy: 'all'
-    })
-    return parse_diff_reponse(response, to_export) // Parse the response
-  } catch (error) {
-    console.error('Error fetching filesystem diff at path: ', error)
-  }
-}
-
-// Function to parse the diff response
-function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
-  const diffNodesAt = response.data['diffNodesAt'] // Get the diffNodesAt data
-
-  if (to_export) {
-    return diffNodesAt.map((item) => ({
-      name: item.path,
-      type: item.type,
-      diffType: item.status,
-      old_hash: item.old_props?.hash || null,
-      new_hash: item.new_props?.hash || null
-    }))
-  }
-
-  // Helper function to map API response to DiffObj
-  const mapItem = (item, diffType, rowVariant) => ({
-    name: item.path, // File or directory path
-    type: item.type === 'BLOB' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
-    diffType, // Diff type (NEW, MOD, DEL)
-    old_hash: item.old_props?.hash || null, // Old hash (if available)
-    new_hash: item.new_props?.hash || null, // New hash (if available)
-    _rowVariant: rowVariant // Row variant for styling
-  })
-
-  // Filter and map new items
-  const newItems = diffNodesAt
-    .filter((item) => item.status === 'NEW')
-    .map((item) => mapItem(item, DiffType.NEW, 'success'))
-  // Filter and map modified items
-  const modItems = diffNodesAt
-    .filter((item) => item.status === 'MOD')
-    .map((item) => mapItem(item, DiffType.MOD, 'warning'))
-  // Filter and map deleted items
-  const delItems = diffNodesAt
-    .filter((item) => item.status === 'DEL')
-    .map((item) => mapItem(item, DiffType.DEL, 'danger'))
-
-  // Combine all items into a single array
-  return [...newItems, ...modItems, ...delItems]
-}
+// v-if isn't supported, we need to build the tabs variable and insert entries instead
+const tabs = reactive({
+  filesystem: { title: 'Filesystem', component: markRaw(FilesystemTreeDiff) }
+})
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
+// and load commit details to know which tab to show
 onMounted(async () => {
-  const response = await gqlClient.query({
-    query: GET_FS_ROOT,
-    variables: { where: { hash_IN: [base_commit.value.hash, diffee_commit.value.hash] } }
-  })
-  // assign fs_root_hash to the corresponding commit
-  response.data['commits'].forEach((commit) => {
-    if (commit.hash === base_commit.value.hash) {
-      base_commit.value.fs_root_hash = commit.filesystemConnection.edges[0].node.hash
-    } else if (commit.hash === diffee_commit.value.hash) {
-      diffee_commit.value.fs_root_hash = commit.filesystemConnection.edges[0].node.hash
-    }
-  })
+  try {
+    // fetch commit details
+    // just fetch first commit details
+    const response_details = await gqlClient.query({
+      query: getCommitCapabilities,
+      variables: { commitHash: base_commit.value.hash }
+    })
+    const labels = response_details.data.getCommitExtractedDataLabels
+    // // registry ?
+    // if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
+    //   tabs.registry = { title: 'Registry', component: markRaw(RegistryTree) }
+    // }
+    // // symbols ?
+    // if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
+    //   tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorer) }
+    // }
+  } catch (error) {
+    console.error('Error fetching commit details', error)
+  }
 })
 </script>
 
@@ -140,71 +63,19 @@ onMounted(async () => {
         </h4>
       </div>
     </BCard>
-    <div v-if="base_commit.fs_root_hash && diffee_commit.fs_root_hash">
-      <TreeExplorer
-        :path_dir="at_path"
-        :getEntries="diffFsAt"
-        :fields="fields"
-        :export_max_depth_available="true"
-      >
-        <template #cell(name)="props">
-          <div class="row-container">
-            <div>
-              <div v-if="props.data.item.type === TreeNodeType.Blob">
-                <i class="bi-file-earmark"></i>
-                {{ props.data.item.name }}
-              </div>
-              <div v-else>
-                <i class="bi-folder-fill"></i>
-                {{ props.data.item.name }}
-              </div>
-            </div>
-            <div>
-              <div v-if="props.data.item.type === TreeNodeType.Blob">
-                <div v-if="props.data.item.diffType === DiffType.NEW">
-                  <a
-                    :href="getDownloadUrl(props.data.item.new_hash)"
-                    :download="`${props.data.item.new_hash}_${props.data.item.name}`"
-                    class="btn btn-primary"
-                  >
-                    Download
-                  </a>
-                </div>
-                <div v-else-if="props.data.item.diffType === DiffType.DEL">
-                  <a
-                    :href="getDownloadUrl(props.data.item.old_hash)"
-                    :download="`${props.data.item.old_hash}_${props.data.item.name}`"
-                    class="btn btn-primary"
-                  >
-                    Download
-                  </a>
-                </div>
-                <div v-else>
-                  <BDropdown text="Download" variant="primary">
-                    <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)"
-                      >Old</BDropdownItem
-                    >
-                    <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)"
-                      >New</BDropdownItem
-                    >
-                  </BDropdown>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </TreeExplorer>
-    </div>
+    <b-tabs content-class="mt-3">
+      <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
+        <component
+          :is="tab.component"
+          :base_commit="base_commit.hash"
+          :diffee_commit="diffee_commit.hash"
+        />
+      </b-tab>
+    </b-tabs>
   </div>
 </template>
 
 <style scoped>
-.row-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .diff-card {
   padding: 20px;
   border: 1px solid #dee2e6;
