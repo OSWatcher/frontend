@@ -5,6 +5,7 @@ import { BCard, BTabs, BTab } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
 import { getCommitCapabilities } from '@/queries'
 import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
+import RegistryTreeDiff from '@/components/diff/RegistryTreeDiff.vue'
 
 // get route params
 const route = useRoute()
@@ -35,16 +36,17 @@ onMounted(async () => {
       variables: { commitHash: base_commit.value.hash }
     })
     const labels = response_details.data.getCommitExtractedDataLabels
-    // // registry ?
-    // if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
-    //   tabs.registry = { title: 'Registry', component: markRaw(RegistryTree) }
-    // }
+    // registry ?
+    if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
+      tabs.registry = { title: 'Registry', component: markRaw(RegistryTreeDiff) }
+    }
     // // symbols ?
     // if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
     //   tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorer) }
     // }
   } catch (error) {
     console.error('Error fetching commit details', error)
+  } finally {
   }
 })
 </script>
