@@ -41,7 +41,11 @@ const fields = [{ key: 'name', sortable: true }]
 const at_path = ref('/')
 
 // Function to fetch filesystem diff at a given path
-async function diffFsAt(new_path: string) {
+async function diffFsAt(
+  new_path: string,
+  max_depth: number | null = 0,
+  to_export: boolean = false
+) {
   try {
     const response = await gqlClient.query({
       query: DIFF_NODES, // Use the updated DIFF_NODES query
@@ -50,7 +54,7 @@ async function diffFsAt(new_path: string) {
         baseNodeHash: base_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
         diffeeNodeHash: diffee_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
         atPath: new_path, // Path to diff
-        maxDepth: 0, // Max depth for the diff
+        maxDepth: max_depth, // Max depth for the diff
         filter: ['Blob'] // Filter criteria (empty for now)
       },
       // disable caching for this query
@@ -58,15 +62,25 @@ async function diffFsAt(new_path: string) {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response) // Parse the response
+    return parse_diff_reponse(response, to_export) // Parse the response
   } catch (error) {
     console.error('Error fetching filesystem diff at path: ', error)
   }
 }
 
 // Function to parse the diff response
-function parse_diff_reponse(response: any): DiffObj[] {
+function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
   const diffNodesAt = response.data['diffNodesAt'] // Get the diffNodesAt data
+
+  if (to_export) {
+    return diffNodesAt.map((item) => ({
+      name: item.path,
+      type: item.type,
+      diffType: item.status,
+      old_hash: item.old_props?.hash || null,
+      new_hash: item.new_props?.hash || null
+    }))
+  }
 
   // Helper function to map API response to DiffObj
   const mapItem = (item, diffType, rowVariant) => ({
@@ -127,7 +141,12 @@ onMounted(async () => {
       </div>
     </BCard>
     <div v-if="base_commit.fs_root_hash && diffee_commit.fs_root_hash">
-      <TreeExplorer :path_dir="at_path" :getEntries="diffFsAt" :fields="fields">
+      <TreeExplorer
+        :path_dir="at_path"
+        :getEntries="diffFsAt"
+        :fields="fields"
+        :export_max_depth_available="true"
+      >
         <template #cell(name)="props">
           <div class="row-container">
             <div>
