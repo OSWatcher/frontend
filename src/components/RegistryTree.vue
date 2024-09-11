@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import TreeNodeType from '@/types'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_KEY, GET_FS_ROOT, HAS_WINREG } from '@/queries'
+import { TRAVERSE_PATH, LIST_ENTRIES_FOR_KEY } from '@/queries'
 import { GetSystemHives, WinRegHive, HKLM, HKU } from '@/windows/registry'
 
 const props = defineProps({
@@ -19,8 +19,6 @@ const systemHives = ref<WinRegHive[]>([])
 const root = '/'
 
 const fields = [{ key: 'name', sortable: true }]
-
-const fs_root = ref(null)
 
 async function listFsAt(path: string) {
   if (path === '/') {
