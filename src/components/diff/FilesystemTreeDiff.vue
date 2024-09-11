@@ -69,8 +69,14 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
       name: item.path,
       type: item.type,
       diffType: item.status,
-      old_hash: item.old_props?.hash || null,
-      new_hash: item.new_props?.hash || null
+      old_props: {
+        hash: item.old_props?.hash,
+        properties: item.old_props?.properties
+      },
+      new_props: {
+        hash: item.new_props?.hash,
+        properties: item.new_props?.properties
+      }
     }))
   }
 
@@ -79,8 +85,8 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
     name: item.path, // File or directory path
     type: item.type === 'Blob' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
     diffType, // Diff type (NEW, MOD, DEL)
-    old_hash: item.old_props?.hash || null, // Old hash (if available)
-    new_hash: item.new_props?.hash || null, // New hash (if available)
+    old_props: item.old_props,
+    new_props: item.new_props,
     _rowVariant: rowVariant // Row variant for styling
   })
 
@@ -146,7 +152,7 @@ onMounted(async () => {
               <div v-if="props.data.item.diffType === DiffType.NEW">
                 <a
                   :href="getDownloadUrl(props.data.item.new_hash)"
-                  :download="`${props.data.item.new_hash}_${props.data.item.name}`"
+                  :download="`${props.data.item.new_props.hash}_${props.data.item.name}`"
                   class="btn btn-primary"
                 >
                   Download
@@ -154,8 +160,8 @@ onMounted(async () => {
               </div>
               <div v-else-if="props.data.item.diffType === DiffType.DEL">
                 <a
-                  :href="getDownloadUrl(props.data.item.old_hash)"
-                  :download="`${props.data.item.old_hash}_${props.data.item.name}`"
+                  :href="getDownloadUrl(props.data.item.old_props.hash)"
+                  :download="`${props.data.item.old_props.hash}_${props.data.item.name}`"
                   class="btn btn-primary"
                 >
                   Download
@@ -163,10 +169,10 @@ onMounted(async () => {
               </div>
               <div v-else>
                 <BDropdown text="Download" variant="primary">
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_hash)"
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_props.hash)"
                     >Old</BDropdownItem
                   >
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_hash)"
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_props.hash)"
                     >New</BDropdownItem
                   >
                 </BDropdown>
