@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { markRaw, onMounted, reactive, ref } from 'vue'
-import { BCard, BTabs, BTab } from 'bootstrap-vue-next'
+import { BCard, BTabs, BTab, BSpinner } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
 import { getCommitCapabilities } from '@/queries'
 import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
@@ -24,10 +24,12 @@ const diffee_commit = ref({
 const tabs = reactive({
   filesystem: { title: 'Filesystem', component: markRaw(FilesystemTreeDiff) }
 })
+const isLoading = ref(false)
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
 // and load commit details to know which tab to show
 onMounted(async () => {
+  isLoading.value = true
   try {
     // fetch commit details
     // just fetch first commit details
@@ -47,13 +49,17 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching commit details', error)
   } finally {
+    isLoading.value = false
   }
 })
 </script>
 
 <template>
   <div class="container">
-    <BCard class="diff-card">
+    <BCard class="diff-card position-relative">
+      <div v-if="isLoading" class="spinner-container">
+        <BSpinner></BSpinner>
+      </div>
       <div class="diff-header">
         <h2><i class="bi bi-file-earmark-diff"></i> Diff</h2>
       </div>
@@ -118,5 +124,25 @@ onMounted(async () => {
 
 .commit-name {
   font-weight: bold;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.my-3 {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.spinner-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
 }
 </style>
