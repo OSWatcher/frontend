@@ -30,11 +30,18 @@ export enum DiffType {
   DEL
 }
 
+export interface HashProps {
+  hash: string
+  properties: {
+    [key: string]: string
+  }
+}
+
 export interface DiffObj {
   name: string
   type: TreeNodeType
   diffType: DiffType
-  old_hash: string | null
-  new_hash: string | null
+  old_props: HashProps | null
+  new_props: HashProps | null
   _rowVariant: string
 }

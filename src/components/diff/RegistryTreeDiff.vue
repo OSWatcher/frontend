@@ -78,8 +78,14 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
       name: item.path || 'Unknown',
       type: item.type || 'Unknown',
       diffType: item.status || 'Unknown',
-      old_hash: item.old_props?.hash || null,
-      new_hash: item.new_props?.hash || null
+      old_props: {
+        hash: item.old_props?.hash,
+        properties: item.old_props?.properties
+      },
+      new_props: {
+        hash: item.new_props?.hash,
+        properties: item.new_props?.properties
+      }
     }))
   }
 
@@ -87,9 +93,9 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
   const mapItem = (item: any, diffType: DiffType, rowVariant: string): DiffObj => ({
     name: item.path || 'Unknown', // File or directory path
     type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
-    diffType, // Diff type (NEW, MOD, DEL)
-    old_hash: item.old_props?.hash || null, // Old hash (if available)
-    new_hash: item.new_props?.hash || null, // New hash (if available)
+    diffType,
+    old_props: item.old_props,
+    new_props: item.new_props,
     _rowVariant: rowVariant // Row variant for styling
   })
 
