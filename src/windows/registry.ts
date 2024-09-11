@@ -44,45 +44,41 @@ const SystemHives: WinRegHive[] = [
 ]
 
 export async function GetSystemHives(os_hash: string): Promise<WinRegHive[]> {
-  try {
-    // fetch FS root
-    const response = await gqlClient.query({
-      query: GET_FS_ROOT,
-      variables: { where: { hash: os_hash } }
-    })
-    const tree_hash =
-      response.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash ?? null
-    if (tree_hash === null) {
-      console.error('Failed to retrieve filesystem root hash from the response')
-      throw new Error('Invalid response structure')
-    }
-    const fs_root = tree_hash
-
-    // make a copy of SystemHives
-    // and fetch blob hash for each hive
-    const CopyOfSystemHives = SystemHives.map((hive) => ({ ...hive }))
-    await Promise.all(
-      CopyOfSystemHives.map(async (hive) => {
-        const response = await gqlClient.query({
-          query: TRAVERSE_PATH,
-          variables: { parent_label: 'Tree', tree_hash: fs_root, path: hive.path }
-        })
-        hive.blob_hash = response.data['traversePath']
-      })
-    )
-
-    // fetch winreg hash for each hive
-    await Promise.all(
-      CopyOfSystemHives.map(async (hive) => {
-        const response = await gqlClient.query({
-          query: HAS_WINREG,
-          variables: { where: { hash: hive.blob_hash } }
-        })
-        hive.winreg_hash = response.data.blobs[0].has_winreg.hash
-      })
-    )
-    return CopyOfSystemHives
-  } catch (error) {
-    throw error
+  // fetch FS root
+  const response = await gqlClient.query({
+    query: GET_FS_ROOT,
+    variables: { where: { hash: os_hash } }
+  })
+  const tree_hash =
+    response.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash ?? null
+  if (tree_hash === null) {
+    console.error('Failed to retrieve filesystem root hash from the response')
+    throw new Error('Invalid response structure')
   }
+  const fs_root = tree_hash
+
+  // make a copy of SystemHives
+  // and fetch blob hash for each hive
+  const CopyOfSystemHives = SystemHives.map((hive) => ({ ...hive }))
+  await Promise.all(
+    CopyOfSystemHives.map(async (hive) => {
+      const response = await gqlClient.query({
+        query: TRAVERSE_PATH,
+        variables: { parent_label: 'Tree', tree_hash: fs_root, path: hive.path }
+      })
+      hive.blob_hash = response.data['traversePath']
+    })
+  )
+
+  // fetch winreg hash for each hive
+  await Promise.all(
+    CopyOfSystemHives.map(async (hive) => {
+      const response = await gqlClient.query({
+        query: HAS_WINREG,
+        variables: { where: { hash: hive.blob_hash } }
+      })
+      hive.winreg_hash = response.data.blobs[0].has_winreg.hash
+    })
+  )
+  return CopyOfSystemHives
 }
