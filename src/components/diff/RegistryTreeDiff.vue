@@ -26,7 +26,11 @@ const hiveChangeCounter = ref(0)
 // our current path
 const at_path = ref('/')
 // tree explorer
-const fields = [{ key: 'name', sortable: true }]
+const fields = [
+  { key: 'name', sortable: true },
+  { key: 'value', sortable: true },
+  { key: 'type', sortable: true }
+]
 
 async function diffRegAt(
   new_path: string,
@@ -75,9 +79,9 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
 
   if (to_export) {
     return diffNodesAt.map((item: any) => ({
-      name: item.path || 'Unknown',
-      type: item.type || 'Unknown',
-      diffType: item.status || 'Unknown',
+      name: item.path,
+      type: item.type,
+      diffType: item.status,
       old_props: {
         hash: item.old_props?.hash,
         properties: item.old_props?.properties
@@ -91,7 +95,7 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
 
   // Helper function to map API response to DiffObj
   const mapItem = (item: any, diffType: DiffType, rowVariant: string): DiffObj => ({
-    name: item.path || 'Unknown', // File or directory path
+    name: item.path,
     type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
     diffType,
     old_props: item.old_props,
@@ -196,6 +200,76 @@ const selectHive = (hive: HiveOption) => {
           </div>
         </div>
       </template>
+      <template #cell(value)="props">
+        <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
+          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+            {{ props.data.item.new_props.properties.value }}
+          </div>
+          <div
+            v-else-if="props.data.item.diffType === DiffType.DEL"
+            class="value-content old-value"
+          >
+            {{ props.data.item.old_props.properties.value }}
+          </div>
+          <div v-else-if="props.data.item.diffType === DiffType.MOD">
+            <div
+              v-if="
+                props.data.item.old_props.properties.value !==
+                props.data.item.new_props.properties.value
+              "
+            >
+              <div class="value-content old-value">
+                <span class="value-label">Old:</span>
+                {{ props.data.item.old_props.properties.value }}
+              </div>
+              <div class="value-content new-value">
+                <span class="value-label">New:</span>
+                {{ props.data.item.new_props.properties.value }}
+              </div>
+            </div>
+            <div v-else>
+              <div class="value-content">
+                {{ props.data.item.new_props.properties.value }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #cell(type)="props">
+        <div v-if="props.data.item.type === TreeNodeType.Blob">
+          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+            {{ props.data.item.new_props.properties.type }}
+          </div>
+          <div
+            v-else-if="props.data.item.diffType === DiffType.DEL"
+            class="value-content old-value"
+          >
+            {{ props.data.item.old_props.properties.type }}
+          </div>
+          <div v-else-if="props.data.item.diffType === DiffType.MOD">
+            <div
+              v-if="
+                props.data.item.old_props.properties.type !==
+                props.data.item.new_props.properties.type
+              "
+            >
+              <div class="value-content old-value">
+                <span class="value-label">Old:</span>
+                {{ props.data.item.old_props.properties.type }}
+              </div>
+              <div class="value-content new-value">
+                <span class="value-label">New:</span>
+                {{ props.data.item.new_props.properties.type }}
+              </div>
+            </div>
+            <div v-else>
+              <div class="value-content">
+                {{ props.data.item.new_props.properties.type }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </TreeExplorer>
   </div>
 </template>
@@ -218,5 +292,35 @@ const selectHive = (hive: HiveOption) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.old-value {
+  color: #dc3545;
+}
+
+.new-value {
+  color: #28a745;
+}
+
+.value-container {
+  max-width: 300px;
+  /* Adjust this value as needed */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.value-content {
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9em;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.value-label {
+  font-weight: bold;
+  margin-right: 5px;
 }
 </style>
