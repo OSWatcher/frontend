@@ -41,11 +41,10 @@ const pathParts = computed(() => {
 const fs_root = ref(null)
 
 // Fetch filesystem at the given path
-async function listFsAt(path: string) {
-  // Here you would use the useQuery hook from Apollo Client Vue to fetch data
+async function listFsAt(path: string, max_depth: number | null = 0, to_export: boolean = false) {
   const response = await gqlClient.query({
     query: TRAVERSE_PATH,
-    variables: { tree_hash: fs_root.value, path }
+    variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
   })
   const tree_hash = response.data['traversePath']
   // get children
@@ -54,23 +53,26 @@ async function listFsAt(path: string) {
     variables: { where: { hash: tree_hash } }
   })
   const data = children.data.trees[0]
-  return parseFSEntries(data)
+  return parseFSEntries(data, to_export)
 }
 
-function parseFSEntries(new_data: {
-  child_blobsConnection: { edges: any[] }
-  child_treesConnection: { edges: any[] }
-}) {
+function parseFSEntries(
+  new_data: {
+    child_blobsConnection: { edges: any[] }
+    child_treesConnection: { edges: any[] }
+  },
+  to_export: boolean = false
+) {
   // output should be an array of items like
   // [{ name: 'file1', type: TreeNodeType.Blob }, { name: 'dir1', type: TreeNodeType.Tree }]
   const files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: TreeNodeType.Blob,
+    type: to_export ? 'Blob' : TreeNodeType.Blob,
     hash: edge.node.hash
   }))
   const dirs = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: TreeNodeType.Tree,
+    type: to_export ? 'Tree' : TreeNodeType.Tree,
     hash: edge.node.hash
   }))
   return [...dirs, ...files]
@@ -123,10 +125,14 @@ onMounted(async () => {
 
 <style scoped>
 .breadcrumb {
-  margin-bottom: 0; /* Bootstrap's breadcrumb has bottom margin, reset it if needed */
-  background-color: #f5f5f5; /* Or any gray color you prefer */
-  padding: 1rem; /* Adjust padding to match your design */
-  border-radius: 0.25rem; /* Optional: if you want rounded corners */
+  margin-bottom: 0;
+  /* Bootstrap's breadcrumb has bottom margin, reset it if needed */
+  background-color: #f5f5f5;
+  /* Or any gray color you prefer */
+  padding: 1rem;
+  /* Adjust padding to match your design */
+  border-radius: 0.25rem;
+  /* Optional: if you want rounded corners */
 }
 
 .row-container {
