@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, defineProps } from 'vue'
-import { BTable, BPagination } from 'bootstrap-vue-next'
+import { BTable, BDropdown, BDropdownItem, BSpinner } from 'bootstrap-vue-next'
 import TreeNodeType from '@/types'
 import path from 'path'
 
@@ -31,6 +31,10 @@ const props = defineProps({
   filename_highlight: {
     type: String,
     default: null
+  },
+  export_max_depth_available: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -42,9 +46,8 @@ const items = ref([])
 const pathItems = ref([])
 // busy state
 const isLoading = ref(false)
-// pagination
-const perPage = ref(50)
-const currentPage = ref(1)
+// isExporting
+const isExporting = ref(false)
 
 // add a watcher to the path_dir prop
 watch(
@@ -114,39 +117,73 @@ function sortTreeThenName(entries) {
     return a[props.field_path].localeCompare(b[props.field_path])
   })
 }
+
+async function prepareExport(max_depth: number | null = 0) {
+  isExporting.value = true
+  try {
+    // retrieve entries without parsing as DiffObj
+    const to_export = true
+    const entries = await props.getEntries(path_dir.value, max_depth, to_export)
+    const jsonData = JSON.stringify(entries, null, 2)
+    const blob = new Blob([jsonData], { type: 'application/json' })
+
+    // Create a temporary URL for the Blob
+    const url = window.URL.createObjectURL(blob)
+
+    // Create a temporary anchor element
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `entries_json`)
+
+    // Append to the document, trigger click, and clean up
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // Release the object URL
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error preparing export:', error)
+    // Add user-facing error handling here if needed
+  } finally {
+    isExporting.value = false
+  }
+}
 </script>
 
 <template>
   <div>
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb">
-        <li
-          v-for="(entry, index) in pathItems"
-          :key="index"
-          :class="['breadcrumb-item', { active: entry.active }]"
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li
+            v-for="(entry, index) in pathItems"
+            :key="index"
+            :class="['breadcrumb-item', { active: entry.active }]"
+          >
+            <a href="#" v-if="!entry.active" @click.prevent="handleBreadcrumbClick(index)">
+              {{ entry.part }}
+            </a>
+            <span v-else>{{ entry.part }}</span>
+          </li>
+        </ol>
+      </nav>
+      <BDropdown right text="Export" variant="primary" :disabled="isExporting">
+        <template #button-content>
+          <BSpinner small v-if="isExporting" class="me-2"></BSpinner>
+          Export
+        </template>
+        <BDropdownItem @click="prepareExport(0)">Current Level</BDropdownItem>
+        <BDropdownItem v-if="export_max_depth_available" @click="prepareExport(null)"
+          >Full Export</BDropdownItem
         >
-          <a href="#" v-if="!entry.active" @click.prevent="handleBreadcrumbClick(index)">
-            {{ entry.part }}
-          </a>
-          <span v-else>{{ entry.part }}</span>
-        </li>
-      </ol>
-    </nav>
+      </BDropdown>
+    </div>
 
-    <BPagination
-      v-if="items.length > perPage"
-      v-model="currentPage"
-      :total-rows="items.length"
-      :per-page="perPage"
-      align="center"
-      class="mb-3"
-    />
     <BTable
       :busy="isLoading"
       :items="items"
       :fields="props.fields"
-      :current-page="currentPage"
-      :per-page="perPage"
       :selectable="true"
       :noSelectOnClick="true"
       @row-clicked="enterDirectory"
@@ -162,5 +199,9 @@ function sortTreeThenName(entries) {
 <style>
 .nav-tabs {
   margin-bottom: 1rem;
+}
+
+.breadcrumb {
+  margin-bottom: 0;
 }
 </style>
