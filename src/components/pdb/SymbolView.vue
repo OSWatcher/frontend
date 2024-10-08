@@ -21,7 +21,7 @@ interface Symbol {
 const symbols = ref<TableItem<Symbol>[]>([])
 // BTable fields
 const fields = ref<Exclude<TableFieldRaw<Symbol>, string>[]>([
-  { key: 'name', sortable: true },
+  { key: 'name', sortable: false },
   { key: 'address', sortable: false }
 ])
 // BTable pagination
@@ -40,20 +40,10 @@ async function fetchSymbols() {
       variables: {
         options: {
           limit: perPage.value,
-          offset: offset,
-          sort: { name: 'ASC' }
+          offset: offset
         },
+        blobHash: props.blob_hash,
         where: {
-          blob: {
-            hash: props.blob_hash
-          }
-        },
-        blobConnectionWhere2: {
-          node: {
-            hash: props.blob_hash
-          }
-        },
-        symbolsAggregateWhere2: {
           blob: {
             hash: props.blob_hash
           }
@@ -62,9 +52,9 @@ async function fetchSymbols() {
     })
     if (response.data) {
       totalSymbols.value = response.data.symbolsAggregate.count
-      symbols.value = response.data.symbols.map((symbol: any) => ({
+      symbols.value = response.data.fetchSymbols.map((symbol: any) => ({
         name: symbol.name,
-        address: symbol.blobConnection.edges[0]?.properties.address || 'No address found'
+        address: `0x${parseInt(symbol.address).toString(16).toUpperCase()}`
       }))
     }
   } catch (error) {
@@ -80,6 +70,7 @@ watch(currentPage, fetchSymbols, { immediate: true })
 
 <template>
   <div class="container mt-3 position-relative">
+    <BPagination v-model="currentPage" :total-rows="totalSymbols" :per-page="perPage"></BPagination>
     <BTable
       :items="symbols"
       :fields="fields"
