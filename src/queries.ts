@@ -131,15 +131,18 @@ const LIST_SYMBOLS = gql`
 `
 
 const LIST_WINSTRUCT = gql`
-  query ListWinStruct($where: WinStructWhere, $options: WinStructOptions) {
+  query FetchStructs($blobHash: String!, $options: WinStructOptions, $where: WinStructWhere) {
     winStructsAggregate(where: $where) {
       count
     }
-    winStructs(where: $where, options: $options) {
-      kind
+    fetchStructs(blob_hash: $blobHash, options: $options) {
+      name
       size
+      kind
       fields {
+        name
         offset
+        data_type
       }
     }
   }
