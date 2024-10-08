@@ -119,23 +119,13 @@ const LIST_ENTRIES_FOR_TREE = gql`
 `
 
 const LIST_SYMBOLS = gql`
-  query ListSymbols(
-    $options: SymbolOptions
-    $where: SymbolWhere
-    $blobConnectionWhere2: SymbolBlobConnectionWhere
-  ) {
+  query FetchSymbols($blobHash: String!, $options: SymbolOptions, $where: SymbolWhere) {
     symbolsAggregate(where: $where) {
       count
     }
-    symbols(where: $where, options: $options) {
+    fetchSymbols(blob_hash: $blobHash, options: $options) {
       name
-      blobConnection(where: $blobConnectionWhere2) {
-        edges {
-          properties {
-            address
-          }
-        }
-      }
+      address
     }
   }
 `
