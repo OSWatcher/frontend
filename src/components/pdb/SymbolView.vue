@@ -70,7 +70,16 @@ watch(currentPage, fetchSymbols, { immediate: true })
 
 <template>
   <div class="container mt-3 position-relative">
-    <BPagination v-model="currentPage" :total-rows="totalSymbols" :per-page="perPage"></BPagination>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <BPagination
+        v-model="currentPage"
+        :total-rows="totalSymbols"
+        :per-page="perPage"
+      ></BPagination>
+      <h3>
+        {{ totalSymbols }}
+      </h3>
+    </div>
     <BTable
       :items="symbols"
       :fields="fields"
