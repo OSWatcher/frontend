@@ -37,7 +37,6 @@ onMounted(async () => {
   })
   const ntos_hash = response.data['traversePath']
   blob_hash.value = ntos_hash
-  console.log('ntos_hash', ntos_hash)
 })
 </script>
 
