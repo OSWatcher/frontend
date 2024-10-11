@@ -7,6 +7,7 @@ import { GetCommitCapabilitiesDocument } from '@/graphql-types'
 import type { GetCommitCapabilitiesQuery } from '@/graphql-types'
 import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
 import RegistryTreeDiff from '@/components/diff/RegistryTreeDiff.vue'
+import PDBExplorerDiff from '@/components/diff/PDBExplorerDiff.vue'
 
 // get route params
 const route = useRoute()
@@ -43,10 +44,10 @@ onMounted(async () => {
     if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
       tabs.registry = { title: 'Registry', component: markRaw(RegistryTreeDiff) }
     }
-    // // symbols ?
-    // if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
-    //   tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorer) }
-    // }
+    // symbols ?
+    if (labels.includes('Symbol') || labels.includes('WinStruct')) {
+      tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorerDiff) }
+    }
   } catch (error) {
     console.error('Error fetching commit details', error)
   } finally {
