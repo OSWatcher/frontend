@@ -41,7 +41,7 @@ const pathParts = computed(() => {
 const fs_root = ref(null)
 
 // Fetch filesystem at the given path
-async function listFsAt(path: string, max_depth: number | null = 0, to_export: boolean = false) {
+async function listFsAt(path: string, _max_depth: number | null = 0, to_export: boolean = false) {
   const response = await gqlClient.query({
     query: TRAVERSE_PATH,
     variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
