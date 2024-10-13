@@ -135,7 +135,8 @@ onMounted(async () => {
       .map((baseHive, index) => ({
         value: {
           base_hash: baseHive.winreg_hash!,
-          diffee_hash: diffeeSystemHives[index].winreg_hash!
+          diffee_hash: diffeeSystemHives[index].winreg_hash!,
+          label: 'WinRegKey'
         },
         text: baseHive.mount_path
       }))
