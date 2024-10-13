@@ -75,8 +75,11 @@ onMounted(async () => {
       <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
         <component
           :is="tab.component"
-          :base_commit="base_commit.hash"
-          :diffee_commit="diffee_commit.hash"
+          :commitHashDiff="{
+            base_hash: base_commit.hash,
+            diffee_hash: diffee_commit.hash,
+            label: 'Commit'
+          }"
         />
       </b-tab>
     </b-tabs>

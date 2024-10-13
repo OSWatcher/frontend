@@ -1,31 +1,22 @@
 <script setup lang="ts">
-import { defineProps, ref, onMounted } from 'vue'
+import { defineProps, ref, onMounted, PropType } from 'vue'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import TreeNodeType, { DiffObj, DiffType } from '@/types'
 import { getDownloadUrl } from '@/download'
 import gqlClient from '@/graphql-client'
-import { DIFF_NODES, GET_FS_ROOT } from '@/queries'
+import { DIFF_NODES } from '@/queries'
 import { BDropdown, BDropdownItem } from 'bootstrap-vue-next'
+import type { HashDiff } from '@/types'
+import { fetchFSRootCommitDiff } from '@/utils'
 
 const props = defineProps({
-  base_commit: {
-    type: String,
-    required: true
-  },
-  diffee_commit: {
-    type: String,
+  commitHashDiff: {
+    type: Object as PropType<HashDiff>,
     required: true
   }
 })
 
-const base_commit = ref({
-  hash: props.base_commit,
-  fs_root_hash: undefined
-})
-const diffee_commit = ref({
-  hash: props.diffee_commit,
-  fs_root_hash: undefined
-})
+const rootFsHashDiff = ref<HashDiff | null>(null)
 
 // our current path
 const at_path = ref('/')
@@ -43,8 +34,8 @@ async function diffFsAt(
       query: DIFF_NODES, // Use the updated DIFF_NODES query
       variables: {
         parentLabel: 'Tree', // Set the parent label
-        baseNodeHash: base_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
-        diffeeNodeHash: diffee_commit.value.fs_root_hash, // Use fs_root_hash instead of commit hash
+        baseNodeHash: rootFsHashDiff.value?.base_hash, // Use fs_root_hash instead of commit hash
+        diffeeNodeHash: rootFsHashDiff.value?.diffee_hash, // Use fs_root_hash instead of commit hash
         atPath: new_path, // Path to diff
         maxDepth: max_depth, // Max depth for the diff
         filter: ['Blob'] // Filter criteria (empty for now)
@@ -108,27 +99,12 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
 }
 
 onMounted(async () => {
-  try {
-    const response = await gqlClient.query({
-      query: GET_FS_ROOT,
-      variables: { where: { hash_IN: [base_commit.value.hash, diffee_commit.value.hash] } }
-    })
-    // assign fs_root_hash to the corresponding commit
-    response.data['commits'].forEach((commit) => {
-      if (commit.hash === base_commit.value.hash) {
-        base_commit.value.fs_root_hash = commit.filesystemConnection.edges[0].node.hash
-      } else if (commit.hash === diffee_commit.value.hash) {
-        diffee_commit.value.fs_root_hash = commit.filesystemConnection.edges[0].node.hash
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching commit details', error)
-  }
+  rootFsHashDiff.value = await fetchFSRootCommitDiff(props.commitHashDiff)
 })
 </script>
 
 <template>
-  <div v-if="base_commit.fs_root_hash && diffee_commit.fs_root_hash">
+  <div v-if="rootFsHashDiff">
     <TreeExplorer
       :path_dir="at_path"
       :getEntries="diffFsAt"

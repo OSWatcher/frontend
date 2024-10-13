@@ -86,8 +86,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TreeExplorer v-if="fs_root" :path_dir="pathParts.parentDir" :filename_highlight="pathParts.filename"
-    :getEntries="listFsAt" :fields="fields">
+  <TreeExplorer
+    v-if="fs_root"
+    :path_dir="pathParts.parentDir"
+    :filename_highlight="pathParts.filename"
+    :getEntries="listFsAt"
+    :fields="fields"
+  >
     <template #cell(name)="props">
       <div class="row-container">
         <div>
@@ -101,8 +106,11 @@ onMounted(async () => {
           </div>
         </div>
         <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <a :href="getDownloadUrl(props.data.item.hash)" :download="`${props.data.item.hash}_${props.data.item.name}`"
-            class="btn btn-primary">
+          <a
+            :href="getDownloadUrl(props.data.item.hash)"
+            :download="`${props.data.item.hash}_${props.data.item.name}`"
+            class="btn btn-primary"
+          >
             Download
           </a>
         </div>
