@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, PropType } from 'vue'
 import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
 import { TreeNodeType, HashDiff, DiffObj, DiffType } from '@/types'
@@ -8,8 +8,10 @@ import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
 
 const props = defineProps({
-  base_commit: { type: String, required: true },
-  diffee_commit: { type: String, required: true }
+  commitHashDiff: {
+    type: Object as PropType<HashDiff>,
+    required: true
+  }
 })
 
 interface HiveOption {
@@ -127,15 +129,16 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
 
 onMounted(async () => {
   try {
-    const baseSystemHives = await GetSystemHives(props.base_commit)
-    const diffeeSystemHives = await GetSystemHives(props.diffee_commit)
+    const baseSystemHives = await GetSystemHives(props.commitHashDiff.base_hash!)
+    const diffeeSystemHives = await GetSystemHives(props.commitHashDiff.diffee_hash!)
 
     possibleHives.value = baseSystemHives
       .filter((baseHive, index) => baseHive.winreg_hash && diffeeSystemHives[index].winreg_hash)
       .map((baseHive, index) => ({
         value: {
           base_hash: baseHive.winreg_hash!,
-          diffee_hash: diffeeSystemHives[index].winreg_hash!
+          diffee_hash: diffeeSystemHives[index].winreg_hash!,
+          label: 'WinRegKey'
         },
         text: baseHive.mount_path
       }))

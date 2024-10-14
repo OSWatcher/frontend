@@ -1,39 +1,41 @@
 <script setup lang="ts">
-import { ref, watch, defineProps } from 'vue'
-import { BTable, BDropdown, BDropdownItem, BSpinner } from 'bootstrap-vue-next'
+import { ref, watch, defineProps, PropType } from 'vue'
+import { BTable, BDropdown, BDropdownItem, BSpinner, TableItem } from 'bootstrap-vue-next'
 import TreeNodeType from '@/types'
 import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function, // Function to fetch entries from an API
+    type: Function as PropType<
+      (path: string, maxDepth?: number | null, toExport?: boolean) => Promise<any[]>
+    >,
     required: true
   },
   fields: {
-    type: Array,
+    type: Array as PropType<TableItem[]>,
     required: true
   },
   // which field to use as the name of the entry
   // to handle how to enter into a directory
   field_path: {
-    type: String,
+    type: String as PropType<string>,
     default: 'name'
   },
   // which field defines the type of the entry (Blob or Tree)
   field_type: {
-    type: String,
+    type: String as PropType<string>,
     default: 'type'
   },
   path_dir: {
-    type: String,
+    type: String as PropType<string>,
     default: '/'
   },
   filename_highlight: {
-    type: String,
+    type: String as PropType<string | null>,
     default: null
   },
   export_max_depth_available: {
-    type: Boolean,
+    type: Boolean as PropType<boolean>,
     default: false
   }
 })
@@ -41,7 +43,7 @@ const props = defineProps({
 // we need to keep a local copy of the path_dir prop for own our navigation
 const path_dir = ref(props.path_dir)
 // table entries
-const items = ref([])
+const items = ref<TableItem[]>([])
 // breacrumb items
 const pathItems = ref([])
 // busy state

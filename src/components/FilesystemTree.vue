@@ -2,9 +2,10 @@
 import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
+import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE } from '@/queries'
 import TreeNodeType from '@/types'
 import { getDownloadUrl } from '@/download'
+import { fetchFsRootHash } from '@/utils'
 
 const props = defineProps({
   os_hash: {
@@ -38,10 +39,10 @@ const pathParts = computed(() => {
 })
 
 // the root hash of the filesystem
-const fs_root = ref(null)
+const fs_root = ref<string | null>(null)
 
 // Fetch filesystem at the given path
-async function listFsAt(path: string, max_depth: number | null = 0, to_export: boolean = false) {
+async function listFsAt(path: string, _max_depth: number | null = 0, to_export: boolean = false) {
   const response = await gqlClient.query({
     query: TRAVERSE_PATH,
     variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
@@ -80,12 +81,7 @@ function parseFSEntries(
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
 onMounted(async () => {
-  const response = await gqlClient.query({
-    query: GET_FS_ROOT,
-    variables: { where: { hash: props.os_hash } }
-  })
-  const tree_hash = response.data['commits'][0]['filesystemConnection']['edges'][0]['node']['hash']
-  fs_root.value = tree_hash
+  fs_root.value = await fetchFsRootHash(props.os_hash)
 })
 </script>
 
