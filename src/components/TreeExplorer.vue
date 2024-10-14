@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, defineProps, PropType } from 'vue'
 import { BTable, BDropdown, BDropdownItem, BSpinner, TableItem } from 'bootstrap-vue-next'
-import TreeNodeType from '@/types'
+import TreeNodeType, { treeNodeTypeToString } from '@/types'
 import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function as PropType<
-      (path: string, maxDepth?: number | null, toExport?: boolean) => Promise<any[]>
-    >,
+    type: Function as PropType<(path: string, maxDepth?: number | null) => Promise<TableItem[]>>,
     required: true
   },
   fields: {
@@ -123,10 +121,32 @@ function sortTreeThenName(entries) {
 async function prepareExport(max_depth: number | null = 0) {
   isExporting.value = true
   try {
-    // retrieve entries without parsing as DiffObj
-    const to_export = true
-    const entries = await props.getEntries(path_dir.value, max_depth, to_export)
-    const jsonData = JSON.stringify(entries, null, 2)
+    const entries = await props.getEntries(path_dir.value, max_depth)
+
+    const keysToRemove = ['__typename', '_rowVariant', '_cellVariants', '_showDetails']
+
+    // Custom replacer function
+    const replacer = (key: string, value: any): any => {
+      if (keysToRemove.includes(key)) {
+        return undefined
+      }
+      if (value in TreeNodeType) {
+        return treeNodeTypeToString(value)
+      }
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+          return value.map((item) =>
+            typeof item === 'object'
+              ? Object.fromEntries(Object.entries(item).filter(([k]) => !keysToRemove.includes(k)))
+              : item
+          )
+        }
+        return Object.fromEntries(Object.entries(value).filter(([k]) => !keysToRemove.includes(k)))
+      }
+      return value
+    }
+
+    const jsonData = JSON.stringify(entries, replacer, 2)
     const blob = new Blob([jsonData], { type: 'application/json' })
 
     // Create a temporary URL for the Blob
