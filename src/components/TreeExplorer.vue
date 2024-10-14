@@ -6,7 +6,7 @@ import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function as PropType<(path: string, maxDepth?: number | null) => Promise<any[]>>,
+    type: Function as PropType<(path: string, maxDepth?: number | null) => Promise<TableItem[]>>,
     required: true
   },
   fields: {
@@ -124,10 +124,17 @@ async function prepareExport(max_depth: number | null = 0) {
     // retrieve entries without parsing as DiffObj
     const entries = await props.getEntries(path_dir.value, max_depth)
 
+    // Get the keys of TableItem that start with an underscore
+    const tableItemKeys = ['_rowVariant', '_cellVariants', '_showDetails']
+
     // Custom replacer function
     const replacer = (key: string, value: any) => {
       if (value in TreeNodeType) {
         return treeNodeTypeToString(value)
+      }
+      // Remove specific TableItem keys
+      if (tableItemKeys.includes(key)) {
+        return undefined
       }
       return value
     }
