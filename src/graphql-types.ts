@@ -3207,19 +3207,26 @@ export type FetchSymbolsQuery = {
   fetchSymbols: Array<{ __typename?: 'SymbolFetchResult'; name: string; address: string }>
 }
 
-export type ListWinStructQueryVariables = Exact<{
-  where?: InputMaybe<WinStructWhere>
+export type FetchStructsQueryVariables = Exact<{
+  blobHash: Scalars['String']['input']
   options?: InputMaybe<WinStructOptions>
+  where?: InputMaybe<WinStructWhere>
 }>
 
-export type ListWinStructQuery = {
+export type FetchStructsQuery = {
   __typename?: 'Query'
   winStructsAggregate: { __typename?: 'WinStructAggregateSelection'; count: number }
-  winStructs: Array<{
-    __typename?: 'WinStruct'
-    kind: string
+  fetchStructs: Array<{
+    __typename?: 'WinStructFetchResult'
+    name: string
     size: number
-    fields: Array<{ __typename?: 'WinStructField'; offset: number }>
+    kind: string
+    fields: Array<{
+      __typename?: 'WinStructFieldFetchResult'
+      name: string
+      offset: number
+      data_type: any
+    }>
   }>
 }
 
@@ -3970,80 +3977,84 @@ export type FetchSymbolsQueryCompositionFunctionResult = VueApolloComposable.Use
   FetchSymbolsQuery,
   FetchSymbolsQueryVariables
 >
-export const ListWinStructDocument = gql`
-  query ListWinStruct($where: WinStructWhere, $options: WinStructOptions) {
+export const FetchStructsDocument = gql`
+  query FetchStructs($blobHash: String!, $options: WinStructOptions, $where: WinStructWhere) {
     winStructsAggregate(where: $where) {
       count
     }
-    winStructs(where: $where, options: $options) {
-      kind
+    fetchStructs(blob_hash: $blobHash, options: $options) {
+      name
       size
+      kind
       fields {
+        name
         offset
+        data_type
       }
     }
   }
 `
 
 /**
- * __useListWinStructQuery__
+ * __useFetchStructsQuery__
  *
- * To run a query within a Vue component, call `useListWinStructQuery` and pass it any options that fit your needs.
- * When your component renders, `useListWinStructQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * To run a query within a Vue component, call `useFetchStructsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFetchStructsQuery` returns an object from Apollo Client that contains result, loading and error properties
  * you can use to render your UI.
  *
  * @param variables that will be passed into the query
  * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
  *
  * @example
- * const { result, loading, error } = useListWinStructQuery({
- *   where: // value for 'where'
+ * const { result, loading, error } = useFetchStructsQuery({
+ *   blobHash: // value for 'blobHash'
  *   options: // value for 'options'
+ *   where: // value for 'where'
  * });
  */
-export function useListWinStructQuery(
+export function useFetchStructsQuery(
   variables:
-    | ListWinStructQueryVariables
-    | VueCompositionApi.Ref<ListWinStructQueryVariables>
-    | ReactiveFunction<ListWinStructQueryVariables> = {},
+    | FetchStructsQueryVariables
+    | VueCompositionApi.Ref<FetchStructsQueryVariables>
+    | ReactiveFunction<FetchStructsQueryVariables>,
   options:
-    | VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+    | VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
     | VueCompositionApi.Ref<
-        VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+        VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
       >
     | ReactiveFunction<
-        VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+        VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
       > = {}
 ) {
-  return VueApolloComposable.useQuery<ListWinStructQuery, ListWinStructQueryVariables>(
-    ListWinStructDocument,
+  return VueApolloComposable.useQuery<FetchStructsQuery, FetchStructsQueryVariables>(
+    FetchStructsDocument,
     variables,
     options
   )
 }
-export function useListWinStructLazyQuery(
-  variables:
-    | ListWinStructQueryVariables
-    | VueCompositionApi.Ref<ListWinStructQueryVariables>
-    | ReactiveFunction<ListWinStructQueryVariables> = {},
+export function useFetchStructsLazyQuery(
+  variables?:
+    | FetchStructsQueryVariables
+    | VueCompositionApi.Ref<FetchStructsQueryVariables>
+    | ReactiveFunction<FetchStructsQueryVariables>,
   options:
-    | VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+    | VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
     | VueCompositionApi.Ref<
-        VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+        VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
       >
     | ReactiveFunction<
-        VueApolloComposable.UseQueryOptions<ListWinStructQuery, ListWinStructQueryVariables>
+        VueApolloComposable.UseQueryOptions<FetchStructsQuery, FetchStructsQueryVariables>
       > = {}
 ) {
-  return VueApolloComposable.useLazyQuery<ListWinStructQuery, ListWinStructQueryVariables>(
-    ListWinStructDocument,
+  return VueApolloComposable.useLazyQuery<FetchStructsQuery, FetchStructsQueryVariables>(
+    FetchStructsDocument,
     variables,
     options
   )
 }
-export type ListWinStructQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
-  ListWinStructQuery,
-  ListWinStructQueryVariables
+export type FetchStructsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  FetchStructsQuery,
+  FetchStructsQueryVariables
 >
 export const SearchFsDocument = gql`
   query SearchFs($searchTerm: String!) {
