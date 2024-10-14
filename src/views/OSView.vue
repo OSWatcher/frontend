@@ -76,8 +76,11 @@ watch(
     </BRow>
     <b-tabs content-class="mt-3">
       <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
-        <component :is="tab.component" :os_hash="os_hash"
-          v-bind="tab.component === FilesystemTree && filesystem ? { path: filesystem } : {}" />
+        <component
+          :is="tab.component"
+          :os_hash="os_hash"
+          v-bind="tab.component === FilesystemTree && filesystem ? { path: filesystem } : {}"
+        />
       </b-tab>
     </b-tabs>
   </div>

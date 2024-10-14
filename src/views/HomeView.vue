@@ -3,7 +3,11 @@ import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
 import { FetchCommitHistoryDocument } from '@/graphql-types'
-import type { FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables, Commit } from '@/graphql-types'
+import type {
+  FetchCommitHistoryQuery,
+  FetchCommitHistoryQueryVariables,
+  Commit
+} from '@/graphql-types'
 import CommitTable from '@/components/CommitsTable.vue'
 
 interface CommitWithSelected extends Commit {
@@ -34,7 +38,10 @@ stores the results in branchesWithCommits
 onMounted(async () => {
   isLoading.value = true
   try {
-    const response = await gqlClient.query<FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables>({
+    const response = await gqlClient.query<
+      FetchCommitHistoryQuery,
+      FetchCommitHistoryQueryVariables
+    >({
       query: FetchCommitHistoryDocument,
       variables: { branchName: MAIN_BRANCH }
     })
@@ -42,31 +49,38 @@ onMounted(async () => {
     // map each commit to a new object
     // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
     // showing details for the commit
-    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map((c) => ({
-      ...c,
-      selected: false
-    } as CommitWithSelected))
+    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map(
+      (c) =>
+        ({
+          ...c,
+          selected: false
+        }) as CommitWithSelected
+    )
 
     // for each commit returned, try to fetch commit history, if any
     for (const commit of branchesWithCommits.value[MAIN_BRANCH]) {
-      const response = await gqlClient.query<FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables>({
+      const response = await gqlClient.query<
+        FetchCommitHistoryQuery,
+        FetchCommitHistoryQueryVariables
+      >({
         query: FetchCommitHistoryDocument,
         variables: { branchName: commit.name }
       })
       // test whether the response.data.fetchCommitHistory is an empty array
       if (response.data.fetchCommitHistory.length > 0) {
         // truncate the response up to commit with hash equal to commit.name (excluding it)
-        const index = response.data.fetchCommitHistory.findIndex(
-          (c) => c.hash === commit.hash
-        )
+        const index = response.data.fetchCommitHistory.findIndex((c) => c.hash === commit.hash)
         const data = response.data.fetchCommitHistory.slice(0, index)
         // map each commit to a new object
         // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
         // showing details for the commit
-        branchesWithCommits.value[commit.name] = data.map((c) => ({
-          ...c,
-          selected: false
-        } as CommitWithSelected))
+        branchesWithCommits.value[commit.name] = data.map(
+          (c) =>
+            ({
+              ...c,
+              selected: false
+            }) as CommitWithSelected
+        )
       }
     }
   } catch (error) {
@@ -127,12 +141,23 @@ const diffViewLink = computed(() => {
         <!-- Card header with branch name and Diff button -->
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>{{ MAIN_BRANCH }}</strong>
-          <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
+          <BButton
+            variant="primary"
+            class="ms-auto"
+            :disabled="selectedCommits.length !== 2"
+            :to="diffViewLink"
+          >
             Diff
           </BButton>
         </div>
-        <CommitTable :branch="MAIN_BRANCH" :fields="fields" :branchesWithCommits="branchesWithCommits"
-          :selectedCommits="selectedCommits" :isLoading="isLoading" @handleCheckboxChange="handleCheckboxChange" />
+        <CommitTable
+          :branch="MAIN_BRANCH"
+          :fields="fields"
+          :branchesWithCommits="branchesWithCommits"
+          :selectedCommits="selectedCommits"
+          :isLoading="isLoading"
+          @handleCheckboxChange="handleCheckboxChange"
+        />
       </div>
     </div>
   </main>
