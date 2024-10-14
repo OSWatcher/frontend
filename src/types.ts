@@ -1,4 +1,4 @@
-import type { Commit, DiffStatus } from '@/graphql-types'
+import type { DiffStatus } from '@/graphql-types'
 
 export enum TreeNodeType {
   Blob,
