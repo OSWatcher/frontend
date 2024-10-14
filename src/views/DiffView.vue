@@ -3,7 +3,8 @@ import { useRoute } from 'vue-router'
 import { markRaw, onMounted, reactive, ref } from 'vue'
 import { BCard, BTabs, BTab, BSpinner } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
-import { getCommitCapabilities } from '@/queries'
+import { GetCommitCapabilitiesDocument } from '@/graphql-types'
+import type { GetCommitCapabilitiesQuery } from '@/graphql-types'
 import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
 import RegistryTreeDiff from '@/components/diff/RegistryTreeDiff.vue'
 
@@ -33,8 +34,8 @@ onMounted(async () => {
   try {
     // fetch commit details
     // just fetch first commit details
-    const response_details = await gqlClient.query({
-      query: getCommitCapabilities,
+    const response_details = await gqlClient.query<GetCommitCapabilitiesQuery>({
+      query: GetCommitCapabilitiesDocument,
       variables: { commitHash: base_commit.value.hash }
     })
     const labels = response_details.data.getCommitExtractedDataLabels
