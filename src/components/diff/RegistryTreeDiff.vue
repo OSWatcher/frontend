@@ -2,10 +2,11 @@
 import { ref, onMounted, PropType } from 'vue'
 import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
-import { TreeNodeType, HashDiff, DiffObj, DiffType } from '@/types'
+import { TreeNodeType, HashDiff, DiffObj } from '@/types'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import gqlClient from '@/graphql-client'
-import { DIFF_NODES } from '@/queries'
+import { DiffStatus } from '@/graphql-types'
+import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
@@ -45,34 +46,28 @@ async function diffRegAt(
   }
 
   try {
-    const response = await gqlClient.query({
-      query: DIFF_NODES, // Use the updated DIFF_NODES query
+    const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
+      query: DiffNodesDocument,
       variables: {
-        parentLabel: 'WinRegKey', // Set the parent label
-        baseNodeHash: selectedHive.value?.value.base_hash,
-        diffeeNodeHash: selectedHive.value?.value.diffee_hash, // Use fs_root_hash instead of commit hash
-        atPath: new_path, // Path to diff
-        maxDepth: max_depth, // Max depth for the diff
+        parentLabel: 'WinRegKey',
+        baseNodeHash: selectedHive.value.value.base_hash!,
+        diffeeNodeHash: selectedHive.value.value.diffee_hash!,
+        atPath: new_path,
+        maxDepth: max_depth,
         filter: ['WinRegValue']
       },
-      // disable caching for this query
-      // Apollo Client cache is very slow
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response, to_export) // Parse the response
+    return parse_diff_reponse(response.data, to_export)
   } catch (error) {
-    console.error('Error fetching filesystem diff at path: ', error)
+    console.error('Error fetching registry diff at path: ', error)
+    return []
   }
 }
 
-function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
-  if (!response || !response.data || !response.data['diffNodesAt']) {
-    console.error('Invalid response structure:', response)
-    return []
-  }
-
-  const diffNodesAt = response.data['diffNodesAt']
+function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffObj[] {
+  const diffNodesAt = response.diffNodesAt
 
   if (!Array.isArray(diffNodesAt)) {
     console.error('diffNodesAt is not an array:', diffNodesAt)
@@ -96,7 +91,7 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
   }
 
   // Helper function to map API response to DiffObj
-  const mapItem = (item: any, diffType: DiffType, rowVariant: string): DiffObj => ({
+  const mapItem = (item: any, diffType: DiffStatus, rowVariant: string): DiffObj => ({
     name: item.path,
     type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
     diffType,
@@ -109,15 +104,15 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
     // Filter and map new items
     const newItems = diffNodesAt
       .filter((item: any) => item.status === 'NEW')
-      .map((item: any) => mapItem(item, DiffType.NEW, 'success'))
+      .map((item: any) => mapItem(item, DiffStatus.New, 'success'))
     // Filter and map modified items
     const modItems = diffNodesAt
       .filter((item: any) => item.status === 'MOD')
-      .map((item: any) => mapItem(item, DiffType.MOD, 'warning'))
+      .map((item: any) => mapItem(item, DiffStatus.Mod, 'warning'))
     // Filter and map deleted items
     const delItems = diffNodesAt
       .filter((item: any) => item.status === 'DEL')
-      .map((item: any) => mapItem(item, DiffType.DEL, 'danger'))
+      .map((item: any) => mapItem(item, DiffStatus.Del, 'danger'))
 
     // Combine all items into a single array
     return [...newItems, ...modItems, ...delItems]
@@ -205,16 +200,16 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(value)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
-          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.value }}
           </div>
           <div
-            v-else-if="props.data.item.diffType === DiffType.DEL"
+            v-else-if="props.data.item.diffType === DiffStatus.Del"
             class="value-content old-value"
           >
             {{ props.data.item.old_props.properties.value }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffType.MOD">
+          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
             <div
               v-if="
                 props.data.item.old_props.properties.value !==
@@ -240,16 +235,16 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(type)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.type }}
           </div>
           <div
-            v-else-if="props.data.item.diffType === DiffType.DEL"
+            v-else-if="props.data.item.diffType === DiffStatus.Del"
             class="value-content old-value"
           >
             {{ props.data.item.old_props.properties.type }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffType.MOD">
+          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
             <div
               v-if="
                 props.data.item.old_props.properties.type !==
