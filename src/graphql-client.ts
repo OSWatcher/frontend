@@ -36,9 +36,9 @@ const gqlClient = new ApolloClient({
   cache: new InMemoryCache({ typePolicies }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
-    },
-  },
+      fetchPolicy: 'cache-and-network'
+    }
+  }
 })
 
 export default gqlClient
