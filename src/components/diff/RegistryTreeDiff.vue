@@ -2,10 +2,11 @@
 import { ref, onMounted, PropType } from 'vue'
 import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
-import { TreeNodeType, HashDiff, DiffObj, DiffType } from '@/types'
+import { TreeNodeType, HashDiff, DiffObj } from '@/types'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
+import { DiffStatus } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
@@ -109,15 +110,15 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
     // Filter and map new items
     const newItems = diffNodesAt
       .filter((item: any) => item.status === 'NEW')
-      .map((item: any) => mapItem(item, DiffType.NEW, 'success'))
+      .map((item: any) => mapItem(item, DiffStatus.New, 'success'))
     // Filter and map modified items
     const modItems = diffNodesAt
       .filter((item: any) => item.status === 'MOD')
-      .map((item: any) => mapItem(item, DiffType.MOD, 'warning'))
+      .map((item: any) => mapItem(item, DiffStatus.Mod, 'warning'))
     // Filter and map deleted items
     const delItems = diffNodesAt
       .filter((item: any) => item.status === 'DEL')
-      .map((item: any) => mapItem(item, DiffType.DEL, 'danger'))
+      .map((item: any) => mapItem(item, DiffStatus.Del, 'danger'))
 
     // Combine all items into a single array
     return [...newItems, ...modItems, ...delItems]
@@ -163,32 +164,19 @@ const selectHive = (hive: HiveOption) => {
     <div class="d-flex align-items-center">
       <BDropdown right class="mr-2" variant="primary">
         <template #button-content> Select Hive </template>
-        <BDropdownItem
-          v-for="hive in possibleHives"
-          :key="hive.value.base_hash"
-          @click="selectHive(hive)"
-        >
+        <BDropdownItem v-for="hive in possibleHives" :key="hive.value.base_hash" @click="selectHive(hive)">
           {{ hive.text }}
         </BDropdownItem>
       </BDropdown>
-      <BCard
-        no-body
-        class="selected-hive-card flex-grow-1"
-        :bg-variant="selectedHive ? 'light' : 'secondary'"
-        :text-variant="selectedHive ? 'dark' : 'white'"
-      >
+      <BCard no-body class="selected-hive-card flex-grow-1" :bg-variant="selectedHive ? 'light' : 'secondary'"
+        :text-variant="selectedHive ? 'dark' : 'white'">
         <BCard-body>
           {{ selectedHive ? selectedHive.text : 'No hive selected' }}
         </BCard-body>
       </BCard>
     </div>
-    <TreeExplorer
-      :path_dir="at_path"
-      :getEntries="diffRegAt"
-      :fields="fields"
-      :export_max_depth_available="true"
-      :key="hiveChangeCounter"
-    >
+    <TreeExplorer :path_dir="at_path" :getEntries="diffRegAt" :fields="fields" :export_max_depth_available="true"
+      :key="hiveChangeCounter">
       <template #cell(name)="props">
         <div class="row-container">
           <div>
@@ -205,22 +193,17 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(value)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
-          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.value }}
           </div>
-          <div
-            v-else-if="props.data.item.diffType === DiffType.DEL"
-            class="value-content old-value"
-          >
+          <div v-else-if="props.data.item.diffType === DiffStatus.Del" class="value-content old-value">
             {{ props.data.item.old_props.properties.value }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffType.MOD">
-            <div
-              v-if="
-                props.data.item.old_props.properties.value !==
-                props.data.item.new_props.properties.value
-              "
-            >
+          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
+            <div v-if="
+              props.data.item.old_props.properties.value !==
+              props.data.item.new_props.properties.value
+            ">
               <div class="value-content old-value">
                 <span class="value-label">Old:</span>
                 {{ props.data.item.old_props.properties.value }}
@@ -240,22 +223,17 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(type)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <div v-if="props.data.item.diffType === DiffType.NEW" class="value-content new-value">
+          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.type }}
           </div>
-          <div
-            v-else-if="props.data.item.diffType === DiffType.DEL"
-            class="value-content old-value"
-          >
+          <div v-else-if="props.data.item.diffType === DiffStatus.Del" class="value-content old-value">
             {{ props.data.item.old_props.properties.type }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffType.MOD">
-            <div
-              v-if="
-                props.data.item.old_props.properties.type !==
-                props.data.item.new_props.properties.type
-              "
-            >
+          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
+            <div v-if="
+              props.data.item.old_props.properties.type !==
+              props.data.item.new_props.properties.type
+            ">
               <div class="value-content old-value">
                 <span class="value-label">Old:</span>
                 {{ props.data.item.old_props.properties.type }}

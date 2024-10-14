@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { defineProps, ref, onMounted, PropType } from 'vue'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import TreeNodeType, { DiffObj, DiffType } from '@/types'
+import TreeNodeType, { DiffObj } from '@/types'
 import { getDownloadUrl } from '@/download'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
 import { BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import type { HashDiff } from '@/types'
 import { fetchFSRootCommitDiff } from '@/utils'
+import { DiffStatus } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
@@ -84,15 +85,15 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
   // Filter and map new items
   const newItems = diffNodesAt
     .filter((item) => item.status === 'NEW')
-    .map((item) => mapItem(item, DiffType.NEW, 'success'))
+    .map((item) => mapItem(item, DiffStatus.New, 'success'))
   // Filter and map modified items
   const modItems = diffNodesAt
     .filter((item) => item.status === 'MOD')
-    .map((item) => mapItem(item, DiffType.MOD, 'warning'))
+    .map((item) => mapItem(item, DiffStatus.Mod, 'warning'))
   // Filter and map deleted items
   const delItems = diffNodesAt
     .filter((item) => item.status === 'DEL')
-    .map((item) => mapItem(item, DiffType.DEL, 'danger'))
+    .map((item) => mapItem(item, DiffStatus.Del, 'danger'))
 
   // Combine all items into a single array
   return [...newItems, ...modItems, ...delItems]
@@ -105,12 +106,7 @@ onMounted(async () => {
 
 <template>
   <div v-if="rootFsHashDiff">
-    <TreeExplorer
-      :path_dir="at_path"
-      :getEntries="diffFsAt"
-      :fields="fields"
-      :export_max_depth_available="true"
-    >
+    <TreeExplorer :path_dir="at_path" :getEntries="diffFsAt" :fields="fields" :export_max_depth_available="true">
       <template #cell(name)="props">
         <div class="row-container">
           <div>
@@ -125,32 +121,22 @@ onMounted(async () => {
           </div>
           <div>
             <div v-if="props.data.item.type === TreeNodeType.Blob">
-              <div v-if="props.data.item.diffType === DiffType.NEW">
-                <a
-                  :href="getDownloadUrl(props.data.item.new_hash)"
-                  :download="`${props.data.item.new_props.hash}_${props.data.item.name}`"
-                  class="btn btn-primary"
-                >
+              <div v-if="props.data.item.diffType === DiffStatus.New">
+                <a :href="getDownloadUrl(props.data.item.new_hash)"
+                  :download="`${props.data.item.new_props.hash}_${props.data.item.name}`" class="btn btn-primary">
                   Download
                 </a>
               </div>
-              <div v-else-if="props.data.item.diffType === DiffType.DEL">
-                <a
-                  :href="getDownloadUrl(props.data.item.old_props.hash)"
-                  :download="`${props.data.item.old_props.hash}_${props.data.item.name}`"
-                  class="btn btn-primary"
-                >
+              <div v-else-if="props.data.item.diffType === DiffStatus.Del">
+                <a :href="getDownloadUrl(props.data.item.old_props.hash)"
+                  :download="`${props.data.item.old_props.hash}_${props.data.item.name}`" class="btn btn-primary">
                   Download
                 </a>
               </div>
               <div v-else>
                 <BDropdown text="Download" variant="primary">
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_props.hash)"
-                    >Old</BDropdownItem
-                  >
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_props.hash)"
-                    >New</BDropdownItem
-                  >
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_props.hash)">Old</BDropdownItem>
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_props.hash)">New</BDropdownItem>
                 </BDropdown>
               </div>
             </div>
