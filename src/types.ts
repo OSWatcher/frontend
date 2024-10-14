@@ -1,4 +1,4 @@
-import type { Commit } from '@/graphql-types'
+import type { Commit, DiffStatus } from '@/graphql-types'
 
 export enum TreeNodeType {
   Blob,
@@ -12,17 +12,7 @@ export interface HashDiff {
   label: string
 }
 
-export interface BranchesWithCommits {
-  [key: string]: Commit[]
-}
-
 export default TreeNodeType
-
-export enum DiffType {
-  NEW,
-  MOD,
-  DEL
-}
 
 export interface HashProps {
   hash: string
@@ -34,7 +24,7 @@ export interface HashProps {
 export interface DiffObj {
   name: string
   type: TreeNodeType
-  diffType: DiffType
+  diffType: DiffStatus
   old_props: HashProps | null
   new_props: HashProps | null
   _rowVariant: string
