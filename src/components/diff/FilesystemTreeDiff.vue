@@ -4,7 +4,7 @@ import TreeExplorer from '@/components/TreeExplorer.vue'
 import TreeNodeType, { DiffObj } from '@/types'
 import { getDownloadUrl } from '@/download'
 import gqlClient from '@/graphql-client'
-import { DIFF_NODES } from '@/queries'
+import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
 import { BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import type { HashDiff } from '@/types'
 import { fetchFSRootCommitDiff } from '@/utils'
@@ -31,30 +31,28 @@ async function diffFsAt(
   to_export: boolean = false
 ) {
   try {
-    const response = await gqlClient.query({
-      query: DIFF_NODES, // Use the updated DIFF_NODES query
+    const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
+      query: DiffNodesDocument,
       variables: {
-        parentLabel: 'Tree', // Set the parent label
-        baseNodeHash: rootFsHashDiff.value?.base_hash, // Use fs_root_hash instead of commit hash
-        diffeeNodeHash: rootFsHashDiff.value?.diffee_hash, // Use fs_root_hash instead of commit hash
-        atPath: new_path, // Path to diff
-        maxDepth: max_depth, // Max depth for the diff
-        filter: ['Blob'] // Filter criteria (empty for now)
+        parentLabel: 'Tree',
+        baseNodeHash: rootFsHashDiff.value?.base_hash!,
+        diffeeNodeHash: rootFsHashDiff.value?.diffee_hash!,
+        atPath: new_path,
+        maxDepth: max_depth,
+        filter: ['Blob']
       },
-      // disable caching for this query
-      // Apollo Client cache is very slow
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response, to_export) // Parse the response
+    return parse_diff_reponse(response.data, to_export)
   } catch (error) {
     console.error('Error fetching filesystem diff at path: ', error)
   }
 }
 
 // Function to parse the diff response
-function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
-  const diffNodesAt = response.data['diffNodesAt'] // Get the diffNodesAt data
+function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffObj[] {
+  const diffNodesAt = response.diffNodesAt
 
   if (to_export) {
     return diffNodesAt.map((item) => ({
@@ -106,7 +104,12 @@ onMounted(async () => {
 
 <template>
   <div v-if="rootFsHashDiff">
-    <TreeExplorer :path_dir="at_path" :getEntries="diffFsAt" :fields="fields" :export_max_depth_available="true">
+    <TreeExplorer
+      :path_dir="at_path"
+      :getEntries="diffFsAt"
+      :fields="fields"
+      :export_max_depth_available="true"
+    >
       <template #cell(name)="props">
         <div class="row-container">
           <div>
@@ -122,21 +125,31 @@ onMounted(async () => {
           <div>
             <div v-if="props.data.item.type === TreeNodeType.Blob">
               <div v-if="props.data.item.diffType === DiffStatus.New">
-                <a :href="getDownloadUrl(props.data.item.new_hash)"
-                  :download="`${props.data.item.new_props.hash}_${props.data.item.name}`" class="btn btn-primary">
+                <a
+                  :href="getDownloadUrl(props.data.item.new_hash)"
+                  :download="`${props.data.item.new_props.hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
                   Download
                 </a>
               </div>
               <div v-else-if="props.data.item.diffType === DiffStatus.Del">
-                <a :href="getDownloadUrl(props.data.item.old_props.hash)"
-                  :download="`${props.data.item.old_props.hash}_${props.data.item.name}`" class="btn btn-primary">
+                <a
+                  :href="getDownloadUrl(props.data.item.old_props.hash)"
+                  :download="`${props.data.item.old_props.hash}_${props.data.item.name}`"
+                  class="btn btn-primary"
+                >
                   Download
                 </a>
               </div>
               <div v-else>
                 <BDropdown text="Download" variant="primary">
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_props.hash)">Old</BDropdownItem>
-                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_props.hash)">New</BDropdownItem>
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.old_props.hash)"
+                    >Old</BDropdownItem
+                  >
+                  <BDropdownItem :href="getDownloadUrl(props.data.item.new_props.hash)"
+                    >New</BDropdownItem
+                  >
                 </BDropdown>
               </div>
             </div>
