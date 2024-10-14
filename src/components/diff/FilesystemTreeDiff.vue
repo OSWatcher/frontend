@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { defineProps, ref, onMounted, PropType } from 'vue'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import TreeNodeType, { DiffObj } from '@/types'
+import TreeNodeType from '@/types'
 import { getDownloadUrl } from '@/download'
 import gqlClient from '@/graphql-client'
 import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
-import { BDropdown, BDropdownItem } from 'bootstrap-vue-next'
+import { BDropdown, BDropdownItem, TableItem } from 'bootstrap-vue-next'
 import type { HashDiff } from '@/types'
 import { fetchFSRootCommitDiff } from '@/utils'
-import { DiffStatus } from '@/graphql-types'
+import { DiffStatus, DiffItem, NodeType } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
@@ -22,7 +22,7 @@ const rootFsHashDiff = ref<HashDiff | null>(null)
 // our current path
 const at_path = ref('/')
 // tree explorer
-const fields = [{ key: 'name', sortable: true }]
+const fields = [{ key: 'path', sortable: true, label: 'Name' }]
 
 // Function to fetch filesystem diff at a given path
 async function diffFsAt(new_path: string, max_depth: number | null = 0) {
@@ -47,17 +47,17 @@ async function diffFsAt(new_path: string, max_depth: number | null = 0) {
 }
 
 // Function to parse the diff response
-function parse_diff_reponse(response: DiffNodesQuery): DiffObj[] {
+function parse_diff_reponse(response: DiffNodesQuery): TableItem<DiffItem>[] {
   const diffNodesAt = response.diffNodesAt
 
   // Helper function to map API response to DiffObj
   const mapItem = (item: any, diffType: DiffStatus, rowVariant: string) => ({
-    name: item.path, // File or directory path
+    path: item.path, // File or directory path
     type: item.type === 'Blob' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
-    diffType, // Diff type (NEW, MOD, DEL)
+    status: diffType, // Diff type (NEW, MOD, DEL)
     old_props: item.old_props,
     new_props: item.new_props,
-    _rowVariant: rowVariant // Row variant for styling
+    _rowVariant: rowVariant
   })
 
   // Filter and map new items
@@ -88,18 +88,19 @@ onMounted(async () => {
       :path_dir="at_path"
       :getEntries="diffFsAt"
       :fields="fields"
+      :field_path="'path'"
       :export_max_depth_available="true"
     >
-      <template #cell(name)="props">
+      <template #cell(path)="props">
         <div class="row-container">
           <div>
             <div v-if="props.data.item.type === TreeNodeType.Blob">
               <i class="bi-file-earmark"></i>
-              {{ props.data.item.name }}
+              {{ props.data.item.path }}
             </div>
             <div v-else>
               <i class="bi-folder-fill"></i>
-              {{ props.data.item.name }}
+              {{ props.data.item.path }}
             </div>
           </div>
           <div>

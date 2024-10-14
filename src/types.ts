@@ -1,5 +1,3 @@
-import type { DiffStatus } from '@/graphql-types'
-
 export enum TreeNodeType {
   Blob,
   Tree
@@ -17,19 +15,3 @@ export interface HashDiff {
 }
 
 export default TreeNodeType
-
-export interface HashProps {
-  hash: string
-  properties: {
-    [key: string]: string
-  }
-}
-
-export interface DiffObj {
-  name: string
-  type: TreeNodeType
-  diffType: DiffStatus
-  old_props: HashProps | null
-  new_props: HashProps | null
-  _rowVariant: string
-}

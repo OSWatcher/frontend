@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, PropType } from 'vue'
-import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
+import { BDropdown, BDropdownItem, BCard, BCardBody, TableItem } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
 import { TreeNodeType, HashDiff, DiffObj } from '@/types'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import gqlClient from '@/graphql-client'
-import { DiffStatus } from '@/graphql-types'
+import { DiffItem, DiffStatus } from '@/graphql-types'
 import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
 
 const props = defineProps({
@@ -30,7 +30,7 @@ const hiveChangeCounter = ref(0)
 const at_path = ref('/')
 // tree explorer
 const fields = [
-  { key: 'name', sortable: true },
+  { key: 'path', sortable: true, label: 'Name' },
   { key: 'value', sortable: true },
   { key: 'type', sortable: true }
 ]
@@ -66,7 +66,7 @@ async function diffRegAt(
   }
 }
 
-function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffObj[] {
+function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): TableItem<DiffItem>[] {
   const diffNodesAt = response.diffNodesAt
 
   if (!Array.isArray(diffNodesAt)) {
@@ -76,12 +76,12 @@ function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffO
 
   // Helper function to map API response to DiffObj
   const mapItem = (item: any, diffType: DiffStatus, rowVariant: string): DiffObj => ({
-    name: item.path,
+    path: item.path,
     type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
-    diffType,
+    status: diffType,
     old_props: item.old_props,
     new_props: item.new_props,
-    _rowVariant: rowVariant // Row variant for styling
+    _rowVariant: rowVariant
   })
 
   try {
@@ -165,19 +165,20 @@ const selectHive = (hive: HiveOption) => {
       :path_dir="at_path"
       :getEntries="diffRegAt"
       :fields="fields"
+      :field_path="'path'"
       :export_max_depth_available="true"
       :key="hiveChangeCounter"
     >
-      <template #cell(name)="props">
+      <template #cell(path)="props">
         <div class="row-container">
           <div>
             <div v-if="props.data.item.type === TreeNodeType.Blob">
               <i class="bi-file-earmark"></i>
-              {{ props.data.item.name }}
+              {{ props.data.item.path }}
             </div>
             <div v-else>
               <i class="bi-folder-fill"></i>
-              {{ props.data.item.name }}
+              {{ props.data.item.path }}
             </div>
           </div>
         </div>
