@@ -3,7 +3,14 @@ import { ref, onMounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import TreeNodeType from '@/types'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_KEY } from '@/queries'
+import {
+  TraversePathDocument,
+  ListEntriesForKeyDocument,
+  TraversePathQuery,
+  TraversePathQueryVariables,
+  ListEntriesForKeyQuery,
+  ListEntriesForKeyQueryVariables
+} from '@/graphql-types'
 import { GetSystemHives, WinRegHive, HKLM, HKU } from '@/windows/registry'
 
 const props = defineProps({
@@ -60,14 +67,14 @@ async function listFsAt(path: string) {
 }
 
 async function listRegistryEntries(hive_hash: string, path: string) {
-  const response = await gqlClient.query({
-    query: TRAVERSE_PATH,
+  const response = await gqlClient.query<TraversePathQuery, TraversePathQueryVariables>({
+    query: TraversePathDocument,
     variables: { parent_label: 'WinRegKey', tree_hash: hive_hash, path }
   })
-  const node_hash = response.data['traversePath']
+  const node_hash = response.data.traversePath
 
-  const children = await gqlClient.query({
-    query: LIST_ENTRIES_FOR_KEY,
+  const children = await gqlClient.query<ListEntriesForKeyQuery, ListEntriesForKeyQueryVariables>({
+    query: ListEntriesForKeyDocument,
     variables: { where: { hash: node_hash } }
   })
   return parseFSEntries(children.data.winRegKeys[0])
