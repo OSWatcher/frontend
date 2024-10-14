@@ -121,20 +121,27 @@ function sortTreeThenName(entries) {
 async function prepareExport(max_depth: number | null = 0) {
   isExporting.value = true
   try {
-    // retrieve entries without parsing as DiffObj
     const entries = await props.getEntries(path_dir.value, max_depth)
 
-    // Get the keys of TableItem that start with an underscore
-    const tableItemKeys = ['_rowVariant', '_cellVariants', '_showDetails']
+    const keysToRemove = ['__typename', '_rowVariant', '_cellVariants', '_showDetails']
 
     // Custom replacer function
-    const replacer = (key: string, value: any) => {
+    const replacer = (key: string, value: any): any => {
+      if (keysToRemove.includes(key)) {
+        return undefined
+      }
       if (value in TreeNodeType) {
         return treeNodeTypeToString(value)
       }
-      // Remove specific TableItem keys
-      if (tableItemKeys.includes(key)) {
-        return undefined
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+          return value.map((item) =>
+            typeof item === 'object'
+              ? Object.fromEntries(Object.entries(item).filter(([k]) => !keysToRemove.includes(k)))
+              : item
+          )
+        }
+        return Object.fromEntries(Object.entries(value).filter(([k]) => !keysToRemove.includes(k)))
       }
       return value
     }
