@@ -2,7 +2,7 @@ import { gql } from '@apollo/client/core'
 
 // home
 const fetchCommitHistory = gql`
-  query ($branchName: String!) {
+  query fetchCommitHistory($branchName: String!) {
     fetchCommitHistory(branch_name: $branchName) {
       hash
       name
@@ -14,7 +14,7 @@ const fetchCommitHistory = gql`
 
 // osview
 const fetchCommitDetails = gql`
-  query Commits($where: CommitWhere) {
+  query fetchCommitDetails($where: CommitWhere) {
     commits(where: $where) {
       hash
       name
@@ -25,14 +25,14 @@ const fetchCommitDetails = gql`
 `
 
 const getCommitCapabilities = gql`
-  query Query($commitHash: String!) {
+  query getCommitCapabilities($commitHash: String!) {
     getCommitExtractedDataLabels(commit_hash: $commitHash)
   }
 `
 
 // registry
 const GET_FS_ROOT = gql`
-  query Commits($where: CommitWhere) {
+  query GetFsRoot($where: CommitWhere) {
     commits(where: $where) {
       hash
       filesystemConnection {
@@ -47,7 +47,7 @@ const GET_FS_ROOT = gql`
 `
 
 const HAS_WINREG = gql`
-  query ($where: BlobWhere) {
+  query HasWinReg($where: BlobWhere) {
     blobs(where: $where) {
       has_winreg {
         hash
@@ -57,13 +57,13 @@ const HAS_WINREG = gql`
 `
 
 const TRAVERSE_PATH = gql`
-  query Query($parent_label: String!, $tree_hash: String!, $path: String!) {
+  query TraversePath($parent_label: String!, $tree_hash: String!, $path: String!) {
     traversePath(parent_label: $parent_label, tree_hash: $tree_hash, path: $path)
   }
 `
 
 const LIST_ENTRIES_FOR_KEY = gql`
-  query WinRegKeys($where: WinRegKeyWhere) {
+  query ListEntriesForKey($where: WinRegKeyWhere) {
     winRegKeys(where: $where) {
       child_keysConnection {
         edges {
@@ -92,7 +92,7 @@ const LIST_ENTRIES_FOR_KEY = gql`
 `
 
 const LIST_ENTRIES_FOR_TREE = gql`
-  query Query($where: TreeWhere) {
+  query ListEntriesForTree($where: TreeWhere) {
     trees(where: $where) {
       child_blobsConnection {
         edges {
@@ -136,23 +136,17 @@ const LIST_WINSTRUCT = gql`
       count
     }
     winStructs(where: $where, options: $options) {
-      name
       kind
       size
       fields {
-        name
         offset
-        type {
-          name
-          type
-        }
       }
     }
   }
 `
 
 const SEARCH_FS = gql`
-  query Search($searchTerm: String!) {
+  query SearchFs($searchTerm: String!) {
     search(search_term: $searchTerm) {
       commit_name
       commit_hash

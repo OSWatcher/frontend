@@ -2,7 +2,14 @@
 import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE } from '@/queries'
+import {
+  TraversePathDocument,
+  ListEntriesForTreeDocument,
+  TraversePathQuery,
+  TraversePathQueryVariables,
+  ListEntriesForTreeQuery,
+  ListEntriesForTreeQueryVariables
+} from '@/graphql-types'
 import TreeNodeType from '@/types'
 import { getDownloadUrl } from '@/download'
 import { fetchFsRootHash } from '@/utils'
@@ -43,16 +50,18 @@ const fs_root = ref<string | null>(null)
 
 // Fetch filesystem at the given path
 async function listFsAt(path: string, _max_depth: number | null = 0, to_export: boolean = false) {
-  const response = await gqlClient.query({
-    query: TRAVERSE_PATH,
+  const response = await gqlClient.query<TraversePathQuery, TraversePathQueryVariables>({
+    query: TraversePathDocument,
     variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
   })
-  const tree_hash = response.data['traversePath']
+  const tree_hash = response.data.traversePath
   // get children
-  const children = await gqlClient.query({
-    query: LIST_ENTRIES_FOR_TREE,
-    variables: { where: { hash: tree_hash } }
-  })
+  const children = await gqlClient.query<ListEntriesForTreeQuery, ListEntriesForTreeQueryVariables>(
+    {
+      query: ListEntriesForTreeDocument,
+      variables: { where: { hash: tree_hash } }
+    }
+  )
   const data = children.data.trees[0]
   return parseFSEntries(data, to_export)
 }
