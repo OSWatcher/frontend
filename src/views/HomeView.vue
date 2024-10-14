@@ -2,11 +2,18 @@
 import { onMounted, ref, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
-import { fetchCommitHistory } from '@/queries'
-import type { Commit, BranchesWithCommits } from '@/types'
+import { FetchCommitHistoryDocument } from '@/graphql-types'
+import type { FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables, Commit } from '@/graphql-types'
 import CommitTable from '@/components/CommitsTable.vue'
 
+interface CommitWithSelected extends Commit {
+  selected?: boolean
+}
+
 const MAIN_BRANCH: string = 'master'
+interface BranchesWithCommits {
+  [key: string]: CommitWithSelected[]
+}
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
@@ -15,7 +22,7 @@ const fields = [
 ]
 // dictionary to store the commit history for each branch
 const branchesWithCommits = ref<BranchesWithCommits>({})
-const selectedCommits = ref<TableItem<Commit>[]>([])
+const selectedCommits = ref<TableItem<CommitWithSelected>[]>([])
 const isLoading = ref(false)
 const maintenanceMode = ref(false)
 
@@ -27,39 +34,39 @@ stores the results in branchesWithCommits
 onMounted(async () => {
   isLoading.value = true
   try {
-    const response = await gqlClient.query({
-      query: fetchCommitHistory,
+    const response = await gqlClient.query<FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables>({
+      query: FetchCommitHistoryDocument,
       variables: { branchName: MAIN_BRANCH }
     })
 
     // map each commit to a new object
     // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
     // showing details for the commit
-    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map((c: Commit) => ({
+    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map((c) => ({
       ...c,
       selected: false
-    }))
+    } as CommitWithSelected))
 
     // for each commit returned, try to fetch commit history, if any
     for (const commit of branchesWithCommits.value[MAIN_BRANCH]) {
-      const response = await gqlClient.query({
-        query: fetchCommitHistory,
+      const response = await gqlClient.query<FetchCommitHistoryQuery, FetchCommitHistoryQueryVariables>({
+        query: FetchCommitHistoryDocument,
         variables: { branchName: commit.name }
       })
       // test whether the response.data.fetchCommitHistory is an empty array
       if (response.data.fetchCommitHistory.length > 0) {
         // truncate the response up to commit with hash equal to commit.name (excluding it)
         const index = response.data.fetchCommitHistory.findIndex(
-          (c: Commit) => c.hash === commit.hash
+          (c) => c.hash === commit.hash
         )
         const data = response.data.fetchCommitHistory.slice(0, index)
         // map each commit to a new object
         // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
         // showing details for the commit
-        branchesWithCommits.value[commit.name] = data.map((c: Commit) => ({
+        branchesWithCommits.value[commit.name] = data.map((c) => ({
           ...c,
           selected: false
-        }))
+        } as CommitWithSelected))
       }
     }
   } catch (error) {
@@ -70,7 +77,7 @@ onMounted(async () => {
   }
 })
 
-function handleCheckboxChange(item: Commit, checked: boolean) {
+function handleCheckboxChange(item: CommitWithSelected, checked: boolean) {
   item.selected = checked
   if (checked) {
     if (selectedCommits.value.length < 2) {
@@ -120,23 +127,12 @@ const diffViewLink = computed(() => {
         <!-- Card header with branch name and Diff button -->
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>{{ MAIN_BRANCH }}</strong>
-          <BButton
-            variant="primary"
-            class="ms-auto"
-            :disabled="selectedCommits.length !== 2"
-            :to="diffViewLink"
-          >
+          <BButton variant="primary" class="ms-auto" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
             Diff
           </BButton>
         </div>
-        <CommitTable
-          :branch="MAIN_BRANCH"
-          :fields="fields"
-          :branchesWithCommits="branchesWithCommits"
-          :selectedCommits="selectedCommits"
-          :isLoading="isLoading"
-          @handleCheckboxChange="handleCheckboxChange"
-        />
+        <CommitTable :branch="MAIN_BRANCH" :fields="fields" :branchesWithCommits="branchesWithCommits"
+          :selectedCommits="selectedCommits" :isLoading="isLoading" @handleCheckboxChange="handleCheckboxChange" />
       </div>
     </div>
   </main>
