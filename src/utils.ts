@@ -1,6 +1,7 @@
 import type { HashDiff } from './types'
 import gqlClient from '@/graphql-client'
-import { GET_FS_ROOT } from '@/queries'
+import { GetFsRootDocument } from '@/graphql-types'
+import type { GetFsRootQuery, GetFsRootQueryVariables } from '@/graphql-types'
 
 export async function fetchFSRootCommitDiff(commitDiff: HashDiff): Promise<HashDiff> {
   // assert label is 'Commit'
@@ -23,8 +24,8 @@ export async function fetchFSRootCommitDiff(commitDiff: HashDiff): Promise<HashD
 }
 
 export async function fetchFsRootHash(commitHash: string): Promise<string> {
-  const response = await gqlClient.query({
-    query: GET_FS_ROOT,
+  const response = await gqlClient.query<GetFsRootQuery, GetFsRootQueryVariables>({
+    query: GetFsRootDocument,
     variables: { where: { hash: commitHash } }
   })
   const fs_hash = response.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash ?? null
