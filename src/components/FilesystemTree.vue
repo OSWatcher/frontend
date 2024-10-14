@@ -49,10 +49,10 @@ const pathParts = computed(() => {
 const fs_root = ref<string | null>(null)
 
 // Fetch filesystem at the given path
-async function listFsAt(path: string, _max_depth: number | null = 0, to_export: boolean = false) {
+async function listFsAt(path: string, _max_depth: number | null = 0) {
   const response = await gqlClient.query<TraversePathQuery, TraversePathQueryVariables>({
     query: TraversePathDocument,
-    variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
+    variables: { parent_label: 'Tree', tree_hash: fs_root.value!, path }
   })
   const tree_hash = response.data.traversePath
   // get children
@@ -63,26 +63,23 @@ async function listFsAt(path: string, _max_depth: number | null = 0, to_export: 
     }
   )
   const data = children.data.trees[0]
-  return parseFSEntries(data, to_export)
+  return parseFSEntries(data)
 }
 
-function parseFSEntries(
-  new_data: {
-    child_blobsConnection: { edges: any[] }
-    child_treesConnection: { edges: any[] }
-  },
-  to_export: boolean = false
-) {
+function parseFSEntries(new_data: {
+  child_blobsConnection: { edges: any[] }
+  child_treesConnection: { edges: any[] }
+}) {
   // output should be an array of items like
   // [{ name: 'file1', type: TreeNodeType.Blob }, { name: 'dir1', type: TreeNodeType.Tree }]
   const files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: to_export ? 'Blob' : TreeNodeType.Blob,
+    type: TreeNodeType.Blob,
     hash: edge.node.hash
   }))
   const dirs = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: to_export ? 'Tree' : TreeNodeType.Tree,
+    type: TreeNodeType.Tree,
     hash: edge.node.hash
   }))
   return [...dirs, ...files]
