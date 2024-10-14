@@ -74,22 +74,6 @@ function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffO
     return []
   }
 
-  if (to_export) {
-    return diffNodesAt.map((item: any) => ({
-      name: item.path,
-      type: item.type,
-      diffType: item.status,
-      old_props: {
-        hash: item.old_props?.hash,
-        properties: item.old_props?.properties
-      },
-      new_props: {
-        hash: item.new_props?.hash,
-        properties: item.new_props?.properties
-      }
-    }))
-  }
-
   // Helper function to map API response to DiffObj
   const mapItem = (item: any, diffType: DiffStatus, rowVariant: string): DiffObj => ({
     name: item.path,

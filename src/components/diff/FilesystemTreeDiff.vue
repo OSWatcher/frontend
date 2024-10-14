@@ -25,11 +25,7 @@ const at_path = ref('/')
 const fields = [{ key: 'name', sortable: true }]
 
 // Function to fetch filesystem diff at a given path
-async function diffFsAt(
-  new_path: string,
-  max_depth: number | null = 0,
-  to_export: boolean = false
-) {
+async function diffFsAt(new_path: string, max_depth: number | null = 0) {
   try {
     const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
       query: DiffNodesDocument,
@@ -44,34 +40,18 @@ async function diffFsAt(
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response.data, to_export)
+    return parse_diff_reponse(response.data)
   } catch (error) {
     console.error('Error fetching filesystem diff at path: ', error)
   }
 }
 
 // Function to parse the diff response
-function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffObj[] {
+function parse_diff_reponse(response: DiffNodesQuery): DiffObj[] {
   const diffNodesAt = response.diffNodesAt
 
-  if (to_export) {
-    return diffNodesAt.map((item) => ({
-      name: item.path,
-      type: item.type,
-      diffType: item.status,
-      old_props: {
-        hash: item.old_props?.hash,
-        properties: item.old_props?.properties
-      },
-      new_props: {
-        hash: item.new_props?.hash,
-        properties: item.new_props?.properties
-      }
-    }))
-  }
-
   // Helper function to map API response to DiffObj
-  const mapItem = (item, diffType, rowVariant) => ({
+  const mapItem = (item: any, diffType: DiffStatus, rowVariant: string) => ({
     name: item.path, // File or directory path
     type: item.type === 'Blob' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
     diffType, // Diff type (NEW, MOD, DEL)
