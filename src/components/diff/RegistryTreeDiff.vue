@@ -2,7 +2,7 @@
 import { ref, onMounted, PropType } from 'vue'
 import { BDropdown, BDropdownItem, BCard, BCardBody, TableItem } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
-import { TreeNodeType, HashDiff, DiffObj } from '@/types'
+import { TreeNodeType, HashDiff } from '@/types'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import gqlClient from '@/graphql-client'
 import { DiffItem, DiffStatus } from '@/graphql-types'
