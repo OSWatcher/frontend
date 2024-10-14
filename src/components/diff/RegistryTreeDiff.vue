@@ -5,8 +5,8 @@ import { GetSystemHives } from '@/windows/registry'
 import { TreeNodeType, HashDiff, DiffObj } from '@/types'
 import TreeExplorer from '@/components/TreeExplorer.vue'
 import gqlClient from '@/graphql-client'
-import { DIFF_NODES } from '@/queries'
 import { DiffStatus } from '@/graphql-types'
+import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
@@ -46,34 +46,28 @@ async function diffRegAt(
   }
 
   try {
-    const response = await gqlClient.query({
-      query: DIFF_NODES, // Use the updated DIFF_NODES query
+    const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
+      query: DiffNodesDocument,
       variables: {
-        parentLabel: 'WinRegKey', // Set the parent label
-        baseNodeHash: selectedHive.value?.value.base_hash,
-        diffeeNodeHash: selectedHive.value?.value.diffee_hash, // Use fs_root_hash instead of commit hash
-        atPath: new_path, // Path to diff
-        maxDepth: max_depth, // Max depth for the diff
+        parentLabel: 'WinRegKey',
+        baseNodeHash: selectedHive.value.value.base_hash!,
+        diffeeNodeHash: selectedHive.value.value.diffee_hash!,
+        atPath: new_path,
+        maxDepth: max_depth,
         filter: ['WinRegValue']
       },
-      // disable caching for this query
-      // Apollo Client cache is very slow
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response, to_export) // Parse the response
+    return parse_diff_reponse(response.data, to_export)
   } catch (error) {
-    console.error('Error fetching filesystem diff at path: ', error)
+    console.error('Error fetching registry diff at path: ', error)
+    return []
   }
 }
 
-function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
-  if (!response || !response.data || !response.data['diffNodesAt']) {
-    console.error('Invalid response structure:', response)
-    return []
-  }
-
-  const diffNodesAt = response.data['diffNodesAt']
+function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): DiffObj[] {
+  const diffNodesAt = response.diffNodesAt
 
   if (!Array.isArray(diffNodesAt)) {
     console.error('diffNodesAt is not an array:', diffNodesAt)
@@ -97,7 +91,7 @@ function parse_diff_reponse(response: any, to_export: boolean): DiffObj[] {
   }
 
   // Helper function to map API response to DiffObj
-  const mapItem = (item: any, diffType: DiffType, rowVariant: string): DiffObj => ({
+  const mapItem = (item: any, diffType: DiffStatus, rowVariant: string): DiffObj => ({
     name: item.path,
     type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
     diffType,
@@ -164,19 +158,32 @@ const selectHive = (hive: HiveOption) => {
     <div class="d-flex align-items-center">
       <BDropdown right class="mr-2" variant="primary">
         <template #button-content> Select Hive </template>
-        <BDropdownItem v-for="hive in possibleHives" :key="hive.value.base_hash" @click="selectHive(hive)">
+        <BDropdownItem
+          v-for="hive in possibleHives"
+          :key="hive.value.base_hash"
+          @click="selectHive(hive)"
+        >
           {{ hive.text }}
         </BDropdownItem>
       </BDropdown>
-      <BCard no-body class="selected-hive-card flex-grow-1" :bg-variant="selectedHive ? 'light' : 'secondary'"
-        :text-variant="selectedHive ? 'dark' : 'white'">
+      <BCard
+        no-body
+        class="selected-hive-card flex-grow-1"
+        :bg-variant="selectedHive ? 'light' : 'secondary'"
+        :text-variant="selectedHive ? 'dark' : 'white'"
+      >
         <BCard-body>
           {{ selectedHive ? selectedHive.text : 'No hive selected' }}
         </BCard-body>
       </BCard>
     </div>
-    <TreeExplorer :path_dir="at_path" :getEntries="diffRegAt" :fields="fields" :export_max_depth_available="true"
-      :key="hiveChangeCounter">
+    <TreeExplorer
+      :path_dir="at_path"
+      :getEntries="diffRegAt"
+      :fields="fields"
+      :export_max_depth_available="true"
+      :key="hiveChangeCounter"
+    >
       <template #cell(name)="props">
         <div class="row-container">
           <div>
@@ -196,14 +203,19 @@ const selectHive = (hive: HiveOption) => {
           <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.value }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffStatus.Del" class="value-content old-value">
+          <div
+            v-else-if="props.data.item.diffType === DiffStatus.Del"
+            class="value-content old-value"
+          >
             {{ props.data.item.old_props.properties.value }}
           </div>
           <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
-            <div v-if="
-              props.data.item.old_props.properties.value !==
-              props.data.item.new_props.properties.value
-            ">
+            <div
+              v-if="
+                props.data.item.old_props.properties.value !==
+                props.data.item.new_props.properties.value
+              "
+            >
               <div class="value-content old-value">
                 <span class="value-label">Old:</span>
                 {{ props.data.item.old_props.properties.value }}
@@ -226,14 +238,19 @@ const selectHive = (hive: HiveOption) => {
           <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.type }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffStatus.Del" class="value-content old-value">
+          <div
+            v-else-if="props.data.item.diffType === DiffStatus.Del"
+            class="value-content old-value"
+          >
             {{ props.data.item.old_props.properties.type }}
           </div>
           <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
-            <div v-if="
-              props.data.item.old_props.properties.type !==
-              props.data.item.new_props.properties.type
-            ">
+            <div
+              v-if="
+                props.data.item.old_props.properties.type !==
+                props.data.item.new_props.properties.type
+              "
+            >
               <div class="value-content old-value">
                 <span class="value-label">Old:</span>
                 {{ props.data.item.old_props.properties.type }}
