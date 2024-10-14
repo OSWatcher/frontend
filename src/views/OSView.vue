@@ -6,13 +6,13 @@ import RegistryTree from '@/components/RegistryTree.vue'
 import PDBExplorer from '@/components/PDBExplorer.vue'
 import gqlClient from '@/graphql-client'
 import { BTabs, BTab, BSpinner, BCard, BRow, BCol, BCardText } from 'bootstrap-vue-next'
-import { fetchCommitDetails, getCommitCapabilities } from '@/queries'
-import { Commit } from '@/types'
+import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
+import type { Commit, FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 
 const route = useRoute()
-const os_hash = ref(route.params.os_hash)
-const os_title = ref(route.query.os_title)
-const filesystem = ref(route.query.filesystem)
+const os_hash = ref(route.params.os_hash as string)
+const os_title = ref(route.query.os_title as string)
+const filesystem = ref(route.query.filesystem as string)
 // v-if isn't supported, we need to build the tabs variable and insert entries instead
 const tabs = reactive({
   filesystem: { title: 'Filesystem', component: markRaw(FilesystemTree) }
@@ -24,14 +24,14 @@ onMounted(async () => {
   isLoading.value = true
   try {
     // load commit details
-    const response_commit = await gqlClient.query({
-      query: fetchCommitDetails,
+    const response_commit = await gqlClient.query<FetchCommitDetailsQuery>({
+      query: FetchCommitDetailsDocument,
       variables: { where: { hash: os_hash.value } }
     })
-    commit.value = response_commit.data.commits[0]
+    commit.value = response_commit.data.commits[0] as Commit
 
-    const response = await gqlClient.query({
-      query: getCommitCapabilities,
+    const response = await gqlClient.query<GetCommitCapabilitiesQuery>({
+      query: GetCommitCapabilitiesDocument,
       variables: { commitHash: os_hash.value }
     })
     const labels = response.data.getCommitExtractedDataLabels
@@ -52,9 +52,9 @@ onMounted(async () => {
 watch(
   () => route.fullPath,
   () => {
-    os_hash.value = route.params.os_hash
-    os_title.value = route.query.os_title
-    filesystem.value = route.query.filesystem
+    os_hash.value = route.params.os_hash as string
+    os_title.value = route.query.os_title as string
+    filesystem.value = route.query.filesystem as string
     console.log('update route params', os_hash, os_title, filesystem)
   }
 )
@@ -76,11 +76,8 @@ watch(
     </BRow>
     <b-tabs content-class="mt-3">
       <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
-        <component
-          :is="tab.component"
-          :os_hash="os_hash"
-          v-bind="tab.component === FilesystemTree && filesystem ? { path: filesystem } : {}"
-        />
+        <component :is="tab.component" :os_hash="os_hash"
+          v-bind="tab.component === FilesystemTree && filesystem ? { path: filesystem } : {}" />
       </b-tab>
     </b-tabs>
   </div>
