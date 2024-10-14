@@ -15,6 +15,7 @@ interface Commit {
 export interface HashDiff {
   base_hash: string | null
   diffee_hash: string | null
+  label: string
 }
 
 interface BranchesWithCommits {
