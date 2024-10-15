@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
-import { LIST_WINSTRUCT } from '@/queries'
 import { BTable, BPagination, BButton, BCard } from 'bootstrap-vue-next'
 import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
 import {
@@ -111,7 +110,9 @@ function formatOffset(offset: number): string {
       <template #row-details="data">
         <BCard>
           <!-- If the struct is an enum -->
-          <BTable
+          <BT
+            }
+            able
             v-if="data.item.kind === 'Enum'"
             :items="data.item.fields"
             :fields="[
