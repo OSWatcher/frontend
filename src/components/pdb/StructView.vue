@@ -118,7 +118,7 @@ function formatOffset(offset: number): string {
               { key: 'name', label: 'Name', sortable: true },
               { key: 'offset', label: 'Value', sortable: true }
             ]"
-            :sort-by="[{ key: 'name', order: 'asc' }]"
+            :sort-by="[{ key: 'offset', order: 'asc' }]"
             small
           />
 
