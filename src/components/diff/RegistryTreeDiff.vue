@@ -38,7 +38,6 @@ const fields = [
 async function diffRegAt(
   new_path: string,
   max_depth: number | null = 0,
-  to_export: boolean = false
 ) {
   if (!selectedHive.value) {
     console.error('No hive selected')
@@ -59,14 +58,14 @@ async function diffRegAt(
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
     })
-    return parse_diff_reponse(response.data, to_export)
+    return parse_diff_reponse(response.data)
   } catch (error) {
     console.error('Error fetching registry diff at path: ', error)
     return []
   }
 }
 
-function parse_diff_reponse(response: DiffNodesQuery, to_export: boolean): TableItem<DiffItem>[] {
+function parse_diff_reponse(response: DiffNodesQuery): TableItem<DiffItem>[] {
   const diffNodesAt = response.diffNodesAt
 
   if (!Array.isArray(diffNodesAt)) {
