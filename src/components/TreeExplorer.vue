@@ -64,7 +64,7 @@ watch(
   async (new_path_dir) => {
     isLoading.value = true // Set loading to true when data fetch starts
     try {
-      items.value = await props.getEntries(new_path_dir)
+      items.value = await props.getEntries(new_path_dir, 0)
       // sort
       items.value = sortTreeThenName(items.value)
       pathItems.value = buildBreadcrumb(new_path_dir)
