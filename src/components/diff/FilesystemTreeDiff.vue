@@ -8,7 +8,7 @@ import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/gr
 import { BDropdown, BDropdownItem, TableItem } from 'bootstrap-vue-next'
 import type { HashDiff } from '@/types'
 import { fetchFSRootCommitDiff } from '@/utils'
-import { DiffStatus, DiffItem, NodeType } from '@/graphql-types'
+import { DiffStatus, DiffItem } from '@/graphql-types'
 
 const props = defineProps({
   commitHashDiff: {
