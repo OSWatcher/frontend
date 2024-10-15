@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
-import { LIST_WINSTRUCT } from '@/queries'
 import { BTable, BPagination, BButton, BCard } from 'bootstrap-vue-next'
 import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
 import {
