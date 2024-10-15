@@ -35,10 +35,7 @@ const fields = [
   { key: 'type', sortable: true }
 ]
 
-async function diffRegAt(
-  new_path: string,
-  max_depth: number | null = 0,
-) {
+async function diffRegAt(new_path: string, max_depth: number | null = 0) {
   if (!selectedHive.value) {
     console.error('No hive selected')
     return []
