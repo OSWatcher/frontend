@@ -1,5 +1,7 @@
 # Base image with a specific node version, using an alpine variant for smaller size
 FROM node:21-alpine as build-stage
+ARG NODE_ENV=development
+ARG VITE_GRAPHEOS_API_URI=http://localhost:4000/
 
 # Set the working directory inside the container
 WORKDIR /app
