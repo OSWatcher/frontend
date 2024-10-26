@@ -165,7 +165,8 @@ const DIFF_NODES = gql`
     $diffeeNodeHash: String!
     $atPath: String!
     $maxDepth: Int
-    $filter: [String!]
+    $filter: [String!],
+    $options: DiffNodesOptions
   ) {
     diffNodesAt(
       parent_label: $parentLabel
@@ -174,6 +175,7 @@ const DIFF_NODES = gql`
       at_path: $atPath
       max_depth: $maxDepth
       filter: $filter
+      options: $options
     ) {
       total_count
       items {
