@@ -175,16 +175,19 @@ const DIFF_NODES = gql`
       max_depth: $maxDepth
       filter: $filter
     ) {
-      status
-      type
-      path
-      new_props {
-        hash
-        properties
-      }
-      old_props {
-        hash
-        properties
+      total_count
+      items {
+        status
+        path
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
       }
     }
   }
