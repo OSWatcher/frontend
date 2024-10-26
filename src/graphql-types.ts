@@ -3240,6 +3240,7 @@ export type DiffNodesQueryVariables = Exact<{
   atPath: Scalars['String']['input'];
   maxDepth?: InputMaybe<Scalars['Int']['input']>;
   filter?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
+  options?: InputMaybe<DiffNodesOptions>;
 }>;
 
 
@@ -3650,7 +3651,7 @@ export function useSearchFsLazyQuery(variables?: SearchFsQueryVariables | VueCom
 }
 export type SearchFsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<SearchFsQuery, SearchFsQueryVariables>;
 export const DiffNodesDocument = gql`
-    query DiffNodes($parentLabel: String!, $baseNodeHash: String!, $diffeeNodeHash: String!, $atPath: String!, $maxDepth: Int, $filter: [String!]) {
+    query DiffNodes($parentLabel: String!, $baseNodeHash: String!, $diffeeNodeHash: String!, $atPath: String!, $maxDepth: Int, $filter: [String!], $options: DiffNodesOptions) {
   diffNodesAt(
     parent_label: $parentLabel
     base_node_hash: $baseNodeHash
@@ -3658,6 +3659,7 @@ export const DiffNodesDocument = gql`
     at_path: $atPath
     max_depth: $maxDepth
     filter: $filter
+    options: $options
   ) {
     total_count
     items {
@@ -3695,6 +3697,7 @@ export const DiffNodesDocument = gql`
  *   atPath: // value for 'atPath'
  *   maxDepth: // value for 'maxDepth'
  *   filter: // value for 'filter'
+ *   options: // value for 'options'
  * });
  */
 export function useDiffNodesQuery(variables: DiffNodesQueryVariables | VueCompositionApi.Ref<DiffNodesQueryVariables> | ReactiveFunction<DiffNodesQueryVariables>, options: VueApolloComposable.UseQueryOptions<DiffNodesQuery, DiffNodesQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<DiffNodesQuery, DiffNodesQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<DiffNodesQuery, DiffNodesQueryVariables>> = {}) {
