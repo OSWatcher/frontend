@@ -6,7 +6,8 @@ import {
   BDropdownItem,
   BSpinner,
   TableItem,
-  TableField
+  TableField,
+  BPagination
 } from 'bootstrap-vue-next'
 import TreeNodeType, { treeNodeTypeToString } from '@/types'
 import path from 'path'
@@ -78,34 +79,22 @@ const pagination = ref<Pagination>({
   limit: props.paginate ? 100 : 0
 })
 
-// add a watcher to the path_dir prop
-watch(
-  () => props.path_dir,
-  (newValue) => {
-    path_dir.value = newValue
-  },
-  { immediate: true }
-)
+async function fetchData(new_path_dir: string) {
+  console.log('Fetching data for path:', new_path_dir, 'Page:', pagination.value.currentPage)
+  isLoading.value = true
+  try {
+    const resp = await props.getEntries(new_path_dir, 0, pagination.value)
+    pagination.value.totalItems = resp.total_count
+    items.value = resp.items
+    // sort
+    items.value = sortTreeThenName(items.value)
+    pathItems.value = buildBreadcrumb(new_path_dir)
+  } finally {
+    isLoading.value = false
+  }
+}
 
-// Watch for pathParts changes
-watch(
-  path_dir,
-  async (new_path_dir) => {
-    isLoading.value = true // Set loading to true when data fetch starts
-    try {
-      const resp = await props.getEntries(new_path_dir, 0, pagination.value)
-      pagination.value.totalItems = resp.total_count
-      items.value = resp.items
-      // sort
-      items.value = sortTreeThenName(items.value)
-      pathItems.value = buildBreadcrumb(new_path_dir)
-      // TODO: if filename_highlight is not null, we should highlight it in the UI
-    } finally {
-      isLoading.value = false // Set loading to false when data fetch completes
-    }
-  },
-  { immediate: true }
-)
+watch(path_dir, fetchData, { immediate: true })
 
 function buildBreadcrumb(newFsPath: string) {
   const normalizedPath = path.normalize(newFsPath)
@@ -202,6 +191,16 @@ async function prepareExport(max_depth: number | null = 0) {
     isExporting.value = false
   }
 }
+
+// Modify the watch for pagination.currentPage
+watch(
+  () => pagination.value.currentPage,
+  (newVal) => {
+    console.log('Page changed to:', newVal)
+    // Call fetchData with the current path_dir value
+    fetchData(path_dir.value)
+  }
+)
 </script>
 
 <template>
@@ -233,6 +232,13 @@ async function prepareExport(max_depth: number | null = 0) {
       </BDropdown>
     </div>
 
+    <BPagination
+      v-if="paginate"
+      v-model="pagination.currentPage"
+      :total-rows="pagination.totalItems"
+      :per-page="pagination.limit"
+      aria-controls="my-table"
+    ></BPagination>
     <BTable
       :busy="isLoading"
       :items="items"
@@ -246,6 +252,13 @@ async function prepareExport(max_depth: number | null = 0) {
         <slot :name="`cell(${field.key})`" :data="data"> </slot>
       </template>
     </BTable>
+    <BPagination
+      v-if="paginate"
+      v-model="pagination.currentPage"
+      :total-rows="pagination.totalItems"
+      :per-page="pagination.limit"
+      aria-controls="my-table"
+    ></BPagination>
   </div>
 </template>
 
