@@ -6,7 +6,7 @@ import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function as PropType<(path: string, maxDepth?: number | null) => Promise<TableItem[]>>,
+    type: Function as PropType<(path: string, maxDepth?: number | null, pagination?: Pagination) => Promise<{ items: TableItem[], total_count: number }>>,
     required: true
   },
   fields: {
@@ -35,8 +35,18 @@ const props = defineProps({
   export_max_depth_available: {
     type: Boolean as PropType<boolean>,
     default: false
+  },
+  paginate: {
+    type: Boolean as PropType<boolean>,
+    default: false
   }
 })
+
+export interface Pagination {
+  currentPage: number
+  totalItems: number
+  limit: number
+}
 
 // we need to keep a local copy of the path_dir prop for own our navigation
 const path_dir = ref(props.path_dir)
@@ -48,6 +58,12 @@ const pathItems = ref([])
 const isLoading = ref(false)
 // isExporting
 const isExporting = ref(false)
+// pagination
+const pagination = ref<Pagination>({
+  currentPage: 1,
+  totalItems: 0,
+  limit: props.paginate ? 100 : 0
+})
 
 // add a watcher to the path_dir prop
 watch(
@@ -64,7 +80,9 @@ watch(
   async (new_path_dir) => {
     isLoading.value = true // Set loading to true when data fetch starts
     try {
-      items.value = await props.getEntries(new_path_dir, 0)
+      const resp = await props.getEntries(new_path_dir, 0, pagination.value)
+      pagination.value.totalItems = resp.total_count
+      items.value = resp.items
       // sort
       items.value = sortTreeThenName(items.value)
       pathItems.value = buildBreadcrumb(new_path_dir)
@@ -121,8 +139,8 @@ function sortTreeThenName(entries) {
 async function prepareExport(max_depth: number | null = 0) {
   isExporting.value = true
   try {
-    const entries = await props.getEntries(path_dir.value, max_depth)
-
+    const resp = await props.getEntries(path_dir.value, max_depth)
+    const entries = resp.items
     const keysToRemove = ['__typename', '_rowVariant', '_cellVariants', '_showDetails']
 
     // Custom replacer function
