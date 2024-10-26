@@ -1,16 +1,29 @@
 <script setup lang="ts">
 import { ref, watch, defineProps, PropType } from 'vue'
-import { BTable, BDropdown, BDropdownItem, BSpinner, TableItem } from 'bootstrap-vue-next'
+import {
+  BTable,
+  BDropdown,
+  BDropdownItem,
+  BSpinner,
+  TableItem,
+  TableField
+} from 'bootstrap-vue-next'
 import TreeNodeType, { treeNodeTypeToString } from '@/types'
 import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function as PropType<(path: string, maxDepth?: number | null, pagination?: Pagination) => Promise<{ items: TableItem[], total_count: number }>>,
+    type: Function as PropType<
+      (
+        path: string,
+        maxDepth?: number | null,
+        pagination?: Pagination
+      ) => Promise<{ items: TableItem[]; total_count: number }>
+    >,
     required: true
   },
   fields: {
-    type: Array as PropType<TableItem[]>,
+    type: Array as PropType<TableField[]>,
     required: true
   },
   // which field to use as the name of the entry
