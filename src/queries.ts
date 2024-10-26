@@ -166,6 +166,7 @@ const DIFF_NODES = gql`
     $atPath: String!
     $maxDepth: Int
     $filter: [String!]
+    $options: DiffNodesOptions
   ) {
     diffNodesAt(
       parent_label: $parentLabel
@@ -174,17 +175,21 @@ const DIFF_NODES = gql`
       at_path: $atPath
       max_depth: $maxDepth
       filter: $filter
+      options: $options
     ) {
-      status
-      type
-      path
-      new_props {
-        hash
-        properties
-      }
-      old_props {
-        hash
-        properties
+      total_count
+      items {
+        status
+        path
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
       }
     }
   }

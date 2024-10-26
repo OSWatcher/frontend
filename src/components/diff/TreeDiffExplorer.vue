@@ -10,7 +10,7 @@ import {
   NodeType
 } from '@/graphql-types'
 import { HashDiff, TreeNodeType } from '@/types'
-import TreeExplorer from '@/components/TreeExplorer.vue'
+import TreeExplorer, { Pagination } from '@/components/TreeExplorer.vue'
 import { TableItem, TableFieldRaw } from 'bootstrap-vue-next'
 
 // Props
@@ -19,16 +19,29 @@ interface Props {
   fields: Exclude<TableFieldRaw<DiffItem>, string>[]
   diff_filter: string[]
   treeNodeType?: NodeType
+  paginate?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  treeNodeType: NodeType.Tree
+  treeNodeType: NodeType.Tree,
+  paginate: false
 })
 
 async function diffNodesAt(
   new_path: string,
-  max_depth?: number | null | undefined
-): Promise<TableItem<DiffItem>[]> {
+  max_depth?: number | null | undefined,
+  pagination?: Pagination
+): Promise<{
+  total_count: number
+  items: TableItem<DiffItem>[]
+}> {
+  const options =
+    props.paginate && pagination
+      ? {
+          offset: (pagination?.currentPage - 1) * pagination?.limit,
+          limit: pagination?.limit
+        }
+      : undefined
   try {
     const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
       query: DiffNodesDocument,
@@ -38,7 +51,8 @@ async function diffNodesAt(
         diffeeNodeHash: props.node_diff.diffee_hash!,
         atPath: new_path,
         maxDepth: max_depth,
-        filter: props.diff_filter
+        filter: props.diff_filter,
+        options: options
       },
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
@@ -48,27 +62,34 @@ async function diffNodesAt(
   } catch (error) {
     console.error('Error fetching diff data:', error)
   }
-  return []
+  return { total_count: 0, items: [] }
 }
 
 // Function to parse diff response
-function parse_diff_response(data: DiffNodesQuery): TableItem<DiffItem>[] {
-  return data.diffNodesAt.map((item) => ({
-    ...item,
-    type: item.type === props.treeNodeType ? TreeNodeType.Tree : TreeNodeType.Blob,
-    _rowVariant: (() => {
-      switch (item.status) {
-        case DiffStatus.New:
-          return 'success'
-        case DiffStatus.Mod:
-          return 'warning'
-        case DiffStatus.Del:
-          return 'danger'
-        default:
-          throw new Error(`Unexpected diff status: ${item.status}`)
-      }
-    })()
-  }))
+function parse_diff_response(data: DiffNodesQuery): {
+  total_count: number
+  items: TableItem<DiffItem>[]
+} {
+  console.log(data)
+  return {
+    total_count: data.diffNodesAt.total_count,
+    items: data.diffNodesAt.items.map((item) => ({
+      ...item,
+      type: item.type === props.treeNodeType ? TreeNodeType.Tree : TreeNodeType.Blob,
+      _rowVariant: (() => {
+        switch (item.status) {
+          case DiffStatus.New:
+            return 'success'
+          case DiffStatus.Mod:
+            return 'warning'
+          case DiffStatus.Del:
+            return 'danger'
+          default:
+            throw new Error(`Unexpected diff status: ${item.status}`)
+        }
+      })()
+    }))
+  }
 }
 </script>
 
@@ -78,6 +99,7 @@ function parse_diff_response(data: DiffNodesQuery): TableItem<DiffItem>[] {
     :fields="fields"
     field_path="path"
     :export_max_depth_available="true"
+    :paginate="paginate"
   >
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData" />

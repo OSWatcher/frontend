@@ -960,6 +960,12 @@ export type DiffItem = {
   type: NodeType
 }
 
+export type DiffNodesAtResult = {
+  __typename?: 'DiffNodesAtResult'
+  items: Array<DiffItem>
+  total_count: Scalars['Int']['output']
+}
+
 export type DiffNodesOptions = {
   limit?: InputMaybe<Scalars['Int']['input']>
   offset?: InputMaybe<Scalars['Int']['input']>
@@ -1173,7 +1179,7 @@ export type Query = {
   commits: Array<Commit>
   commitsAggregate: CommitAggregateSelection
   commitsConnection: CommitsConnection
-  diffNodesAt: Array<DiffItem>
+  diffNodesAt: DiffNodesAtResult
   fetchCommitHistory: Array<Commit>
   fetchStructs: Array<WinStructFetchResult>
   fetchSymbols: Array<SymbolFetchResult>
@@ -3251,18 +3257,23 @@ export type DiffNodesQueryVariables = Exact<{
   atPath: Scalars['String']['input']
   maxDepth?: InputMaybe<Scalars['Int']['input']>
   filter?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>
+  options?: InputMaybe<DiffNodesOptions>
 }>
 
 export type DiffNodesQuery = {
   __typename?: 'Query'
-  diffNodesAt: Array<{
-    __typename?: 'DiffItem'
-    status: DiffStatus
-    type: NodeType
-    path: string
-    new_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
-    old_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
-  }>
+  diffNodesAt: {
+    __typename?: 'DiffNodesAtResult'
+    total_count: number
+    items: Array<{
+      __typename?: 'DiffItem'
+      status: DiffStatus
+      path: string
+      type: NodeType
+      old_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+      new_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+    }>
+  }
 }
 
 export const FetchCommitHistoryDocument = gql`
@@ -4133,6 +4144,7 @@ export const DiffNodesDocument = gql`
     $atPath: String!
     $maxDepth: Int
     $filter: [String!]
+    $options: DiffNodesOptions
   ) {
     diffNodesAt(
       parent_label: $parentLabel
@@ -4141,17 +4153,21 @@ export const DiffNodesDocument = gql`
       at_path: $atPath
       max_depth: $maxDepth
       filter: $filter
+      options: $options
     ) {
-      status
-      type
-      path
-      new_props {
-        hash
-        properties
-      }
-      old_props {
-        hash
-        properties
+      total_count
+      items {
+        status
+        path
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
       }
     }
   }
@@ -4175,6 +4191,7 @@ export const DiffNodesDocument = gql`
  *   atPath: // value for 'atPath'
  *   maxDepth: // value for 'maxDepth'
  *   filter: // value for 'filter'
+ *   options: // value for 'options'
  * });
  */
 export function useDiffNodesQuery(
