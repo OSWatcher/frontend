@@ -165,7 +165,7 @@ const DIFF_NODES = gql`
     $diffeeNodeHash: String!
     $atPath: String!
     $maxDepth: Int
-    $filter: [String!],
+    $filter: [String!]
     $options: DiffNodesOptions
   ) {
     diffNodesAt(
