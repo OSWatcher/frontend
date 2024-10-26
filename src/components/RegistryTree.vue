@@ -94,7 +94,7 @@ function parseFSEntries(new_data: any) {
     }))
   ]
 
-  return entries
+  return { items: entries, total_count: entries.length }
 }
 
 onMounted(async () => {

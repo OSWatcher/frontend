@@ -1,16 +1,30 @@
 <script setup lang="ts">
 import { ref, watch, defineProps, PropType } from 'vue'
-import { BTable, BDropdown, BDropdownItem, BSpinner, TableItem } from 'bootstrap-vue-next'
+import {
+  BTable,
+  BDropdown,
+  BDropdownItem,
+  BSpinner,
+  TableItem,
+  TableField,
+  BPagination
+} from 'bootstrap-vue-next'
 import TreeNodeType, { treeNodeTypeToString } from '@/types'
 import path from 'path'
 
 const props = defineProps({
   getEntries: {
-    type: Function as PropType<(path: string, maxDepth?: number | null) => Promise<TableItem[]>>,
+    type: Function as PropType<
+      (
+        path: string,
+        maxDepth?: number | null,
+        pagination?: Pagination
+      ) => Promise<{ items: TableItem[]; total_count: number }>
+    >,
     required: true
   },
   fields: {
-    type: Array as PropType<TableItem[]>,
+    type: Array as PropType<TableField[]>,
     required: true
   },
   // which field to use as the name of the entry
@@ -35,8 +49,18 @@ const props = defineProps({
   export_max_depth_available: {
     type: Boolean as PropType<boolean>,
     default: false
+  },
+  paginate: {
+    type: Boolean as PropType<boolean>,
+    default: false
   }
 })
+
+export interface Pagination {
+  currentPage: number
+  totalItems: number
+  limit: number
+}
 
 // we need to keep a local copy of the path_dir prop for own our navigation
 const path_dir = ref(props.path_dir)
@@ -48,33 +72,29 @@ const pathItems = ref([])
 const isLoading = ref(false)
 // isExporting
 const isExporting = ref(false)
+// pagination
+const pagination = ref<Pagination>({
+  currentPage: 1,
+  totalItems: 0,
+  limit: props.paginate ? 100 : 0
+})
 
-// add a watcher to the path_dir prop
-watch(
-  () => props.path_dir,
-  (newValue) => {
-    path_dir.value = newValue
-  },
-  { immediate: true }
-)
+async function fetchData(new_path_dir: string) {
+  console.log('Fetching data for path:', new_path_dir, 'Page:', pagination.value.currentPage)
+  isLoading.value = true
+  try {
+    const resp = await props.getEntries(new_path_dir, 0, pagination.value)
+    pagination.value.totalItems = resp.total_count
+    items.value = resp.items
+    // sort
+    items.value = sortTreeThenName(items.value)
+    pathItems.value = buildBreadcrumb(new_path_dir)
+  } finally {
+    isLoading.value = false
+  }
+}
 
-// Watch for pathParts changes
-watch(
-  path_dir,
-  async (new_path_dir) => {
-    isLoading.value = true // Set loading to true when data fetch starts
-    try {
-      items.value = await props.getEntries(new_path_dir, 0)
-      // sort
-      items.value = sortTreeThenName(items.value)
-      pathItems.value = buildBreadcrumb(new_path_dir)
-      // TODO: if filename_highlight is not null, we should highlight it in the UI
-    } finally {
-      isLoading.value = false // Set loading to false when data fetch completes
-    }
-  },
-  { immediate: true }
-)
+watch(path_dir, fetchData, { immediate: true })
 
 function buildBreadcrumb(newFsPath: string) {
   const normalizedPath = path.normalize(newFsPath)
@@ -121,8 +141,8 @@ function sortTreeThenName(entries) {
 async function prepareExport(max_depth: number | null = 0) {
   isExporting.value = true
   try {
-    const entries = await props.getEntries(path_dir.value, max_depth)
-
+    const resp = await props.getEntries(path_dir.value, max_depth)
+    const entries = resp.items
     const keysToRemove = ['__typename', '_rowVariant', '_cellVariants', '_showDetails']
 
     // Custom replacer function
@@ -171,6 +191,16 @@ async function prepareExport(max_depth: number | null = 0) {
     isExporting.value = false
   }
 }
+
+// Modify the watch for pagination.currentPage
+watch(
+  () => pagination.value.currentPage,
+  (newVal) => {
+    console.log('Page changed to:', newVal)
+    // Call fetchData with the current path_dir value
+    fetchData(path_dir.value)
+  }
+)
 </script>
 
 <template>
@@ -202,6 +232,13 @@ async function prepareExport(max_depth: number | null = 0) {
       </BDropdown>
     </div>
 
+    <BPagination
+      v-if="paginate"
+      v-model="pagination.currentPage"
+      :total-rows="pagination.totalItems"
+      :per-page="pagination.limit"
+      aria-controls="my-table"
+    ></BPagination>
     <BTable
       :busy="isLoading"
       :items="items"
@@ -215,6 +252,13 @@ async function prepareExport(max_depth: number | null = 0) {
         <slot :name="`cell(${field.key})`" :data="data"> </slot>
       </template>
     </BTable>
+    <BPagination
+      v-if="paginate"
+      v-model="pagination.currentPage"
+      :total-rows="pagination.totalItems"
+      :per-page="pagination.limit"
+      aria-controls="my-table"
+    ></BPagination>
   </div>
 </template>
 

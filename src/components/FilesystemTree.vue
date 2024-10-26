@@ -82,7 +82,7 @@ function parseFSEntries(new_data: {
     type: TreeNodeType.Tree,
     hash: edge.node.hash
   }))
-  return [...dirs, ...files]
+  return { items: [...dirs, ...files], total_count: dirs.length + files.length }
 }
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
