@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, PropType } from 'vue'
-import { BDropdown, BDropdownItem, BCard, BCardBody, TableItem } from 'bootstrap-vue-next'
+import { ref, onMounted, PropType, computed } from 'vue'
+import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
 import { TreeNodeType, HashDiff } from '@/types'
-import TreeExplorer from '@/components/TreeExplorer.vue'
-import gqlClient from '@/graphql-client'
-import { DiffItem, DiffStatus } from '@/graphql-types'
-import { DiffNodesDocument, DiffNodesQuery, DiffNodesQueryVariables } from '@/graphql-types'
+import { NodeType, DiffStatus } from '@/graphql-types'
+import TreeDiffExplorer from '@/components/diff/TreeDiffExplorer.vue'
 
 const props = defineProps({
   commitHashDiff: {
@@ -22,85 +20,23 @@ interface HiveOption {
 
 const selectedHive = ref<HiveOption | null>(null)
 const possibleHives = ref<HiveOption[]>([])
-
-// Dumb counter just to force a re-render of the TreeExplorer when the hive changes
-const hiveChangeCounter = ref(0)
-
-// our current path
-const at_path = ref('/')
-// tree explorer
 const fields = [
   { key: 'path', sortable: true, label: 'Name' },
   { key: 'value', sortable: true },
   { key: 'type', sortable: true }
 ]
+// Dumb counter just to force a re-render of the TreeExplorer when the hive changes
+const hiveChangeCounter = ref(0)
 
-async function diffRegAt(new_path: string, max_depth: number | null = 0) {
-  if (!selectedHive.value) {
-    console.error('No hive selected')
-    return []
+// Computed property for node_diff
+const node_diff = computed(() => {
+  if (!selectedHive.value) return null
+  return {
+    base_hash: selectedHive.value.value.base_hash,
+    diffee_hash: selectedHive.value.value.diffee_hash,
+    label: 'WinRegKey'
   }
-
-  try {
-    const response = await gqlClient.query<DiffNodesQuery, DiffNodesQueryVariables>({
-      query: DiffNodesDocument,
-      variables: {
-        parentLabel: 'WinRegKey',
-        baseNodeHash: selectedHive.value.value.base_hash!,
-        diffeeNodeHash: selectedHive.value.value.diffee_hash!,
-        atPath: new_path,
-        maxDepth: max_depth,
-        filter: ['WinRegValue']
-      },
-      fetchPolicy: 'no-cache',
-      errorPolicy: 'all'
-    })
-    return parse_diff_reponse(response.data)
-  } catch (error) {
-    console.error('Error fetching registry diff at path: ', error)
-    return []
-  }
-}
-
-function parse_diff_reponse(response: DiffNodesQuery): TableItem<DiffItem>[] {
-  const diffNodesAt = response.diffNodesAt
-
-  if (!Array.isArray(diffNodesAt)) {
-    console.error('diffNodesAt is not an array:', diffNodesAt)
-    return []
-  }
-
-  // Helper function to map API response to DiffObj
-  const mapItem = (item: any, diffType: DiffStatus, rowVariant: string): DiffObj => ({
-    path: item.path,
-    type: item.type === 'WinRegValue' ? TreeNodeType.Blob : TreeNodeType.Tree, // Determine type
-    status: diffType,
-    old_props: item.old_props,
-    new_props: item.new_props,
-    _rowVariant: rowVariant
-  })
-
-  try {
-    // Filter and map new items
-    const newItems = diffNodesAt
-      .filter((item: any) => item.status === 'NEW')
-      .map((item: any) => mapItem(item, DiffStatus.New, 'success'))
-    // Filter and map modified items
-    const modItems = diffNodesAt
-      .filter((item: any) => item.status === 'MOD')
-      .map((item: any) => mapItem(item, DiffStatus.Mod, 'warning'))
-    // Filter and map deleted items
-    const delItems = diffNodesAt
-      .filter((item: any) => item.status === 'DEL')
-      .map((item: any) => mapItem(item, DiffStatus.Del, 'danger'))
-
-    // Combine all items into a single array
-    return [...newItems, ...modItems, ...delItems]
-  } catch (error) {
-    console.error('Error processing diff response:', error)
-    return []
-  }
-}
+})
 
 onMounted(async () => {
   try {
@@ -128,7 +64,6 @@ onMounted(async () => {
 
 const selectHive = (hive: HiveOption) => {
   selectedHive.value = hive
-  // Increment the counter to trigger a re-render of TreeExplorer
   hiveChangeCounter.value++
 }
 </script>
@@ -157,12 +92,12 @@ const selectHive = (hive: HiveOption) => {
         </BCard-body>
       </BCard>
     </div>
-    <TreeExplorer
-      :path_dir="at_path"
-      :getEntries="diffRegAt"
+    <TreeDiffExplorer
+      v-if="node_diff"
+      :node_diff="node_diff"
       :fields="fields"
-      :field_path="'path'"
-      :export_max_depth_available="true"
+      :treeNodeType="NodeType.WinRegKey"
+      :diff_filter="['WinRegValue']"
       :key="hiveChangeCounter"
     >
       <template #cell(path)="props">
@@ -181,16 +116,16 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(value)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
-          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
+          <div v-if="props.data.item.status === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.value }}
           </div>
           <div
-            v-else-if="props.data.item.diffType === DiffStatus.Del"
+            v-else-if="props.data.item.status === DiffStatus.Del"
             class="value-content old-value"
           >
             {{ props.data.item.old_props.properties.value }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
+          <div v-else-if="props.data.item.status === DiffStatus.Mod">
             <div
               v-if="
                 props.data.item.old_props.properties.value !==
@@ -216,16 +151,16 @@ const selectHive = (hive: HiveOption) => {
       </template>
       <template #cell(type)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <div v-if="props.data.item.diffType === DiffStatus.New" class="value-content new-value">
+          <div v-if="props.data.item.status === DiffStatus.New" class="value-content new-value">
             {{ props.data.item.new_props.properties.type }}
           </div>
           <div
-            v-else-if="props.data.item.diffType === DiffStatus.Del"
+            v-else-if="props.data.item.status === DiffStatus.Del"
             class="value-content old-value"
           >
             {{ props.data.item.old_props.properties.type }}
           </div>
-          <div v-else-if="props.data.item.diffType === DiffStatus.Mod">
+          <div v-else-if="props.data.item.status === DiffStatus.Mod">
             <div
               v-if="
                 props.data.item.old_props.properties.type !==
@@ -249,7 +184,7 @@ const selectHive = (hive: HiveOption) => {
           </div>
         </div>
       </template>
-    </TreeExplorer>
+    </TreeDiffExplorer>
   </div>
 </template>
 
