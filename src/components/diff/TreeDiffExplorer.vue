@@ -70,7 +70,6 @@ function parse_diff_response(data: DiffNodesQuery): {
   total_count: number
   items: TableItem<DiffItem>[]
 } {
-  console.log(data)
   return {
     total_count: data.diffNodesAt.total_count,
     items: data.diffNodesAt.items.map((item) => ({
