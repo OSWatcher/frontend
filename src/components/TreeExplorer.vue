@@ -80,7 +80,6 @@ const pagination = ref<Pagination>({
 })
 
 async function fetchData(new_path_dir: string) {
-  console.log('Fetching data for path:', new_path_dir, 'Page:', pagination.value.currentPage)
   isLoading.value = true
   try {
     const resp = await props.getEntries(new_path_dir, 0, pagination.value)
@@ -196,7 +195,6 @@ async function prepareExport(max_depth: number | null = 0) {
 watch(
   () => pagination.value.currentPage,
   (newVal) => {
-    console.log('Page changed to:', newVal)
     // Call fetchData with the current path_dir value
     fetchData(path_dir.value)
   }
