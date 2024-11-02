@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { defineProps, ref, watch, onMounted, PropType } from 'vue'
-import gqlClient from '@/graphql-client'
-import { DIFF_NODES } from '@/queries'
-import { BTable, BPagination } from 'bootstrap-vue-next'
-import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
-import { HashDiff } from '@/types'
+import { defineProps, PropType } from 'vue'
+import TreeDiffExplorer from '@/components/diff/TreeDiffExplorer.vue'
+import type { HashDiff } from '@/types'
 
 const props = defineProps({
   blob_hash_diff: {
@@ -13,9 +10,18 @@ const props = defineProps({
   }
 })
 
-onMounted(async () => {})
+const fields = [{ key: 'path', label: 'Name' }, { key: 'address'}]
 </script>
 
 <template>
-  <div>Hello</div>
+  <TreeDiffExplorer
+    :fields="fields"
+    :node_diff="blob_hash_diff"
+    :diff_filter="['Symbol']"
+    :paginate="true"
+  >
+    <template #cell(path)="props">
+      {{ props.data.item.path }}
+    </template>
+  </TreeDiffExplorer>
 </template>
