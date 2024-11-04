@@ -194,7 +194,7 @@ async function prepareExport(max_depth: number | null = 0) {
 // Modify the watch for pagination.currentPage
 watch(
   () => pagination.value.currentPage,
-  (newVal) => {
+  (_newVal) => {
     // Call fetchData with the current path_dir value
     fetchData(path_dir.value)
   }
