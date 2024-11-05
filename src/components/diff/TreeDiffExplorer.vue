@@ -100,6 +100,22 @@ function parse_diff_response(data: DiffNodesQuery): {
     :export_max_depth_available="true"
     :paginate="paginate"
   >
+    <!-- Handle path slot with default -->
+    <template #cell(path)="props">
+      <slot name="cell(path)" v-bind="props">
+        <div>
+          <div v-if="props.data.item.type === TreeNodeType.Blob">
+            <i class="bi-file-earmark"></i>
+            {{ props.data.item.path }}
+          </div>
+          <div v-else>
+            <i class="bi-folder-fill"></i>
+            {{ props.data.item.path }}
+          </div>
+        </div>
+      </slot>
+    </template>
+
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData" />
     </template>
