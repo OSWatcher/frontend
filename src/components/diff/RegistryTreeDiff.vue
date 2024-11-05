@@ -100,20 +100,6 @@ const selectHive = (hive: HiveOption) => {
       :diff_filter="['WinRegValue']"
       :key="hiveChangeCounter"
     >
-      <template #cell(path)="props">
-        <div class="row-container">
-          <div>
-            <div v-if="props.data.item.type === TreeNodeType.Blob">
-              <i class="bi-file-earmark"></i>
-              {{ props.data.item.path }}
-            </div>
-            <div v-else>
-              <i class="bi-folder-fill"></i>
-              {{ props.data.item.path }}
-            </div>
-          </div>
-        </div>
-      </template>
       <template #cell(value)="props">
         <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
           <div v-if="props.data.item.status === DiffStatus.New" class="value-content new-value">
