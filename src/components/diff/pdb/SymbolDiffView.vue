@@ -3,14 +3,14 @@ import { defineProps, PropType } from 'vue'
 import TreeDiffExplorer from '@/components/diff/TreeDiffExplorer.vue'
 import type { HashDiff } from '@/types'
 
-const props = defineProps({
+const _props = defineProps({
   blob_hash_diff: {
     type: Object as PropType<HashDiff>,
     required: true
   }
 })
 
-const fields = [{ key: 'path', label: 'Name' }, { key: 'address'}]
+const fields = [{ key: 'path', label: 'Name' }, { key: 'address' }]
 </script>
 
 <template>
