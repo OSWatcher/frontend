@@ -3,9 +3,11 @@ import { useRoute } from 'vue-router'
 import { markRaw, onMounted, reactive, ref } from 'vue'
 import { BCard, BTabs, BTab, BSpinner } from 'bootstrap-vue-next'
 import gqlClient from '@/graphql-client'
-import { getCommitCapabilities } from '@/queries'
+import { GetCommitCapabilitiesDocument } from '@/graphql-types'
+import type { GetCommitCapabilitiesQuery } from '@/graphql-types'
 import FilesystemTreeDiff from '@/components/diff/FilesystemTreeDiff.vue'
 import RegistryTreeDiff from '@/components/diff/RegistryTreeDiff.vue'
+import PDBExplorerDiff from '@/components/diff/PDBExplorerDiff.vue'
 
 // get route params
 const route = useRoute()
@@ -33,8 +35,8 @@ onMounted(async () => {
   try {
     // fetch commit details
     // just fetch first commit details
-    const response_details = await gqlClient.query({
-      query: getCommitCapabilities,
+    const response_details = await gqlClient.query<GetCommitCapabilitiesQuery>({
+      query: GetCommitCapabilitiesDocument,
       variables: { commitHash: base_commit.value.hash }
     })
     const labels = response_details.data.getCommitExtractedDataLabels
@@ -42,10 +44,10 @@ onMounted(async () => {
     if (labels.includes('WinRegKey') || labels.includes('WinRegValue')) {
       tabs.registry = { title: 'Registry', component: markRaw(RegistryTreeDiff) }
     }
-    // // symbols ?
-    // if (labels.includes('Symbol') || labels.includes('Enum') || labels.includes('WinStruct')) {
-    //   tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorer) }
-    // }
+    // symbols ?
+    if (labels.includes('Symbol') || labels.includes('WinStruct')) {
+      tabs.symbols = { title: 'PDB', component: markRaw(PDBExplorerDiff) }
+    }
   } catch (error) {
     console.error('Error fetching commit details', error)
   } finally {
@@ -75,8 +77,11 @@ onMounted(async () => {
       <b-tab v-for="(tab, key) in tabs" :key="key" :title="tab.title">
         <component
           :is="tab.component"
-          :base_commit="base_commit.hash"
-          :diffee_commit="diffee_commit.hash"
+          :commitHashDiff="{
+            base_hash: base_commit.hash,
+            diffee_hash: diffee_commit.hash,
+            label: 'Commit'
+          }"
         />
       </b-tab>
     </b-tabs>
