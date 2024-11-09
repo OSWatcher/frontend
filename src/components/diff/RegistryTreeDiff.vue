@@ -2,8 +2,8 @@
 import { ref, onMounted, PropType, computed } from 'vue'
 import { BDropdown, BDropdownItem, BCard, BCardBody } from 'bootstrap-vue-next'
 import { GetSystemHives } from '@/windows/registry'
-import { TreeNodeType, HashDiff } from '@/types'
-import { NodeType, DiffStatus } from '@/graphql-types'
+import { HashDiff } from '@/types'
+import { NodeType } from '@/graphql-types'
 import TreeDiffExplorer from '@/components/diff/TreeDiffExplorer.vue'
 
 const props = defineProps({
@@ -100,76 +100,6 @@ const selectHive = (hive: HiveOption) => {
       :diff_filter="['WinRegValue']"
       :key="hiveChangeCounter"
     >
-      <template #cell(value)="props">
-        <div v-if="props.data.item.type === TreeNodeType.Blob" class="value-container">
-          <div v-if="props.data.item.status === DiffStatus.New" class="value-content new-value">
-            {{ props.data.item.new_props.properties.value }}
-          </div>
-          <div
-            v-else-if="props.data.item.status === DiffStatus.Del"
-            class="value-content old-value"
-          >
-            {{ props.data.item.old_props.properties.value }}
-          </div>
-          <div v-else-if="props.data.item.status === DiffStatus.Mod">
-            <div
-              v-if="
-                props.data.item.old_props.properties.value !==
-                props.data.item.new_props.properties.value
-              "
-            >
-              <div class="value-content old-value">
-                <span class="value-label">Old:</span>
-                {{ props.data.item.old_props.properties.value }}
-              </div>
-              <div class="value-content new-value">
-                <span class="value-label">New:</span>
-                {{ props.data.item.new_props.properties.value }}
-              </div>
-            </div>
-            <div v-else>
-              <div class="value-content">
-                {{ props.data.item.new_props.properties.value }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-      <template #cell(type)="props">
-        <div v-if="props.data.item.type === TreeNodeType.Blob">
-          <div v-if="props.data.item.status === DiffStatus.New" class="value-content new-value">
-            {{ props.data.item.new_props.properties.type }}
-          </div>
-          <div
-            v-else-if="props.data.item.status === DiffStatus.Del"
-            class="value-content old-value"
-          >
-            {{ props.data.item.old_props.properties.type }}
-          </div>
-          <div v-else-if="props.data.item.status === DiffStatus.Mod">
-            <div
-              v-if="
-                props.data.item.old_props.properties.type !==
-                props.data.item.new_props.properties.type
-              "
-            >
-              <div class="value-content old-value">
-                <span class="value-label">Old:</span>
-                {{ props.data.item.old_props.properties.type }}
-              </div>
-              <div class="value-content new-value">
-                <span class="value-label">New:</span>
-                {{ props.data.item.new_props.properties.type }}
-              </div>
-            </div>
-            <div v-else>
-              <div class="value-content">
-                {{ props.data.item.new_props.properties.type }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
     </TreeDiffExplorer>
   </div>
 </template>
@@ -186,41 +116,5 @@ const selectHive = (hive: HiveOption) => {
   font-size: 1rem;
   line-height: 1.5;
   white-space: normal;
-}
-
-.row-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.old-value {
-  color: #dc3545;
-}
-
-.new-value {
-  color: #28a745;
-}
-
-.value-container {
-  max-width: 300px;
-  /* Adjust this value as needed */
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-all;
-}
-
-.value-content {
-  white-space: pre-wrap;
-  font-family: monospace;
-  font-size: 0.9em;
-  padding: 2px 4px;
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.value-label {
-  font-weight: bold;
-  margin-right: 5px;
 }
 </style>
