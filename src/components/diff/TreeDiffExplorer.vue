@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, withDefaults } from 'vue'
+import { defineProps, withDefaults, computed, h } from 'vue'
 import gqlClient from '@/graphql-client'
 import {
   DiffItem,
@@ -12,6 +12,7 @@ import {
 import { HashDiff, TreeNodeType } from '@/types'
 import TreeExplorer, { Pagination } from '@/components/TreeExplorer.vue'
 import { TableItem, TableFieldRaw } from 'bootstrap-vue-next'
+import PropertyDiffDisplay from './PropertyDiffDisplay.vue'
 
 // Props
 interface Props {
@@ -90,6 +91,25 @@ function parse_diff_response(data: DiffNodesQuery): {
     }))
   }
 }
+
+// Create default slots for all fields except 'path'
+const defaultSlots = computed(() => {
+  const slots: Record<string, any> = {}
+
+  props.fields
+    .filter((field) => field.key !== 'path')
+    .forEach((field) => {
+      slots[`cell(${field.key})`] = (slotData: any) =>
+        h('div', { class: 'value-container' }, [
+          h(PropertyDiffDisplay, {
+            item: slotData.data.item,
+            propertyName: field.key
+          })
+        ])
+    })
+
+  return slots
+})
 </script>
 
 <template>
@@ -116,8 +136,11 @@ function parse_diff_response(data: DiffNodesQuery): {
       </slot>
     </template>
 
-    <template v-for="(_, name) in $slots" #[name]="slotData">
-      <slot :name="name" v-bind="slotData" />
+    <!-- Handle all other fields using defaultSlots -->
+    <template v-for="(_, name) in defaultSlots" #[name]="slotData">
+      <slot :name="name" v-bind="slotData">
+        <component :is="defaultSlots[name]" v-bind="slotData" v-if="defaultSlots[name]" />
+      </slot>
     </template>
   </TreeExplorer>
 </template>
