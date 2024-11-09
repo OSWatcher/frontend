@@ -2,9 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import gqlClient from '@/graphql-client'
 import TreeExplorer from '@/components/TreeExplorer.vue'
-import { TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, GET_FS_ROOT } from '@/queries'
+import {
+  TraversePathDocument,
+  ListEntriesForTreeDocument,
+  TraversePathQuery,
+  TraversePathQueryVariables,
+  ListEntriesForTreeQuery,
+  ListEntriesForTreeQueryVariables
+} from '@/graphql-types'
 import TreeNodeType from '@/types'
 import { getDownloadUrl } from '@/download'
+import { fetchFsRootHash } from '@/utils'
 
 const props = defineProps({
   os_hash: {
@@ -38,54 +46,48 @@ const pathParts = computed(() => {
 })
 
 // the root hash of the filesystem
-const fs_root = ref(null)
+const fs_root = ref<string | null>(null)
 
 // Fetch filesystem at the given path
-async function listFsAt(path: string, max_depth: number | null = 0, to_export: boolean = false) {
-  const response = await gqlClient.query({
-    query: TRAVERSE_PATH,
-    variables: { parent_label: 'Tree', tree_hash: fs_root.value, path }
+async function listFsAt(path: string, _max_depth: number | null = 0) {
+  const response = await gqlClient.query<TraversePathQuery, TraversePathQueryVariables>({
+    query: TraversePathDocument,
+    variables: { parent_label: 'Tree', tree_hash: fs_root.value!, path }
   })
-  const tree_hash = response.data['traversePath']
+  const tree_hash = response.data.traversePath
   // get children
-  const children = await gqlClient.query({
-    query: LIST_ENTRIES_FOR_TREE,
-    variables: { where: { hash: tree_hash } }
-  })
+  const children = await gqlClient.query<ListEntriesForTreeQuery, ListEntriesForTreeQueryVariables>(
+    {
+      query: ListEntriesForTreeDocument,
+      variables: { where: { hash: tree_hash } }
+    }
+  )
   const data = children.data.trees[0]
-  return parseFSEntries(data, to_export)
+  return parseFSEntries(data)
 }
 
-function parseFSEntries(
-  new_data: {
-    child_blobsConnection: { edges: any[] }
-    child_treesConnection: { edges: any[] }
-  },
-  to_export: boolean = false
-) {
+function parseFSEntries(new_data: {
+  child_blobsConnection: { edges: any[] }
+  child_treesConnection: { edges: any[] }
+}) {
   // output should be an array of items like
   // [{ name: 'file1', type: TreeNodeType.Blob }, { name: 'dir1', type: TreeNodeType.Tree }]
   const files = new_data.child_blobsConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: to_export ? 'Blob' : TreeNodeType.Blob,
+    type: TreeNodeType.Blob,
     hash: edge.node.hash
   }))
   const dirs = new_data.child_treesConnection.edges.map((edge: any) => ({
     name: edge.properties.name,
-    type: to_export ? 'Tree' : TreeNodeType.Tree,
+    type: TreeNodeType.Tree,
     hash: edge.node.hash
   }))
-  return [...dirs, ...files]
+  return { items: [...dirs, ...files], total_count: dirs.length + files.length }
 }
 
 // onMounted, use GET_FS_ROOT to get the root of the filesystem
 onMounted(async () => {
-  const response = await gqlClient.query({
-    query: GET_FS_ROOT,
-    variables: { where: { hash: props.os_hash } }
-  })
-  const tree_hash = response.data['commits'][0]['filesystemConnection']['edges'][0]['node']['hash']
-  fs_root.value = tree_hash
+  fs_root.value = await fetchFsRootHash(props.os_hash)
 })
 </script>
 

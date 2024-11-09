@@ -2,7 +2,7 @@ import { gql } from '@apollo/client/core'
 
 // home
 const fetchCommitHistory = gql`
-  query ($branchName: String!) {
+  query fetchCommitHistory($branchName: String!) {
     fetchCommitHistory(branch_name: $branchName) {
       hash
       name
@@ -14,7 +14,7 @@ const fetchCommitHistory = gql`
 
 // osview
 const fetchCommitDetails = gql`
-  query Commits($where: CommitWhere) {
+  query fetchCommitDetails($where: CommitWhere) {
     commits(where: $where) {
       hash
       name
@@ -25,14 +25,14 @@ const fetchCommitDetails = gql`
 `
 
 const getCommitCapabilities = gql`
-  query Query($commitHash: String!) {
+  query getCommitCapabilities($commitHash: String!) {
     getCommitExtractedDataLabels(commit_hash: $commitHash)
   }
 `
 
 // registry
 const GET_FS_ROOT = gql`
-  query Commits($where: CommitWhere) {
+  query GetFsRoot($where: CommitWhere) {
     commits(where: $where) {
       hash
       filesystemConnection {
@@ -47,7 +47,7 @@ const GET_FS_ROOT = gql`
 `
 
 const HAS_WINREG = gql`
-  query ($where: BlobWhere) {
+  query HasWinReg($where: BlobWhere) {
     blobs(where: $where) {
       has_winreg {
         hash
@@ -57,13 +57,13 @@ const HAS_WINREG = gql`
 `
 
 const TRAVERSE_PATH = gql`
-  query Query($parent_label: String!, $tree_hash: String!, $path: String!) {
+  query TraversePath($parent_label: String!, $tree_hash: String!, $path: String!) {
     traversePath(parent_label: $parent_label, tree_hash: $tree_hash, path: $path)
   }
 `
 
 const LIST_ENTRIES_FOR_KEY = gql`
-  query WinRegKeys($where: WinRegKeyWhere) {
+  query ListEntriesForKey($where: WinRegKeyWhere) {
     winRegKeys(where: $where) {
       child_keysConnection {
         edges {
@@ -92,7 +92,7 @@ const LIST_ENTRIES_FOR_KEY = gql`
 `
 
 const LIST_ENTRIES_FOR_TREE = gql`
-  query Query($where: TreeWhere) {
+  query ListEntriesForTree($where: TreeWhere) {
     trees(where: $where) {
       child_blobsConnection {
         edges {
@@ -119,50 +119,37 @@ const LIST_ENTRIES_FOR_TREE = gql`
 `
 
 const LIST_SYMBOLS = gql`
-  query ListSymbols(
-    $options: SymbolOptions
-    $where: SymbolWhere
-    $blobConnectionWhere2: SymbolBlobConnectionWhere
-  ) {
+  query FetchSymbols($blobHash: String!, $options: SymbolOptions, $where: SymbolWhere) {
     symbolsAggregate(where: $where) {
       count
     }
-    symbols(where: $where, options: $options) {
+    fetchSymbols(blob_hash: $blobHash, options: $options) {
       name
-      blobConnection(where: $blobConnectionWhere2) {
-        edges {
-          properties {
-            address
-          }
-        }
-      }
+      address
     }
   }
 `
 
 const LIST_WINSTRUCT = gql`
-  query ListWinStruct($where: WinStructWhere, $options: WinStructOptions) {
+  query FetchStructs($blobHash: String!, $options: WinStructOptions, $where: WinStructWhere) {
     winStructsAggregate(where: $where) {
       count
     }
-    winStructs(where: $where, options: $options) {
+    fetchStructs(blob_hash: $blobHash, options: $options) {
       name
-      kind
       size
+      kind
       fields {
         name
         offset
-        type {
-          name
-          type
-        }
+        data_type
       }
     }
   }
 `
 
 const SEARCH_FS = gql`
-  query Search($searchTerm: String!) {
+  query SearchFs($searchTerm: String!) {
     search(search_term: $searchTerm) {
       commit_name
       commit_hash
@@ -179,6 +166,7 @@ const DIFF_NODES = gql`
     $atPath: String!
     $maxDepth: Int
     $filter: [String!]
+    $options: DiffNodesOptions
   ) {
     diffNodesAt(
       parent_label: $parentLabel
@@ -187,17 +175,21 @@ const DIFF_NODES = gql`
       at_path: $atPath
       max_depth: $maxDepth
       filter: $filter
+      options: $options
     ) {
-      status
-      type
-      path
-      new_props {
-        hash
-        properties
-      }
-      old_props {
-        hash
-        properties
+      total_count
+      items {
+        status
+        path
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
       }
     }
   }

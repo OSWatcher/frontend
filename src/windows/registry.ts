@@ -2,8 +2,8 @@
 common function and constants for any component based on Windows Registry
 */
 import gqlClient from '@/graphql-client'
-import { TRAVERSE_PATH, GET_FS_ROOT, HAS_WINREG } from '@/queries'
-
+import { TRAVERSE_PATH, HAS_WINREG } from '@/queries'
+import { fetchFsRootHash } from '@/utils'
 const S32_CONFIG = '/Windows/System32/config'
 export const HKLM = 'HKEY_LOCAL_MACHINE'
 export const HKU = 'HKEY_USERS'
@@ -44,18 +44,7 @@ const SystemHives: WinRegHive[] = [
 ]
 
 export async function GetSystemHives(os_hash: string): Promise<WinRegHive[]> {
-  // fetch FS root
-  const response = await gqlClient.query({
-    query: GET_FS_ROOT,
-    variables: { where: { hash: os_hash } }
-  })
-  const tree_hash =
-    response.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash ?? null
-  if (tree_hash === null) {
-    console.error('Failed to retrieve filesystem root hash from the response')
-    throw new Error('Invalid response structure')
-  }
-  const fs_root = tree_hash
+  const fs_root = await fetchFsRootHash(os_hash)
 
   // make a copy of SystemHives
   // and fetch blob hash for each hive

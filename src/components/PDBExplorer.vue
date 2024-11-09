@@ -33,11 +33,10 @@ onMounted(async () => {
   // traverse fs root to locate /Windows/System32/ntoskrnl.exe
   response = await gqlClient.query({
     query: TRAVERSE_PATH,
-    variables: { tree_hash: fs_root, path: NTOSKRNL_PATH }
+    variables: { parent_label: 'Tree', tree_hash: fs_root, path: NTOSKRNL_PATH }
   })
   const ntos_hash = response.data['traversePath']
   blob_hash.value = ntos_hash
-  console.log('ntos_hash', ntos_hash)
 })
 </script>
 
