@@ -27,26 +27,31 @@ const root = '/'
 
 const fields = [{ key: 'name', sortable: true }]
 
-async function listFsAt(path: string) {
+async function listFsAt(path: string, _max_depth: number | null = 0) {
   if (path === '/') {
-    return [
-      { name: HKLM, type: TreeNodeType.Tree },
-      { name: HKU, type: TreeNodeType.Tree }
-    ]
+    return {
+      items: [
+        { name: HKLM, type: TreeNodeType.Tree },
+        { name: HKU, type: TreeNodeType.Tree }
+      ],
+      total_count: 2
+    }
   }
   if (path === `/${HKLM}`) {
     // iterate over systemHives
     // use mount_path and return the filename
     // except DEFAULT which should be ignored
-    return systemHives.value
+    const hives = systemHives.value
       .filter((hive) => !hive.mount_path.startsWith('HKEY_USERS'))
       .map((hive) => ({ name: hive.mount_path.split('/').pop(), type: TreeNodeType.Tree }))
+    return { items: hives, total_count: hives.length }
   }
 
   if (path === `/${HKU}`) {
-    return systemHives.value
+    const hives = systemHives.value
       .filter((hive) => hive.mount_path.startsWith('HKEY_USERS'))
       .map((hive) => ({ name: hive.mount_path.split('/').pop(), type: TreeNodeType.Tree }))
+    return { items: hives, total_count: hives.length }
   }
   const path_parts = path.split('/').filter(Boolean)
   switch (path_parts[0]) {
