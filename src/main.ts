@@ -13,6 +13,9 @@ import posthogPlugin from './plugins/posthog'
 const app = createApp(App)
 app.use(createBootstrap())
 app.use(router)
-app.use(posthogPlugin)
+
+if (import.meta.env.PROD) {
+  app.use(posthogPlugin)
+}
 
 app.mount('#app')
