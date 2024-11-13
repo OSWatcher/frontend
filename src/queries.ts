@@ -81,6 +81,8 @@ const LIST_ENTRIES_FOR_KEY = gql`
         edges {
           node {
             hash
+            type
+            value
           }
           properties {
             name
