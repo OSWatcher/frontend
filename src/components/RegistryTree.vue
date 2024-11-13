@@ -25,7 +25,11 @@ const systemHives = ref<WinRegHive[]>([])
 // constants
 const root = '/'
 
-const fields = [{ key: 'name', sortable: true }]
+const fields = [
+  { key: 'name', sortable: true },
+  { key: 'value', sortable: true },
+  { key: 'value_type', sortable: true, label: 'Type' }
+]
 
 async function listFsAt(path: string, _max_depth: number | null = 0) {
   if (path === '/') {
@@ -90,7 +94,9 @@ function parseFSEntries(new_data: any) {
     ...new_data.child_valuesConnection.edges.map((edge: any) => ({
       name: edge.properties.name,
       hash: edge.node.hash,
-      type: TreeNodeType.Blob
+      type: TreeNodeType.Blob,
+      value: edge.node.value,
+      value_type: edge.node.type
     })),
     ...new_data.child_keysConnection.edges.map((edge: any) => ({
       name: edge.properties.name,
@@ -123,6 +129,16 @@ onMounted(async () => {
           <i class="bi-folder-fill"></i>
           {{ props.data.item.name }}
         </div>
+      </div>
+    </template>
+    <template #cell(value)="props">
+      <div v-if="props.data.item.type === TreeNodeType.Blob">
+        {{ props.data.item.value }}
+      </div>
+    </template>
+    <template #cell(value_type)="props">
+      <div v-if="props.data.item.type === TreeNodeType.Blob">
+        {{ props.data.item.value_type }}
       </div>
     </template>
   </TreeExplorer>
