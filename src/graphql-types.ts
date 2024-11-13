@@ -3167,7 +3167,7 @@ export type ListEntriesForKeyQuery = {
       __typename?: 'WinRegKeyChild_valuesConnection'
       edges: Array<{
         __typename?: 'WinRegKeyChild_valuesRelationship'
-        node: { __typename?: 'WinRegValue'; hash: string }
+        node: { __typename?: 'WinRegValue'; hash: string; type: string; value: string }
         properties: { __typename?: 'HasFilenameRel'; name: string }
       }>
     }
@@ -3749,6 +3749,8 @@ export const ListEntriesForKeyDocument = gql`
         edges {
           node {
             hash
+            type
+            value
           }
           properties {
             name
