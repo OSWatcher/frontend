@@ -15,17 +15,17 @@
     "generate": "graphql-codegen --config codegen.yml"
   },
   "dependencies": {
-    "@apollo/client": "^3.9.11",
+    "@apollo/client": "^3.11.10",
     "@vue/apollo-composable": "^4.2.1",
-    "axios": "^1.6.8",
+    "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "bootstrap-vue-next": "0.24.11",
-    "path-browserify-esm": "^1.0.4",
-    "posthog-js": "^1.180.1",
+    "path-browserify-esm": "^1.0.6",
+    "posthog-js": "^1.184.2",
     "process": "^0.11.10",
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue": "^3.5.12",
+    "vue-router": "^4.4.5"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.3",
