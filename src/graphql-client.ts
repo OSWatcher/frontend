@@ -4,7 +4,7 @@ import { TypedTypePolicies } from '@/graphql-types'
 
 // Define the API URL through an environment variable
 const httpLink = new HttpLink({
-  uri: import.meta.env.VITE_GRAPHEOS_API_URI
+  uri: new URL('graphql', import.meta.env.VITE_GRAPHEOS_API_URI).toString()
 })
 
 // Optional: Error handling link
