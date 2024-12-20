@@ -95,12 +95,14 @@ const openModal = () => {
       <BNavbarBrand to="/">
         <img src="@/assets/logo.png" alt="OSWatcher logo" />
       </BNavbarBrand>
+      <!--
       <BNavForm>
         <BButton @click="openModal" variant="outline-light">
           Search
           <kbd class="ms-2">Ctrl K</kbd>
         </BButton>
       </BNavForm>
+      -->
     </div>
   </BNavbar>
   <BModal v-model="showModal" @hidden="clearSearchResults" size="xl">
