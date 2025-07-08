@@ -3,8 +3,12 @@ import { onError } from '@apollo/client/link/error'
 import { TypedTypePolicies } from '@/graphql-types'
 
 // Define the API URL through an environment variable
+const apiUri = import.meta.env.VITE_GRAPHEOS_API_URI
+if (!apiUri) {
+  throw new Error('VITE_GRAPHEOS_API_URI environment variable is required')
+}
 const httpLink = new HttpLink({
-  uri: new URL('graphql', import.meta.env.VITE_GRAPHEOS_API_URI).toString()
+  uri: new URL('graphql', apiUri).toString()
 })
 
 // Optional: Error handling link
