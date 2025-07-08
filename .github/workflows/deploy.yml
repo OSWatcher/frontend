@@ -44,6 +44,7 @@ jobs:
           NODE_ENV: production
           VITE_GRAPHEOS_API_URI: ${{ vars.VITE_GRAPHEOS_API_URI }}
           VITE_GRAPHEORS_OBJECT_STORAGE_URI: ${{ vars.VITE_GRAPHEORS_OBJECT_STORAGE_URI }}
+          VITE_POSTHOG_API_KEY: ${{ secrets.VITE_POSTHOG_API_KEY }}
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
