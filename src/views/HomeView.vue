@@ -1,104 +1,38 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import gqlClient from '@/graphql-client'
+import { ref, computed } from 'vue'
 import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
-import { FetchCommitHistoryDocument } from '@/graphql-types'
-import type {
-  FetchCommitHistoryQuery,
-  FetchCommitHistoryQueryVariables,
-  Commit
-} from '@/graphql-types'
+import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import CommitTable from '@/components/CommitsTable.vue'
 
-interface CommitWithSelected extends Commit {
-  selected?: boolean
-}
+// Use the new composable for data fetching
+const { branchesWithCommits, loading, error } = useFetchHomeData()
 
 const MAIN_BRANCH: string = 'master'
-interface BranchesWithCommits {
-  [key: string]: CommitWithSelected[]
-}
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
   { key: 'description', label: 'Description' },
   { key: 'view', label: '' }
 ]
-// dictionary to store the commit history for each branch
-const branchesWithCommits = ref<BranchesWithCommits>({})
-const selectedCommits = ref<TableItem<CommitWithSelected>[]>([])
-const isLoading = ref(false)
-const maintenanceMode = ref(false)
 
-/*
-fetches the commit history for master branch
-and for each commit in the master branch, fetches the commit history as well, if any
-stores the results in branchesWithCommits
-*/
-onMounted(async () => {
-  isLoading.value = true
-  try {
-    const response = await gqlClient.query<
-      FetchCommitHistoryQuery,
-      FetchCommitHistoryQueryVariables
-    >({
-      query: FetchCommitHistoryDocument,
-      variables: { branchName: MAIN_BRANCH }
-    })
+// Track selected commits separately from data
+const selectedCommits = ref<any[]>([])
+const maintenanceMode = computed(() => !!error.value)
 
-    // map each commit to a new object
-    // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
-    // showing details for the commit
-    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map(
-      (c) =>
-        ({
-          ...c,
-          selected: false
-        }) as CommitWithSelected
-    )
+// Find the master branch data
+const masterBranchData = computed(() =>
+  branchesWithCommits.value.find((b) => b.branch.name === MAIN_BRANCH)
+)
 
-    // for each commit returned, try to fetch commit history, if any
-    for (const commit of branchesWithCommits.value[MAIN_BRANCH]) {
-      const response = await gqlClient.query<
-        FetchCommitHistoryQuery,
-        FetchCommitHistoryQueryVariables
-      >({
-        query: FetchCommitHistoryDocument,
-        variables: { branchName: commit.name }
-      })
-      // test whether the response.data.fetchCommitHistory is an empty array
-      if (response.data.fetchCommitHistory.length > 0) {
-        // truncate the response up to commit with hash equal to commit.name (excluding it)
-        const index = response.data.fetchCommitHistory.findIndex((c) => c.hash === commit.hash)
-        const data = response.data.fetchCommitHistory.slice(0, index)
-        // map each commit to a new object
-        // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
-        // showing details for the commit
-        branchesWithCommits.value[commit.name] = data.map(
-          (c) =>
-            ({
-              ...c,
-              selected: false
-            }) as CommitWithSelected
-        )
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching branches and commits:', error)
-    maintenanceMode.value = true
-  } finally {
-    isLoading.value = false
-  }
-})
+// Helper function to check if a commit is selected
+const isCommitSelected = (commit: any) => selectedCommits.value.some((c) => c.hash === commit.hash)
 
-function handleCheckboxChange(item: CommitWithSelected, checked: boolean) {
-  item.selected = checked
+function handleCheckboxChange(item: any, checked: boolean) {
   if (checked) {
     if (selectedCommits.value.length < 2) {
       selectedCommits.value.push(item)
     } else {
       alert('You can only select up to 2 commits.')
-      item.selected = false
     }
   } else {
     selectedCommits.value = selectedCommits.value.filter((commit) => commit.hash !== item.hash)
@@ -151,11 +85,12 @@ const diffViewLink = computed(() => {
           </BButton>
         </div>
         <CommitTable
-          :branch="MAIN_BRANCH"
+          v-if="masterBranchData"
+          :commits="masterBranchData.commits.value"
           :fields="fields"
-          :branchesWithCommits="branchesWithCommits"
           :selectedCommits="selectedCommits"
-          :isLoading="isLoading"
+          :isLoading="masterBranchData.loading.value"
+          :isCommitSelected="isCommitSelected"
           @handleCheckboxChange="handleCheckboxChange"
         />
       </div>

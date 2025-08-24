@@ -1,24 +1,22 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
 import { BTable, BButton, BButtonGroup, BFormCheckbox, BBadge } from 'bootstrap-vue-next'
-import type { Commit, BranchesWithCommits } from '@/types'
-import CommitTable from '@/components/CommitsTable.vue'
 
 const props = defineProps<{
-  branch: string
+  commits: any[]
   fields: any[]
-  branchesWithCommits: BranchesWithCommits
-  selectedCommits: Commit[]
+  selectedCommits: any[]
   isLoading: boolean
+  isCommitSelected: (commit: any) => boolean
 }>()
 
 const emit = defineEmits(['handleCheckboxChange'])
 
-function handleCheckboxChange(item: Commit, checked: boolean) {
+function handleCheckboxChange(item: any, checked: boolean) {
   emit('handleCheckboxChange', item, checked)
 }
 
-function getCommitPosition(commit: Commit): number {
+function getCommitPosition(commit: any): number {
   return props.selectedCommits.findIndex((selectedCommit) => selectedCommit.hash === commit.hash)
 }
 
@@ -28,15 +26,10 @@ function getCommitLabel(position: number): string {
 </script>
 
 <template>
-  <BTable
-    :busy="isLoading"
-    :items="branchesWithCommits[branch]"
-    :fields="fields"
-    select-mode="multi"
-  >
+  <BTable :busy="isLoading" :items="commits" :fields="fields" select-mode="multi">
     <template #cell(name)="row">
       <b-button
-        v-if="branchesWithCommits[row.item.name]"
+        v-if="row.item.isExpandable"
         @click="row.toggleDetails"
         class="me-2"
         :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'"
@@ -66,9 +59,9 @@ function getCommitLabel(position: number): string {
             View
           </BButton>
           <BFormCheckbox
-            v-model="data.item.selected"
+            :model-value="isCommitSelected(data.item)"
             @change="handleCheckboxChange(data.item, $event.target.checked)"
-            :disabled="!data.item.selected && selectedCommits.length >= 2"
+            :disabled="!isCommitSelected(data.item) && selectedCommits.length >= 2"
             button
             button-variant="outline-warning"
           >
@@ -82,15 +75,10 @@ function getCommitLabel(position: number): string {
     </template>
 
     <template #row-details="row">
-      <CommitTable
-        v-if="branchesWithCommits[row.item.name]"
-        :branch="row.item.name"
-        :fields="fields"
-        :branchesWithCommits="branchesWithCommits"
-        :selectedCommits="selectedCommits"
-        :isLoading="isLoading"
-        @handleCheckboxChange="handleCheckboxChange"
-      />
+      <!-- TODO: Implement commit expansion logic here -->
+      <div class="p-3 text-muted">
+        Commit expansion will be implemented here for: {{ row.item.name }}
+      </div>
     </template>
   </BTable>
 </template>
