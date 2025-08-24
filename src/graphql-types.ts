@@ -3224,7 +3224,9 @@ export type WinStructsConnection = {
   totalCount: Scalars['Int']['output']
 }
 
-export type FetchBranchesQueryVariables = Exact<{ [key: string]: never }>
+export type FetchBranchesQueryVariables = Exact<{
+  where?: InputMaybe<BranchWhere>
+}>
 
 export type FetchBranchesQuery = {
   __typename?: 'Query'
@@ -3445,8 +3447,8 @@ export type DiffNodesQuery = {
 }
 
 export const FetchBranchesDocument = gql`
-  query fetchBranches {
-    branches {
+  query fetchBranches($where: BranchWhere) {
+    branches(where: $where) {
       name
       tracks {
         name
@@ -3463,12 +3465,19 @@ export const FetchBranchesDocument = gql`
  * When your component renders, `useFetchBranchesQuery` returns an object from Apollo Client that contains result, loading and error properties
  * you can use to render your UI.
  *
+ * @param variables that will be passed into the query
  * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
  *
  * @example
- * const { result, loading, error } = useFetchBranchesQuery();
+ * const { result, loading, error } = useFetchBranchesQuery({
+ *   where: // value for 'where'
+ * });
  */
 export function useFetchBranchesQuery(
+  variables:
+    | FetchBranchesQueryVariables
+    | VueCompositionApi.Ref<FetchBranchesQueryVariables>
+    | ReactiveFunction<FetchBranchesQueryVariables> = {},
   options:
     | VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
     | VueCompositionApi.Ref<
@@ -3480,11 +3489,15 @@ export function useFetchBranchesQuery(
 ) {
   return VueApolloComposable.useQuery<FetchBranchesQuery, FetchBranchesQueryVariables>(
     FetchBranchesDocument,
-    {},
+    variables,
     options
   )
 }
 export function useFetchBranchesLazyQuery(
+  variables:
+    | FetchBranchesQueryVariables
+    | VueCompositionApi.Ref<FetchBranchesQueryVariables>
+    | ReactiveFunction<FetchBranchesQueryVariables> = {},
   options:
     | VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
     | VueCompositionApi.Ref<
@@ -3496,7 +3509,7 @@ export function useFetchBranchesLazyQuery(
 ) {
   return VueApolloComposable.useLazyQuery<FetchBranchesQuery, FetchBranchesQueryVariables>(
     FetchBranchesDocument,
-    {},
+    variables,
     options
   )
 }
