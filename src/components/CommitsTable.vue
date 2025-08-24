@@ -29,7 +29,7 @@ function getCommitLabel(position: number): string {
   <BTable :busy="isLoading" :items="commits" :fields="fields" select-mode="multi">
     <template #cell(name)="row">
       <b-button
-        v-if="row.item.isExpandable"
+        v-if="row.item.expandableNextCommits && row.item.expandableNextCommits.length > 0"
         @click="row.toggleDetails"
         class="me-2"
         :variant="row.detailsShowing ? 'outline-secondary' : 'outline-success'"
