@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, effectScope } from 'vue'
+import { computed } from 'vue'
 import { BButton, BButtonGroup, BFormCheckbox, BBadge } from 'bootstrap-vue-next'
 import { useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
 
