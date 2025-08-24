@@ -816,6 +816,11 @@ export type CommitFilesystemRelationship = {
   node: Tree
 }
 
+export enum CommitHistoryDirection {
+  Backward = 'BACKWARD',
+  Forward = 'FORWARD'
+}
+
 export type CommitNextAggregateInput = {
   AND?: InputMaybe<Array<CommitNextAggregateInput>>
   NOT?: InputMaybe<CommitNextAggregateInput>
@@ -1427,7 +1432,8 @@ export type QueryDiffNodesAtArgs = {
 }
 
 export type QueryFetchCommitHistoryArgs = {
-  branch_name: Scalars['String']['input']
+  commit_hash: Scalars['String']['input']
+  direction?: InputMaybe<CommitHistoryDirection>
 }
 
 export type QueryFetchStructsArgs = {
@@ -3238,7 +3244,8 @@ export type FetchBranchesQuery = {
 }
 
 export type FetchCommitHistoryQueryVariables = Exact<{
-  branchName: Scalars['String']['input']
+  commitHash: Scalars['String']['input']
+  direction?: InputMaybe<CommitHistoryDirection>
 }>
 
 export type FetchCommitHistoryQuery = {
@@ -3518,8 +3525,8 @@ export type FetchBranchesQueryCompositionFunctionResult = VueApolloComposable.Us
   FetchBranchesQueryVariables
 >
 export const FetchCommitHistoryDocument = gql`
-  query fetchCommitHistory($branchName: String!) {
-    fetchCommitHistory(branch_name: $branchName) {
+  query FetchCommitHistory($commitHash: String!, $direction: CommitHistoryDirection) {
+    fetchCommitHistory(commit_hash: $commitHash, direction: $direction) {
       date
       description
       hash
@@ -3546,7 +3553,8 @@ export const FetchCommitHistoryDocument = gql`
  *
  * @example
  * const { result, loading, error } = useFetchCommitHistoryQuery({
- *   branchName: // value for 'branchName'
+ *   commitHash: // value for 'commitHash'
+ *   direction: // value for 'direction'
  * });
  */
 export function useFetchCommitHistoryQuery(
