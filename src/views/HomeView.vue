@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { BCard, BButton, BDropdown, BDropdownItem, TableItem } from 'bootstrap-vue-next'
+import { BCard, BButton, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import CommitTable from '@/components/CommitsTable.vue'
 
 // Use the new composable for data fetching
-const { branchesWithCommits, loading, error } = useFetchHomeData()
+const { branchesWithCommits, error } = useFetchHomeData()
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
