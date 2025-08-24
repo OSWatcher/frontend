@@ -16,12 +16,10 @@ const emit = defineEmits(['handleCheckboxChange'])
 const firstUpdateHash = computed(() => props.expandableNextCommits[0]?.hash || '')
 
 // Fetch commit history starting from the first update, going forward
-const { result, loading, error } = effectScope().run(() => {
-  return useFetchCommitHistoryQuery({
-    commitHash: firstUpdateHash.value,
-    direction: CommitHistoryDirection.Forward
-  })
-})!
+const { result, loading, error } = useFetchCommitHistoryQuery({
+  commitHash: firstUpdateHash,
+  direction: CommitHistoryDirection.Forward
+})
 
 const expandedCommits = computed(() => result.value?.fetchCommitHistory || [])
 
