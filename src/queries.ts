@@ -15,8 +15,8 @@ const fetchBranches = gql`
 
 // home
 const fetchCommitHistory = gql`
-  query fetchCommitHistory($branchName: String!) {
-    fetchCommitHistory(branch_name: $branchName) {
+  query FetchCommitHistory($commitHash: String!, $direction: CommitHistoryDirection) {
+    fetchCommitHistory(commit_hash: $commitHash, direction: $direction) {
       date
       description
       hash
