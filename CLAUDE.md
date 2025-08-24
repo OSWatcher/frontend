@@ -19,6 +19,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### GraphQL
 - `npm run generate` - Generate TypeScript types from GraphQL schema using codegen
 
+### Documentation
+- `npm run docs:dev` - Start VitePress documentation server with hot reload
+- `npm run docs:build` - Build static documentation site
+- `npm run docs:preview` - Preview the built documentation
+
 ## Architecture Overview
 
 ### Technology Stack
@@ -35,6 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/queries.ts` - GraphQL queries and mutations
 - `src/graphql-client.ts` - Apollo Client setup and configuration
 - `src/graphql-types.ts` - Auto-generated TypeScript types from GraphQL schema
+- `docs/reference/` - Technical reference documentation (VitePress)
 
 ### Key Application Concepts
 
@@ -72,6 +78,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 #### Build Configuration
 - Production base path set to `/frontend/` in Vite config
 - PostHog analytics enabled only in production builds
+
+### Documentation Structure
+The project includes comprehensive technical reference documentation:
+- `docs/reference/api.md` - Complete GraphQL API reference with all queries and types
+- `docs/reference/environment.md` - Environment variables and configuration reference
+- `docs/reference/types.md` - TypeScript types including custom and generated types
+- `docs/reference/architecture.md` - System architecture and design patterns
+- Documentation is built with VitePress and includes search, navigation, and live reload
 
 ### Development Notes
 - Search functionality (Ctrl+K) is currently disabled in navigation
