@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
+import { BCard, BButton, BDropdown, BDropdownItem, TableItem } from 'bootstrap-vue-next'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import CommitTable from '@/components/CommitsTable.vue'
 
 // Use the new composable for data fetching
 const { branchesWithCommits, loading, error } = useFetchHomeData()
-
-const MAIN_BRANCH: string = 'master'
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
@@ -19,9 +17,12 @@ const fields = [
 const selectedCommits = ref<any[]>([])
 const maintenanceMode = computed(() => !!error.value)
 
-// Find the master branch data
-const masterBranchData = computed(() =>
-  branchesWithCommits.value.find((b) => b.branch.name === MAIN_BRANCH)
+// Branch selection state
+const selectedBranch = ref('master')
+
+// Get the currently selected branch data
+const currentBranchData = computed(() =>
+  branchesWithCommits.value.find((b) => b.branch.name === selectedBranch.value)
 )
 
 // Helper function to check if a commit is selected
@@ -68,28 +69,39 @@ const diffViewLink = computed(() => {
 
     <!-- Main content when not in maintenance mode -->
     <div v-else>
-      <h2 class="mb-4"><i class="bi bi-git"></i> {{ MAIN_BRANCH }} Branch</h2>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-git"></i> Branch: {{ selectedBranch }}</h2>
 
-      <!-- Main card containing the branch and commit information -->
-      <div class="card">
-        <!-- Card header with branch name and Diff button -->
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <strong>{{ MAIN_BRANCH }}</strong>
-          <BButton
-            variant="primary"
-            class="ms-auto"
-            :disabled="selectedCommits.length !== 2"
-            :to="diffViewLink"
-          >
+        <div class="d-flex gap-2">
+          <!-- Branch Selector Dropdown -->
+          <BDropdown :text="selectedBranch" variant="outline-secondary">
+            <BDropdownItem
+              v-for="branchData in branchesWithCommits"
+              :key="branchData.branch.name"
+              :active="selectedBranch === branchData.branch.name"
+              @click="selectedBranch = branchData.branch.name"
+            >
+              {{ branchData.branch.name }}
+            </BDropdownItem>
+          </BDropdown>
+
+          <!-- Diff Button -->
+          <BButton variant="primary" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
             Diff
           </BButton>
         </div>
+      </div>
+
+      <!-- Single Branch Display -->
+      <div v-if="currentBranchData" class="card">
+        <div class="card-header">
+          <strong>{{ currentBranchData.branch.name }}</strong>
+        </div>
         <CommitTable
-          v-if="masterBranchData"
-          :commits="masterBranchData.commits.value"
+          :commits="currentBranchData.commits.value"
           :fields="fields"
           :selectedCommits="selectedCommits"
-          :isLoading="masterBranchData.loading.value"
+          :isLoading="currentBranchData.loading.value"
           :isCommitSelected="isCommitSelected"
           @handleCheckboxChange="handleCheckboxChange"
         />
