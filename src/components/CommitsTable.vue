@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { defineProps, defineEmits } from 'vue'
 import { BTable, BButton, BButtonGroup, BFormCheckbox, BBadge } from 'bootstrap-vue-next'
+import CommitExpansion from './CommitExpansion.vue'
 
 const props = defineProps<{
   commits: any[]
@@ -75,10 +76,13 @@ function getCommitLabel(position: number): string {
     </template>
 
     <template #row-details="row">
-      <!-- TODO: Implement commit expansion logic here -->
-      <div class="p-3 text-muted">
-        Commit expansion will be implemented here for: {{ row.item.name }}
-      </div>
+      <CommitExpansion
+        :expandableNextCommits="row.item.expandableNextCommits"
+        :fields="fields"
+        :selectedCommits="selectedCommits"
+        :isCommitSelected="isCommitSelected"
+        @handleCheckboxChange="handleCheckboxChange"
+      />
     </template>
   </BTable>
 </template>

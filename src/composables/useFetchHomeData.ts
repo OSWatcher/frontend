@@ -1,5 +1,9 @@
 import { computed, effectScope, type ComputedRef, type Ref } from 'vue'
-import { useFetchBranchesQuery, useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
+import {
+  useFetchBranchesQuery,
+  useFetchCommitHistoryQuery,
+  CommitHistoryDirection
+} from '@/graphql-types'
 import type { FetchBranchesQuery, FetchCommitHistoryQuery } from '@/graphql-types'
 
 type BranchData = NonNullable<FetchBranchesQuery['branches']>[0]
@@ -46,7 +50,7 @@ function useCommitHistoryForBranch(branch: BranchData) {
       result: commitResult,
       loading: commitLoading,
       error: commitError
-    } = useFetchCommitHistoryQuery({ 
+    } = useFetchCommitHistoryQuery({
       commitHash: branch.tracks?.hash || '',
       direction: CommitHistoryDirection.Backward
     })
@@ -70,10 +74,9 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
 
     return commits.value.map((commit) => {
       // Find next commits that are NOT already in current history (these are expandable)
-      const expandableNextCommits = commit.next?.filter((nextCommit) => 
-        !commitHashes.has(nextCommit.hash)
-      ) || []
-      
+      const expandableNextCommits =
+        commit.next?.filter((nextCommit) => !commitHashes.has(nextCommit.hash)) || []
+
       // PoC validation: each commit should have at most 1 expandable next commit
       if (expandableNextCommits.length > 1) {
         console.warn(
@@ -81,7 +84,7 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
           expandableNextCommits
         )
       }
-      
+
       return {
         ...commit,
         expandableNextCommits
