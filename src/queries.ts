@@ -4,10 +4,16 @@ import { gql } from '@apollo/client/core'
 const fetchCommitHistory = gql`
   query fetchCommitHistory($branchName: String!) {
     fetchCommitHistory(branch_name: $branchName) {
+      date
+      description
       hash
       name
-      description
-      date
+      previous {
+        hash
+      }
+      next {
+        hash
+      }
     }
   }
 `
