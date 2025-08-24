@@ -1,12 +1,12 @@
 import { computed, effectScope, type ComputedRef, type Ref } from 'vue'
-import { useFetchBranchesQuery, useFetchCommitHistoryQuery } from '@/graphql-types'
+import { useFetchBranchesQuery, useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
 import type { FetchBranchesQuery, FetchCommitHistoryQuery } from '@/graphql-types'
 
 type BranchData = NonNullable<FetchBranchesQuery['branches']>[0]
 type CommitData = NonNullable<FetchCommitHistoryQuery['fetchCommitHistory']>[0]
 
 type CommitWithExpandable = CommitData & {
-  isExpandable: boolean
+  expandableNextCommits: { hash: string }[]
 }
 
 export interface BranchWithCommits {
@@ -40,13 +40,16 @@ function useBranchesData() {
   })!
 }
 
-function useCommitHistoryForBranch(branchName: string) {
+function useCommitHistoryForBranch(branch: BranchData) {
   return effectScope().run(() => {
     const {
       result: commitResult,
       loading: commitLoading,
       error: commitError
-    } = useFetchCommitHistoryQuery({ branchName })
+    } = useFetchCommitHistoryQuery({ 
+      commitHash: branch.tracks?.hash || '',
+      direction: CommitHistoryDirection.Backward
+    })
 
     const commits = computed(() => commitResult.value?.fetchCommitHistory || [])
 
@@ -59,17 +62,31 @@ function useCommitHistoryForBranch(branchName: string) {
 }
 
 function createBranchWithCommits(branch: BranchData): BranchWithCommits {
-  const { commits, loading, error } = useCommitHistoryForBranch(branch.name)
+  const { commits, loading, error } = useCommitHistoryForBranch(branch)
 
   const commitsWithExpandability = computed(() => {
     // Create a set of all commit hashes currently displayed in this branch
     const commitHashes = new Set(commits.value.map((commit) => commit.hash))
 
-    return commits.value.map((commit) => ({
-      ...commit,
-      // Check if this commit is expandable (has next relationships to commits not in current history)
-      isExpandable: commit.next?.some((nextCommit) => !commitHashes.has(nextCommit.hash)) || false
-    }))
+    return commits.value.map((commit) => {
+      // Find next commits that are NOT already in current history (these are expandable)
+      const expandableNextCommits = commit.next?.filter((nextCommit) => 
+        !commitHashes.has(nextCommit.hash)
+      ) || []
+      
+      // PoC validation: each commit should have at most 1 expandable next commit
+      if (expandableNextCommits.length > 1) {
+        console.warn(
+          `Commit ${commit.name} (${commit.hash}) has ${expandableNextCommits.length} expandable next commits. Expected 1 or 0.`,
+          expandableNextCommits
+        )
+      }
+      
+      return {
+        ...commit,
+        expandableNextCommits
+      }
+    })
   })
 
   return {
