@@ -1,104 +1,39 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import gqlClient from '@/graphql-client'
-import { BCard, BButton, TableItem } from 'bootstrap-vue-next'
-import { FetchCommitHistoryDocument } from '@/graphql-types'
-import type {
-  FetchCommitHistoryQuery,
-  FetchCommitHistoryQueryVariables,
-  Commit
-} from '@/graphql-types'
+import { ref, computed } from 'vue'
+import { BCard, BButton, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
+import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import CommitTable from '@/components/CommitsTable.vue'
 
-interface CommitWithSelected extends Commit {
-  selected?: boolean
-}
-
-const MAIN_BRANCH: string = 'master'
-interface BranchesWithCommits {
-  [key: string]: CommitWithSelected[]
-}
+// Use the new composable for data fetching
+const { branchesWithCommits, error } = useFetchHomeData()
 
 const fields = [
   { key: 'name', label: 'Commit Name' },
   { key: 'description', label: 'Description' },
   { key: 'view', label: '' }
 ]
-// dictionary to store the commit history for each branch
-const branchesWithCommits = ref<BranchesWithCommits>({})
-const selectedCommits = ref<TableItem<CommitWithSelected>[]>([])
-const isLoading = ref(false)
-const maintenanceMode = ref(false)
 
-/*
-fetches the commit history for master branch
-and for each commit in the master branch, fetches the commit history as well, if any
-stores the results in branchesWithCommits
-*/
-onMounted(async () => {
-  isLoading.value = true
-  try {
-    const response = await gqlClient.query<
-      FetchCommitHistoryQuery,
-      FetchCommitHistoryQueryVariables
-    >({
-      query: FetchCommitHistoryDocument,
-      variables: { branchName: MAIN_BRANCH }
-    })
+// Track selected commits separately from data
+const selectedCommits = ref<any[]>([])
+const maintenanceMode = computed(() => !!error.value)
 
-    // map each commit to a new object
-    // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
-    // showing details for the commit
-    branchesWithCommits.value[MAIN_BRANCH] = response.data.fetchCommitHistory.map(
-      (c) =>
-        ({
-          ...c,
-          selected: false
-        }) as CommitWithSelected
-    )
+// Branch selection state
+const selectedBranch = ref('master')
 
-    // for each commit returned, try to fetch commit history, if any
-    for (const commit of branchesWithCommits.value[MAIN_BRANCH]) {
-      const response = await gqlClient.query<
-        FetchCommitHistoryQuery,
-        FetchCommitHistoryQueryVariables
-      >({
-        query: FetchCommitHistoryDocument,
-        variables: { branchName: commit.name }
-      })
-      // test whether the response.data.fetchCommitHistory is an empty array
-      if (response.data.fetchCommitHistory.length > 0) {
-        // truncate the response up to commit with hash equal to commit.name (excluding it)
-        const index = response.data.fetchCommitHistory.findIndex((c) => c.hash === commit.hash)
-        const data = response.data.fetchCommitHistory.slice(0, index)
-        // map each commit to a new object
-        // otherwise  TypeError: can't define property "_showDetails": Object is not extensible
-        // showing details for the commit
-        branchesWithCommits.value[commit.name] = data.map(
-          (c) =>
-            ({
-              ...c,
-              selected: false
-            }) as CommitWithSelected
-        )
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching branches and commits:', error)
-    maintenanceMode.value = true
-  } finally {
-    isLoading.value = false
-  }
-})
+// Get the currently selected branch data
+const currentBranchData = computed(() =>
+  branchesWithCommits.value.find((b) => b.branch.name === selectedBranch.value)
+)
 
-function handleCheckboxChange(item: CommitWithSelected, checked: boolean) {
-  item.selected = checked
+// Helper function to check if a commit is selected
+const isCommitSelected = (commit: any) => selectedCommits.value.some((c) => c.hash === commit.hash)
+
+function handleCheckboxChange(item: any, checked: boolean) {
   if (checked) {
     if (selectedCommits.value.length < 2) {
       selectedCommits.value.push(item)
     } else {
       alert('You can only select up to 2 commits.')
-      item.selected = false
     }
   } else {
     selectedCommits.value = selectedCommits.value.filter((commit) => commit.hash !== item.hash)
@@ -134,28 +69,40 @@ const diffViewLink = computed(() => {
 
     <!-- Main content when not in maintenance mode -->
     <div v-else>
-      <h2 class="mb-4"><i class="bi bi-git"></i> {{ MAIN_BRANCH }} Branch</h2>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-git"></i> Branch: {{ selectedBranch }}</h2>
 
-      <!-- Main card containing the branch and commit information -->
-      <div class="card">
-        <!-- Card header with branch name and Diff button -->
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <strong>{{ MAIN_BRANCH }}</strong>
-          <BButton
-            variant="primary"
-            class="ms-auto"
-            :disabled="selectedCommits.length !== 2"
-            :to="diffViewLink"
-          >
+        <div class="d-flex gap-2">
+          <!-- Branch Selector Dropdown -->
+          <BDropdown :text="selectedBranch" variant="outline-secondary">
+            <BDropdownItem
+              v-for="branchData in branchesWithCommits"
+              :key="branchData.branch.name"
+              :active="selectedBranch === branchData.branch.name"
+              @click="selectedBranch = branchData.branch.name"
+            >
+              {{ branchData.branch.name }}
+            </BDropdownItem>
+          </BDropdown>
+
+          <!-- Diff Button -->
+          <BButton variant="primary" :disabled="selectedCommits.length !== 2" :to="diffViewLink">
             Diff
           </BButton>
         </div>
+      </div>
+
+      <!-- Single Branch Display -->
+      <div v-if="currentBranchData" class="card">
+        <div class="card-header">
+          <strong>{{ currentBranchData.branch.name }}</strong>
+        </div>
         <CommitTable
-          :branch="MAIN_BRANCH"
+          :commits="currentBranchData.commits.value"
           :fields="fields"
-          :branchesWithCommits="branchesWithCommits"
           :selectedCommits="selectedCommits"
-          :isLoading="isLoading"
+          :isLoading="currentBranchData.loading.value"
+          :isCommitSelected="isCommitSelected"
           @handleCheckboxChange="handleCheckboxChange"
         />
       </div>

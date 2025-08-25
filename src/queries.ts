@@ -1,13 +1,32 @@
 import { gql } from '@apollo/client/core'
 
+// branches
+const fetchBranches = gql`
+  query fetchBranches($where: BranchWhere) {
+    branches(where: $where) {
+      name
+      tracks {
+        name
+        hash
+      }
+    }
+  }
+`
+
 // home
 const fetchCommitHistory = gql`
-  query fetchCommitHistory($branchName: String!) {
-    fetchCommitHistory(branch_name: $branchName) {
+  query FetchCommitHistory($commitHash: String!, $direction: CommitHistoryDirection) {
+    fetchCommitHistory(commit_hash: $commitHash, direction: $direction) {
+      date
+      description
       hash
       name
-      description
-      date
+      previous {
+        hash
+      }
+      next {
+        hash
+      }
     }
   }
 `
@@ -198,6 +217,7 @@ const DIFF_NODES = gql`
 `
 
 export {
+  fetchBranches,
   fetchCommitHistory,
   fetchCommitDetails,
   getCommitCapabilities,
