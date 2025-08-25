@@ -4,9 +4,7 @@ import {
   BNavbar,
   BNavbarBrand,
   vBColorMode,
-  BNavForm,
   BFormInput,
-  BButton,
   BModal,
   BForm,
   BTable,
@@ -83,10 +81,6 @@ const handleRowClicked = (item: TableItem<SearchResult>) => {
 onMounted(() => {
   window.addEventListener('keydown', handleShortcut)
 })
-
-const openModal = () => {
-  showModal.value = true
-}
 </script>
 
 <template>
