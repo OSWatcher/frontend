@@ -651,6 +651,9 @@ export type Commit = Hashable & {
   filesystemConnection: CommitFilesystemConnection
   hash: Scalars['String']['output']
   name: Scalars['String']['output']
+  next: Array<Commit>
+  nextAggregate?: Maybe<CommitCommitNextAggregationSelection>
+  nextConnection: CommitNextConnection
   previous?: Maybe<Commit>
   previousAggregate?: Maybe<CommitCommitPreviousAggregationSelection>
   previousConnection: CommitPreviousConnection
@@ -675,6 +678,25 @@ export type CommitFilesystemConnectionArgs = {
   where?: InputMaybe<CommitFilesystemConnectionWhere>
 }
 
+export type CommitNextArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  options?: InputMaybe<CommitOptions>
+  where?: InputMaybe<CommitWhere>
+}
+
+export type CommitNextAggregateArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  where?: InputMaybe<CommitWhere>
+}
+
+export type CommitNextConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<CommitNextConnectionSort>>
+  where?: InputMaybe<CommitNextConnectionWhere>
+}
+
 export type CommitPreviousArgs = {
   directed?: InputMaybe<Scalars['Boolean']['input']>
   options?: InputMaybe<CommitOptions>
@@ -697,6 +719,20 @@ export type CommitPreviousConnectionArgs = {
 export type CommitAggregateSelection = {
   __typename?: 'CommitAggregateSelection'
   count: Scalars['Int']['output']
+  date: StringAggregateSelection
+  description: StringAggregateSelection
+  hash: StringAggregateSelection
+  name: StringAggregateSelection
+}
+
+export type CommitCommitNextAggregationSelection = {
+  __typename?: 'CommitCommitNextAggregationSelection'
+  count: Scalars['Int']['output']
+  node?: Maybe<CommitCommitNextNodeAggregateSelection>
+}
+
+export type CommitCommitNextNodeAggregateSelection = {
+  __typename?: 'CommitCommitNextNodeAggregateSelection'
   date: StringAggregateSelection
   description: StringAggregateSelection
   hash: StringAggregateSelection
@@ -778,6 +814,113 @@ export type CommitFilesystemRelationship = {
   __typename?: 'CommitFilesystemRelationship'
   cursor: Scalars['String']['output']
   node: Tree
+}
+
+export enum CommitHistoryDirection {
+  Backward = 'BACKWARD',
+  Forward = 'FORWARD'
+}
+
+export type CommitNextAggregateInput = {
+  AND?: InputMaybe<Array<CommitNextAggregateInput>>
+  NOT?: InputMaybe<CommitNextAggregateInput>
+  OR?: InputMaybe<Array<CommitNextAggregateInput>>
+  count?: InputMaybe<Scalars['Int']['input']>
+  count_GT?: InputMaybe<Scalars['Int']['input']>
+  count_GTE?: InputMaybe<Scalars['Int']['input']>
+  count_LT?: InputMaybe<Scalars['Int']['input']>
+  count_LTE?: InputMaybe<Scalars['Int']['input']>
+  node?: InputMaybe<CommitNextNodeAggregationWhereInput>
+}
+
+export type CommitNextConnection = {
+  __typename?: 'CommitNextConnection'
+  edges: Array<CommitNextRelationship>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
+export type CommitNextConnectionSort = {
+  node?: InputMaybe<CommitSort>
+}
+
+export type CommitNextConnectionWhere = {
+  AND?: InputMaybe<Array<CommitNextConnectionWhere>>
+  NOT?: InputMaybe<CommitNextConnectionWhere>
+  OR?: InputMaybe<Array<CommitNextConnectionWhere>>
+  node?: InputMaybe<CommitWhere>
+}
+
+export type CommitNextNodeAggregationWhereInput = {
+  AND?: InputMaybe<Array<CommitNextNodeAggregationWhereInput>>
+  NOT?: InputMaybe<CommitNextNodeAggregationWhereInput>
+  OR?: InputMaybe<Array<CommitNextNodeAggregationWhereInput>>
+  date_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  date_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  date_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  date_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  date_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  date_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  date_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  date_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  date_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  date_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  date_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  date_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  date_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  date_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  date_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  description_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  description_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  description_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  description_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  description_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  description_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  description_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  description_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  description_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  description_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  description_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  description_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  description_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  description_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  description_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  name_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  name_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type CommitNextRelationship = {
+  __typename?: 'CommitNextRelationship'
+  cursor: Scalars['String']['output']
+  node: Commit
 }
 
 export type CommitOptions = {
@@ -937,6 +1080,23 @@ export type CommitWhere = {
   name_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
   name_IN?: InputMaybe<Array<Scalars['String']['input']>>
   name_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  nextAggregate?: InputMaybe<CommitNextAggregateInput>
+  /** Return Commits where all of the related CommitNextConnections match this filter */
+  nextConnection_ALL?: InputMaybe<CommitNextConnectionWhere>
+  /** Return Commits where none of the related CommitNextConnections match this filter */
+  nextConnection_NONE?: InputMaybe<CommitNextConnectionWhere>
+  /** Return Commits where one of the related CommitNextConnections match this filter */
+  nextConnection_SINGLE?: InputMaybe<CommitNextConnectionWhere>
+  /** Return Commits where some of the related CommitNextConnections match this filter */
+  nextConnection_SOME?: InputMaybe<CommitNextConnectionWhere>
+  /** Return Commits where all of the related Commits match this filter */
+  next_ALL?: InputMaybe<CommitWhere>
+  /** Return Commits where none of the related Commits match this filter */
+  next_NONE?: InputMaybe<CommitWhere>
+  /** Return Commits where one of the related Commits match this filter */
+  next_SINGLE?: InputMaybe<CommitWhere>
+  /** Return Commits where some of the related Commits match this filter */
+  next_SOME?: InputMaybe<CommitWhere>
   previous?: InputMaybe<CommitWhere>
   previousAggregate?: InputMaybe<CommitPreviousAggregateInput>
   previousConnection?: InputMaybe<CommitPreviousConnectionWhere>
@@ -1272,7 +1432,8 @@ export type QueryDiffNodesAtArgs = {
 }
 
 export type QueryFetchCommitHistoryArgs = {
-  branch_name: Scalars['String']['input']
+  commit_hash: Scalars['String']['input']
+  direction?: InputMaybe<CommitHistoryDirection>
 }
 
 export type QueryFetchStructsArgs = {
@@ -3069,18 +3230,34 @@ export type WinStructsConnection = {
   totalCount: Scalars['Int']['output']
 }
 
+export type FetchBranchesQueryVariables = Exact<{
+  where?: InputMaybe<BranchWhere>
+}>
+
+export type FetchBranchesQuery = {
+  __typename?: 'Query'
+  branches: Array<{
+    __typename?: 'Branch'
+    name: string
+    tracks?: { __typename?: 'Commit'; name: string; hash: string } | null
+  }>
+}
+
 export type FetchCommitHistoryQueryVariables = Exact<{
-  branchName: Scalars['String']['input']
+  commitHash: Scalars['String']['input']
+  direction?: InputMaybe<CommitHistoryDirection>
 }>
 
 export type FetchCommitHistoryQuery = {
   __typename?: 'Query'
   fetchCommitHistory: Array<{
     __typename?: 'Commit'
+    date: string
+    description?: string | null
     hash: string
     name: string
-    description?: string | null
-    date: string
+    previous?: { __typename?: 'Commit'; hash: string } | null
+    next: Array<{ __typename?: 'Commit'; hash: string }>
   }>
 }
 
@@ -3276,13 +3453,90 @@ export type DiffNodesQuery = {
   }
 }
 
+export const FetchBranchesDocument = gql`
+  query fetchBranches($where: BranchWhere) {
+    branches(where: $where) {
+      name
+      tracks {
+        name
+        hash
+      }
+    }
+  }
+`
+
+/**
+ * __useFetchBranchesQuery__
+ *
+ * To run a query within a Vue component, call `useFetchBranchesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFetchBranchesQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useFetchBranchesQuery({
+ *   where: // value for 'where'
+ * });
+ */
+export function useFetchBranchesQuery(
+  variables:
+    | FetchBranchesQueryVariables
+    | VueCompositionApi.Ref<FetchBranchesQueryVariables>
+    | ReactiveFunction<FetchBranchesQueryVariables> = {},
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useQuery<FetchBranchesQuery, FetchBranchesQueryVariables>(
+    FetchBranchesDocument,
+    variables,
+    options
+  )
+}
+export function useFetchBranchesLazyQuery(
+  variables:
+    | FetchBranchesQueryVariables
+    | VueCompositionApi.Ref<FetchBranchesQueryVariables>
+    | ReactiveFunction<FetchBranchesQueryVariables> = {},
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchBranchesQuery, FetchBranchesQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useLazyQuery<FetchBranchesQuery, FetchBranchesQueryVariables>(
+    FetchBranchesDocument,
+    variables,
+    options
+  )
+}
+export type FetchBranchesQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  FetchBranchesQuery,
+  FetchBranchesQueryVariables
+>
 export const FetchCommitHistoryDocument = gql`
-  query fetchCommitHistory($branchName: String!) {
-    fetchCommitHistory(branch_name: $branchName) {
+  query FetchCommitHistory($commitHash: String!, $direction: CommitHistoryDirection) {
+    fetchCommitHistory(commit_hash: $commitHash, direction: $direction) {
+      date
+      description
       hash
       name
-      description
-      date
+      previous {
+        hash
+      }
+      next {
+        hash
+      }
     }
   }
 `
@@ -3299,7 +3553,8 @@ export const FetchCommitHistoryDocument = gql`
  *
  * @example
  * const { result, loading, error } = useFetchCommitHistoryQuery({
- *   branchName: // value for 'branchName'
+ *   commitHash: // value for 'commitHash'
+ *   direction: // value for 'direction'
  * });
  */
 export function useFetchCommitHistoryQuery(
