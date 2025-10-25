@@ -44,7 +44,7 @@ onMounted(async () => {
             <div v-if="props.data.item.type === TreeNodeType.Blob">
               <div v-if="props.data.item.status === DiffStatus.New">
                 <a
-                  :href="getDownloadUrl(props.data.item.new_hash)"
+                  :href="getDownloadUrl(props.data.item.new_props.hash)"
                   :download="`${props.data.item.new_props.hash}_${props.data.item.path}`"
                   class="btn btn-primary"
                 >
