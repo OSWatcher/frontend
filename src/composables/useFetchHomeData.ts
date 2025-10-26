@@ -21,7 +21,7 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  const ALLOWED_BRANCHES = ['master', 'ubuntu-server']
+  const ALLOWED_BRANCHES = ['ubuntu-server']
 
   return effectScope().run(() => {
     const {
