@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { BCard, BButton, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import CommitTable from '@/components/CommitsTable.vue'
@@ -17,8 +17,15 @@ const fields = [
 const selectedCommits = ref<any[]>([])
 const maintenanceMode = computed(() => !!error.value)
 
-// Branch selection state
-const selectedBranch = ref('master')
+// Branch selection state - default to first available branch
+const selectedBranch = ref('')
+
+// Set default branch when data loads
+watch(branchesWithCommits, (newBranches) => {
+  if (newBranches.length > 0 && !selectedBranch.value) {
+    selectedBranch.value = newBranches[0].branch.name
+  }
+}, { immediate: true })
 
 // Get the currently selected branch data
 const currentBranchData = computed(() =>
