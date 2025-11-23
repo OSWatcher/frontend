@@ -46,6 +46,7 @@ function useBranchesData() {
 }
 
 function useCommitHistoryForBranch(branch: BranchData) {
+  console.log(`[useFetchHomeData] Creating GraphQL query for branch: ${branch.name}, hash: ${branch.tracks?.hash}`)
   return effectScope().run(() => {
     const {
       result: commitResult,
@@ -67,6 +68,7 @@ function useCommitHistoryForBranch(branch: BranchData) {
 }
 
 function createBranchWithCommits(branch: BranchData): BranchWithCommits {
+  console.log(`[useFetchHomeData] Creating commit data for branch: ${branch.name}`)
   const { commits, loading, error } = useCommitHistoryForBranch(branch)
 
   const commitsWithExpandability = computed(() => {
@@ -104,21 +106,9 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
 export function useFetchHomeData() {
   const { branches, loading: branchesLoading, error: branchesError } = useBranchesData()
 
-  // Cache branch commit data to prevent re-creating queries
-  const branchCommitCache = new Map<string, BranchWithCommits>()
-
   const branchesWithCommits = computed(() => {
-    return branches.value.map((branch) => {
-      // Return cached data if it exists for this branch
-      if (branchCommitCache.has(branch.name)) {
-        return branchCommitCache.get(branch.name)!
-      }
-
-      // Create new branch data and cache it
-      const branchData = createBranchWithCommits(branch)
-      branchCommitCache.set(branch.name, branchData)
-      return branchData
-    })
+    console.log(`[useFetchHomeData] Computing branchesWithCommits for ${branches.value.length} branches`)
+    return branches.value.map((branch) => createBranchWithCommits(branch))
   })
 
   const allCommitsLoaded = computed(() =>
