@@ -151,7 +151,9 @@ function renderGraph() {
       const node = nodes.find(n => n.id === d.data.id)
       if (node) {
         commitSelection.toggle(node.hash)
-        renderGraph() // Re-render to update colors
+        // Update color directly without re-rendering entire graph
+        d3.select(event.currentTarget as SVGCircleElement)
+          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
       }
     })
     .on('mouseenter', function() {
@@ -211,9 +213,11 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('stroke', 'white')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
-      .on('click', () => {
+      .on('click', function() {
         commitSelection.toggle(node.hash)
-        renderGraph()
+        // Update color directly
+        d3.select(this)
+          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
       })
 
     nodeGroup
@@ -246,14 +250,27 @@ onMounted(() => {
   window.addEventListener('resize', renderGraph)
 })
 
+// Watch for branch selection changes or when commits load
 watch(
-  () => [props.branchesWithCommits, props.selectedBranch],
+  () => props.selectedBranch,
   () => {
     nextTick(() => {
       renderGraph()
     })
-  },
-  { deep: true }
+  }
+)
+
+// Watch for commits loading (check if any branch is loading)
+watch(
+  () => props.branchesWithCommits.some(b => b.loading.value),
+  (isLoading, wasLoading) => {
+    // Re-render when loading finishes
+    if (wasLoading && !isLoading) {
+      nextTick(() => {
+        renderGraph()
+      })
+    }
+  }
 )
 </script>
 
