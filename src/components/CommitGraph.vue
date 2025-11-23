@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
-import { graphStratify, sugiyama, decrossOpt, coordCenter } from 'd3-dag'
 import type { BranchWithCommits } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
 
@@ -87,19 +86,9 @@ function renderGraph() {
   // Clear previous render
   d3.select(svgRef.value).selectAll('*').remove()
 
-  // Build DAG structure
-  const stratify = graphStratify()
-
-  // Create dag from nodes - for git commits, each node points to its parents
-  const dagData = nodes.map(node => ({
-    id: node.id,
-    parentIds: node.parentIds.length > 0 ? node.parentIds : undefined
-  }))
-
-  // For now, just use simple vertical layout
-  // TODO: Implement proper DAG layout for showing merges and branches
+  // Use simple vertical layout
+  // TODO: Implement proper DAG layout with d3-dag for showing merges and branches
   renderSimpleGraph(nodes)
-  return
 }
 
 function renderSimpleGraph(nodes: CommitNode[]) {
