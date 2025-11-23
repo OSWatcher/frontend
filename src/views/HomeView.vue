@@ -134,6 +134,7 @@ function handleCompare() {
   max-width: 1400px;
   margin: 0 auto;
   padding: 24px;
+  min-height: 100%;
 }
 
 .maintenance-alert {

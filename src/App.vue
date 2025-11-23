@@ -234,9 +234,9 @@ body {
    HEADER
    ============================================================================ */
 .app-header {
-  background: #ffffff;
-  border-bottom: 2px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #1f2937;
+  border-bottom: 1px solid #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   padding: 0;
 }
 
@@ -258,14 +258,14 @@ body {
 .brand-title {
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  color: #ffffff;
   text-decoration: none;
   letter-spacing: -0.5px;
   transition: color 0.2s;
 }
 
 .brand-title:hover {
-  color: #4f46e5;
+  color: #60a5fa;
 }
 
 .header-right {
@@ -276,7 +276,14 @@ body {
 .search-trigger {
   min-width: 200px;
   justify-content: space-between;
-  border: 1px solid #d1d5db;
+  border: 1px solid #4b5563;
+  background: #374151;
+  color: #e5e7eb;
+}
+
+.search-trigger:hover {
+  background: #4b5563;
+  border-color: #6b7280;
 }
 
 .kbd {
@@ -284,12 +291,12 @@ body {
   padding: 2px 6px;
   font-size: 11px;
   line-height: 1;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: #1f2937;
+  border: 1px solid #4b5563;
   border-radius: 4px;
   font-family: 'SF Mono', Monaco, 'Courier New', monospace;
   margin-left: 8px;
-  color: #6b7280;
+  color: #9ca3af;
 }
 
 .icon-button {
