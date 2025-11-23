@@ -265,7 +265,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  background: #f9fafb;
 }
 
 #app {
@@ -286,8 +286,9 @@ body {
    HEADER
    ============================================================================ */
 .app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 0;
 }
 
@@ -330,6 +331,7 @@ body {
 .search-trigger {
   min-width: 200px;
   justify-content: space-between;
+  border: 1px solid #d1d5db;
 }
 
 .kbd {
@@ -337,14 +339,25 @@ body {
   padding: 2px 6px;
   font-size: 11px;
   line-height: 1;
-  background: rgba(255, 255, 255, 0.2);
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
   font-family: 'SF Mono', Monaco, 'Courier New', monospace;
   margin-left: 8px;
+  color: #6b7280;
 }
 
 .icon-button {
   font-size: 20px;
+  color: #374151;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.icon-button:hover {
+  background: #f3f4f6;
+  color: #111827;
 }
 
 /* ============================================================================
@@ -352,7 +365,7 @@ body {
    ============================================================================ */
 .app-content {
   flex: 1;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  background: #f9fafb;
   min-height: calc(100vh - 180px);
 }
 
