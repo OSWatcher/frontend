@@ -17,8 +17,8 @@ const containerRef = ref<HTMLDivElement | null>(null)
 
 // Graph dimensions
 const margin = { top: 40, right: 40, bottom: 40, left: 120 }
-const nodeRadius = 10
-const laneHeight = 55
+const nodeRadius = 13
+const laneHeight = 72
 
 interface CommitNode {
   id: string
@@ -137,15 +137,37 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('stroke', 'white')
       .attr('stroke-width', 2)
 
-    // Draw commit text
-    nodeGroup
+    // Draw commit on a single line (name + description)
+    const commitText = nodeGroup
       .append('text')
-      .attr('x', 18)
-      .attr('y', 6)
-      .text(node.name)
+      .attr('x', 20)
+      .attr('y', 7)
       .attr('font-size', '18px')
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .style('user-select', 'none')
+
+    // Add commit name (bold, dark)
+    commitText
+      .append('tspan')
+      .text(node.name)
+      .attr('font-weight', '600')
+      .attr('fill', '#000000')
+
+    // Add description (normal weight, gray) if it exists
+    if (node.description) {
+      const truncatedDesc = node.description.length > 80
+        ? node.description.substring(0, 80) + '...'
+        : node.description
+
+      commitText
+        .append('tspan')
+        .text(' — ' + truncatedDesc)
+        .attr('font-weight', '400')
+        .attr('fill', '#64748b')
+
+      // Add tooltip with full text
+      commitText.append('title').text(`${node.name} — ${node.description}`)
+    }
 
     // Draw line to next commit (from bottom of current circle to top of next circle)
     if (i < nodes.length - 1) {
