@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { BButton, BDropdown, BDropdownItem } from 'bootstrap-vue-next'
+import { NButton, NDropdown, NSpin, NAlert } from 'naive-ui'
+import type { DropdownOption } from 'naive-ui'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
 import CommitGraph from '@/components/CommitGraph.vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const { branchesWithCommits, error } = useFetchHomeData()
 const commitSelection = useCommitSelectionStore()
 
@@ -12,62 +15,102 @@ const commitSelection = useCommitSelectionStore()
 const selectedBranch = ref('')
 
 // Auto-select first branch when data loads
-watch(branchesWithCommits, (branches) => {
-  if (branches.length > 0 && !selectedBranch.value) {
-    selectedBranch.value = branches[0].branch.name
-  }
-}, { immediate: true })
+watch(
+  branchesWithCommits,
+  (branches) => {
+    if (branches.length > 0 && !selectedBranch.value) {
+      const firstBranch = branches[0]
+      if (firstBranch) {
+        selectedBranch.value = firstBranch.branch.name
+      }
+    }
+  },
+  { immediate: true }
+)
 
 const maintenanceMode = computed(() => !!error.value)
+
+// Dropdown options for branch selector
+const branchOptions = computed<DropdownOption[]>(() =>
+  branchesWithCommits.value
+    .filter((branchData) => branchData !== undefined)
+    .map((branchData) => ({
+      label: branchData.branch.name,
+      key: branchData.branch.name,
+    }))
+)
+
+function handleBranchSelect(key: string) {
+  selectedBranch.value = key
+}
+
+function handleCompare() {
+  if (commitSelection.diffLink) {
+    router.push(commitSelection.diffLink)
+  }
+}
 </script>
 
 <template>
-  <main class="container mt-4">
+  <main class="home-container">
     <!-- Maintenance mode -->
-    <div v-if="maintenanceMode" class="alert alert-warning">
-      <h3><i class="bi bi-tools"></i> Maintenance Mode</h3>
-      <p>The backend is currently unavailable.</p>
-    </div>
+    <NAlert v-if="maintenanceMode" type="warning" class="maintenance-alert">
+      <template #header>
+        <div class="alert-header">
+          <i class="bi bi-tools"></i>
+          <span>Maintenance Mode</span>
+        </div>
+      </template>
+      The backend is currently unavailable.
+    </NAlert>
 
     <!-- Main content -->
-    <div v-else>
+    <div v-else class="content">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-git"></i> Commit History</h2>
+      <div class="header">
+        <h2 class="title">
+          <i class="bi bi-git"></i>
+          Commit History
+        </h2>
 
-        <div class="d-flex gap-2 align-items-center">
+        <div class="actions">
           <!-- Branch selector -->
-          <BDropdown :text="`Branch: ${selectedBranch}`" variant="outline-secondary" v-if="branchesWithCommits.length > 1">
-            <BDropdownItem
-              v-for="branchData in branchesWithCommits"
-              :key="branchData.branch.name"
-              :active="selectedBranch === branchData.branch.name"
-              @click="selectedBranch = branchData.branch.name"
-            >
-              {{ branchData.branch.name }}
-            </BDropdownItem>
-          </BDropdown>
-          <h4 v-else class="mb-0 text-muted">{{ selectedBranch }}</h4>
+          <NDropdown
+            v-if="branchesWithCommits.length > 1"
+            :options="branchOptions"
+            @select="handleBranchSelect"
+            trigger="click"
+          >
+            <NButton secondary>
+              Branch: {{ selectedBranch }}
+              <template #icon>
+                <i class="bi bi-chevron-down"></i>
+              </template>
+            </NButton>
+          </NDropdown>
+          <span v-else class="branch-label">{{ selectedBranch }}</span>
 
           <!-- Compare button -->
-          <BButton
+          <NButton
             v-if="commitSelection.canDiff"
-            variant="success"
-            :to="commitSelection.diffLink || ''"
+            type="success"
+            @click="handleCompare"
           >
-            <i class="bi bi-file-diff"></i> Compare Selected ({{ commitSelection.selectedCommits.length }}/2)
-          </BButton>
-          <span v-else class="text-muted small">
+            <template #icon>
+              <i class="bi bi-file-diff"></i>
+            </template>
+            Compare Selected ({{ commitSelection.selectedCommits.length }}/2)
+          </NButton>
+          <span v-else class="hint-text">
             Select 2 commits to compare
           </span>
         </div>
       </div>
 
       <!-- Loading state -->
-      <div v-if="branchesWithCommits.some((b) => b.loading)" class="text-center p-5">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading commits...</span>
-        </div>
+      <div v-if="branchesWithCommits.some((b) => b?.loading)" class="loading-container">
+        <NSpin size="large" />
+        <p class="loading-text">Loading commits...</p>
       </div>
 
       <!-- Commit graph visualization -->
@@ -79,8 +122,8 @@ const maintenanceMode = computed(() => !!error.value)
       </div>
 
       <!-- Empty state -->
-      <div v-else class="text-center p-5 text-muted">
-        <i class="bi bi-inbox" style="font-size: 3rem"></i>
+      <div v-else class="empty-state">
+        <i class="bi bi-inbox"></i>
         <p>No commits found for this branch.</p>
       </div>
     </div>
@@ -88,5 +131,98 @@ const maintenanceMode = computed(() => !!error.value)
 </template>
 
 <style scoped>
-/* Minimal styles - most styling is in CommitGraph component */
+.home-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.maintenance-alert {
+  margin-bottom: 24px;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.branch-label {
+  font-size: 18px;
+  font-weight: 500;
+  color: #666;
+}
+
+.hint-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.loading-text {
+  margin: 0;
+  color: #666;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Bootstrap icons styling */
+.bi {
+  line-height: 1;
+}
 </style>
