@@ -15,7 +15,7 @@ import {
   NIcon,
   type DataTableColumns
 } from 'naive-ui'
-import { SearchOutline, LogoGithub, BookOutline } from '@vicons/ionicons5'
+import { SearchOutline } from '@vicons/ionicons5'
 import { useRouter, RouterLink } from 'vue-router'
 import gqlClient from '@/graphql-client'
 import { SEARCH_FS } from '@/queries'
@@ -111,46 +111,18 @@ if (typeof window !== 'undefined') {
         </div>
 
         <div class="header-right">
-          <NSpace :size="16">
-            <!-- Search Button -->
-            <NButton
-              secondary
-              @click="showSearchModal = true"
-              class="search-trigger"
-            >
-              <template #icon>
-                <NIcon><SearchOutline /></NIcon>
-              </template>
-              Search
-              <kbd class="kbd">⌘K</kbd>
-            </NButton>
-
-            <!-- GitHub Link -->
-            <NButton
-              text
-              tag="a"
-              href="https://github.com/OSWatcher/oswatcher"
-              target="_blank"
-              class="icon-button"
-            >
-              <template #icon>
-                <NIcon :size="20"><LogoGithub /></NIcon>
-              </template>
-            </NButton>
-
-            <!-- Docs Link -->
-            <NButton
-              text
-              tag="a"
-              href="https://oswatcher.github.io/"
-              target="_blank"
-              class="icon-button"
-            >
-              <template #icon>
-                <NIcon :size="20"><BookOutline /></NIcon>
-              </template>
-            </NButton>
-          </NSpace>
+          <!-- Search Button -->
+          <NButton
+            secondary
+            @click="showSearchModal = true"
+            class="search-trigger"
+          >
+            <template #icon>
+              <NIcon><SearchOutline /></NIcon>
+            </template>
+            Search
+            <kbd class="kbd">⌘K</kbd>
+          </NButton>
         </div>
       </div>
     </NLayoutHeader>
@@ -162,39 +134,15 @@ if (typeof window !== 'undefined') {
 
     <!-- Footer -->
     <NLayoutFooter bordered class="app-footer">
-      <div class="footer-content">
-        <div class="footer-section">
+      <div class="footer-content-simple">
+        <div>
           <NGradientText type="info" :size="18">
             OSWatcher
           </NGradientText>
           <p class="footer-tagline">Operating System Analysis & Tracking</p>
         </div>
-
-        <div class="footer-section">
-          <h4>Resources</h4>
-          <a href="https://github.com/OSWatcher/oswatcher" target="_blank" rel="noopener">
-            <NIcon :size="16"><LogoGithub /></NIcon>
-            GitHub
-          </a>
-          <a href="https://oswatcher.github.io/" target="_blank" rel="noopener">
-            <NIcon :size="16"><BookOutline /></NIcon>
-            Documentation
-          </a>
-        </div>
-
-        <div class="footer-section">
-          <h4>Technology</h4>
-          <div class="tech-stack">
-            <span>Vue 3</span>
-            <span>NaiveUI</span>
-            <span>D3.js</span>
-            <span>GraphQL</span>
-          </div>
-        </div>
-
-        <div class="footer-section footer-copyright">
-          <p>© 2024 OSWatcher Project</p>
-          <p class="footer-small">Built with ❤️ for OS security research</p>
+        <div class="footer-copyright-simple">
+          <p>© 2024 OSWatcher</p>
         </div>
       </div>
     </NLayoutFooter>
@@ -379,36 +327,12 @@ body {
   margin-top: auto;
 }
 
-.footer-content {
+.footer-content-simple {
   max-width: 1400px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 32px;
-}
-
-.footer-section h4 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0aec0;
-}
-
-.footer-section a {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  color: #e2e8f0;
-  text-decoration: none;
-  font-size: 14px;
-  margin-bottom: 8px;
-  transition: color 0.2s;
-}
-
-.footer-section a:hover {
-  color: #667eea;
 }
 
 .footer-tagline {
@@ -417,33 +341,10 @@ body {
   margin: 8px 0 0 0;
 }
 
-.tech-stack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tech-stack span {
-  padding: 4px 10px;
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  border-radius: 4px;
-  font-size: 12px;
-  color: #cbd5e0;
-}
-
-.footer-copyright {
-  text-align: right;
-}
-
-.footer-copyright p {
-  margin: 0 0 8px 0;
+.footer-copyright-simple p {
+  margin: 0;
   font-size: 14px;
-}
-
-.footer-small {
-  font-size: 12px;
-  color: #a0aec0;
+  color: #e2e8f0;
 }
 
 /* ============================================================================
@@ -473,13 +374,10 @@ body {
     min-width: 150px;
   }
 
-  .footer-content {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .footer-copyright {
-    text-align: left;
+  .footer-content-simple {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
   }
 }
 </style>
