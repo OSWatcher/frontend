@@ -104,18 +104,31 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
 export function useFetchHomeData() {
   const { branches, loading: branchesLoading, error: branchesError } = useBranchesData()
 
-  const branchesWithCommits = computed(() =>
-    branches.value.map((branch) => createBranchWithCommits(branch))
-  )
+  // Cache branch commit data to prevent re-creating queries
+  const branchCommitCache = new Map<string, BranchWithCommits>()
+
+  const branchesWithCommits = computed(() => {
+    return branches.value.map((branch) => {
+      // Return cached data if it exists for this branch
+      if (branchCommitCache.has(branch.name)) {
+        return branchCommitCache.get(branch.name)!
+      }
+
+      // Create new branch data and cache it
+      const branchData = createBranchWithCommits(branch)
+      branchCommitCache.set(branch.name, branchData)
+      return branchData
+    })
+  })
 
   const allCommitsLoaded = computed(() =>
-    branchesWithCommits.value.every((branchData) => !branchData.loading)
+    branchesWithCommits.value.every((branchData) => !branchData.loading.value)
   )
 
   const commitErrors = computed(() =>
     branchesWithCommits.value
-      .filter((branchData) => branchData.error)
-      .map((branchData) => branchData.error)
+      .filter((branchData) => branchData.error.value)
+      .map((branchData) => branchData.error.value)
   )
 
   return {
