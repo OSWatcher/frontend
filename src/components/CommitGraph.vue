@@ -147,13 +147,13 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .style('user-select', 'none')
 
-    // Draw line to next commit
+    // Draw line to next commit (from bottom of current circle to top of next circle)
     if (i < nodes.length - 1) {
       g.append('line')
         .attr('x1', 0)
-        .attr('y1', y)
+        .attr('y1', y + nodeRadius)
         .attr('x2', 0)
-        .attr('y2', (i + 1) * laneHeight)
+        .attr('y2', (i + 1) * laneHeight - nodeRadius)
         .attr('stroke', '#94a3b8')
         .attr('stroke-width', 2)
     }
