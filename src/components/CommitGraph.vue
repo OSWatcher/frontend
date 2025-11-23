@@ -3,6 +3,8 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
 import type { BranchWithCommits } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
+import { useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
+import type { FetchCommitHistoryQuery } from '@/graphql-types'
 
 interface Props {
   branchesWithCommits: BranchWithCommits[]
@@ -27,6 +29,13 @@ interface CommitNode {
   date: Date
   description: string
   parentIds: string[]
+  expandableCount: number
+  expandableCommits: Array<{
+    hash: string
+    name?: string | null
+    description?: string | null
+    date?: string | null
+  }>
 }
 
 function buildCommitNodes(): CommitNode[] {
@@ -53,7 +62,9 @@ function buildCommitNodes(): CommitNode[] {
       name: commit.name || '',
       date: new Date(commit.date),
       description: commit.description || '',
-      parentIds
+      parentIds,
+      expandableCount: commit.expandableNextCommits?.length || 0,
+      expandableCommits: commit.expandableNextCommits || []
     })
   })
 
@@ -61,6 +72,58 @@ function buildCommitNodes(): CommitNode[] {
 }
 
 let isRendering = false
+const expandedCommits = ref<Set<string>>(new Set())
+// Store fetched update commits per parent hash
+const fetchedUpdateCommits = ref<Map<string, any[]>>(new Map())
+const loadingUpdateCommits = ref<Set<string>>(new Set())
+
+async function toggleExpand(commitHash: string, firstUpdateHash: string) {
+  if (expandedCommits.value.has(commitHash)) {
+    // Collapse
+    expandedCommits.value.delete(commitHash)
+    nextTick(() => {
+      renderGraph()
+    })
+  } else {
+    // Expand - fetch update commits if not already fetched
+    expandedCommits.value.add(commitHash)
+
+    if (!fetchedUpdateCommits.value.has(commitHash)) {
+      // Mark as loading
+      loadingUpdateCommits.value.add(commitHash)
+
+      try {
+        // Fetch the update history
+        const { result } = useFetchCommitHistoryQuery({
+          commitHash: firstUpdateHash,
+          direction: CommitHistoryDirection.Forward
+        })
+
+        // Wait for data
+        await new Promise<void>((resolve) => {
+          const unwatch = watch(
+            result,
+            (data) => {
+              if (data?.fetchCommitHistory) {
+                fetchedUpdateCommits.value.set(commitHash, data.fetchCommitHistory)
+                unwatch()
+                resolve()
+              }
+            },
+            { immediate: true }
+          )
+        })
+      } finally {
+        loadingUpdateCommits.value.delete(commitHash)
+      }
+    }
+
+    // Re-render the graph
+    nextTick(() => {
+      renderGraph()
+    })
+  }
+}
 
 function renderGraph() {
   if (isRendering) {
@@ -95,7 +158,19 @@ function renderSimpleGraph(nodes: CommitNode[]) {
   if (!svgRef.value || !containerRef.value) return
 
   const width = containerRef.value.clientWidth
-  const height = Math.max(nodes.length * laneHeight + margin.top + margin.bottom, 400)
+
+  const updateSpacing = 72 // Same as main commit spacing
+
+  // Calculate total height including expanded commits
+  let totalHeight = margin.top + margin.bottom
+  nodes.forEach((node) => {
+    totalHeight += laneHeight
+    if (expandedCommits.value.has(node.hash)) {
+      const fetchedCommits = fetchedUpdateCommits.value.get(node.hash) || []
+      totalHeight += fetchedCommits.length * updateSpacing // No extra spacing
+    }
+  })
+  const height = Math.max(totalHeight, 400)
 
   const svg = d3
     .select(svgRef.value)
@@ -106,9 +181,21 @@ function renderSimpleGraph(nodes: CommitNode[]) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`)
 
+  // Calculate cumulative Y positions for each node
+  let cumulativeY = 0
+  const nodePositions = nodes.map((node) => {
+    const y = cumulativeY
+    cumulativeY += laneHeight
+    if (expandedCommits.value.has(node.hash)) {
+      const fetchedCommits = fetchedUpdateCommits.value.get(node.hash) || []
+      cumulativeY += fetchedCommits.length * updateSpacing
+    }
+    return y
+  })
+
   // Simple vertical layout
   nodes.forEach((node, i) => {
-    const y = i * laneHeight
+    const y = nodePositions[i]
     const rowWidth = width - margin.left - margin.right
 
     // Draw node group (container for entire commit row)
@@ -176,7 +263,7 @@ function renderSimpleGraph(nodes: CommitNode[]) {
         d3.select(this).select('.view-button').style('opacity', 0)
       })
 
-    // Draw commit on a single line (name + description)
+    // Draw commit text (name + description)
     const commitText = nodeGroup
       .append('text')
       .attr('x', 20)
@@ -185,7 +272,7 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .style('user-select', 'none')
 
-    // Add commit name (bold, dark)
+    // Add commit name (bold, black)
     commitText
       .append('tspan')
       .text(node.name)
@@ -206,6 +293,50 @@ function renderSimpleGraph(nodes: CommitNode[]) {
 
       // Add tooltip with full text
       commitText.append('title').text(`${node.name} — ${node.description}`)
+    }
+
+    // Expandable updates indicator (circle with + or -)
+    if (node.expandableCount > 0) {
+      const isExpanded = expandedCommits.value.has(node.hash)
+      const firstUpdateHash = node.expandableCommits[0]?.hash
+
+      const expandIndicator = nodeGroup
+        .append('g')
+        .attr('transform', `translate(-25, 0)`)
+        .style('cursor', 'pointer')
+        .on('click', function(event) {
+          event.stopPropagation()
+          if (firstUpdateHash) {
+            toggleExpand(node.hash, firstUpdateHash)
+          }
+        })
+
+      // Small circle
+      expandIndicator
+        .append('circle')
+        .attr('r', 8)
+        .attr('fill', isExpanded ? '#10b981' : '#f59e0b')
+        .attr('stroke', 'white')
+        .attr('stroke-width', 2)
+
+      // Plus or minus sign
+      expandIndicator
+        .append('text')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'central')
+        .attr('font-size', '14px')
+        .attr('font-weight', 'bold')
+        .attr('fill', 'white')
+        .text(isExpanded ? '−' : '+')
+
+      // Tooltip
+      expandIndicator
+        .append('title')
+        .text(isExpanded
+          ? 'Collapse updates'
+          : `${node.expandableCount} update${node.expandableCount > 1 ? 's' : ''} available`)
     }
 
     // View button (appears on hover)
@@ -242,13 +373,122 @@ function renderSimpleGraph(nodes: CommitNode[]) {
         d3.select(this).style('background', '#3b82f6')
       })
 
+    // Render expanded update commits if expanded
+    if (expandedCommits.value.has(node.hash)) {
+      const updateIndent = 40
+      const updateCommitsData = fetchedUpdateCommits.value.get(node.hash) || []
+      const isLoading = loadingUpdateCommits.value.has(node.hash)
+
+      if (isLoading) {
+        // Show loading indicator
+        const loadingGroup = g
+          .append('g')
+          .attr('transform', `translate(${updateIndent}, ${y + laneHeight})`)
+
+        loadingGroup
+          .append('text')
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('font-size', '14px')
+          .attr('fill', '#64748b')
+          .attr('font-style', 'italic')
+          .text('Loading update history...')
+      } else if (updateCommitsData.length > 0) {
+        // Render fetched commits
+        updateCommitsData.forEach((updateCommit, updateIndex) => {
+          const updateY = y + laneHeight + (updateIndex * updateSpacing)
+
+          // Connecting line from main commit to update branch
+        if (updateIndex === 0) {
+          g.append('line')
+            .attr('x1', 0)
+            .attr('y1', y + nodeRadius)
+            .attr('x2', updateIndent)
+            .attr('y2', updateY - nodeRadius)
+            .attr('stroke', '#cbd5e1')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '4,2')
+        }
+
+        // Update commit group
+        const updateGroup = g
+          .append('g')
+          .attr('transform', `translate(${updateIndent},${updateY})`)
+
+        // Update commit circle (selectable, blue or green if selected)
+        updateGroup
+          .append('circle')
+          .attr('r', nodeRadius)
+          .attr('fill', commitSelection.isSelected(updateCommit.hash) ? '#10b981' : '#3b82f6')
+          .attr('stroke', 'white')
+          .attr('stroke-width', 2)
+          .style('cursor', 'pointer')
+          .on('click', function(event) {
+            event.stopPropagation()
+            commitSelection.toggle(updateCommit.hash)
+            // Update circle color
+            d3.select(this)
+              .attr('fill', commitSelection.isSelected(updateCommit.hash) ? '#10b981' : '#3b82f6')
+          })
+
+        // Update commit text (same format as main commits)
+        const updateText = updateGroup
+          .append('text')
+          .attr('x', 20)
+          .attr('y', 7)
+          .attr('font-size', '18px')
+          .attr('font-family', 'system-ui, -apple-system, sans-serif')
+          .style('user-select', 'none')
+
+        // Update commit name (bold, black)
+        updateText
+          .append('tspan')
+          .text(updateCommit.name || updateCommit.hash.substring(0, 8))
+          .attr('font-weight', '600')
+          .attr('fill', '#000000')
+
+        // Update commit description if available
+        if (updateCommit.description) {
+          const truncatedDesc = updateCommit.description.length > 70
+            ? updateCommit.description.substring(0, 70) + '...'
+            : updateCommit.description
+
+          updateText
+            .append('tspan')
+            .text(' — ' + truncatedDesc)
+            .attr('font-weight', '400')
+            .attr('fill', '#64748b')
+
+          // Tooltip with full text
+          updateText.append('title').text(`${updateCommit.name || updateCommit.hash} — ${updateCommit.description}`)
+        }
+
+          // Vertical line between updates
+          if (updateIndex < updateCommitsData.length - 1) {
+            g.append('line')
+              .attr('x1', updateIndent)
+              .attr('y1', updateY + nodeRadius)
+              .attr('x2', updateIndent)
+              .attr('y2', updateY + updateSpacing - nodeRadius)
+              .attr('stroke', '#cbd5e1')
+              .attr('stroke-width', 2)
+              .attr('stroke-dasharray', '4,2')
+          }
+        })
+      }
+    }
+
     // Draw line to next commit (from bottom of current circle to top of next circle)
     if (i < nodes.length - 1) {
+      const nextY = nodePositions[i + 1]
+      const currentBottom = y + nodeRadius
+      const nextTop = nextY - nodeRadius
+
       g.append('line')
         .attr('x1', 0)
-        .attr('y1', y + nodeRadius)
+        .attr('y1', currentBottom)
         .attr('x2', 0)
-        .attr('y2', (i + 1) * laneHeight - nodeRadius)
+        .attr('y2', nextTop)
         .attr('stroke', '#94a3b8')
         .attr('stroke-width', 2)
     }
