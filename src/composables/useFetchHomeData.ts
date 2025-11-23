@@ -21,7 +21,8 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  const ALLOWED_BRANCHES = ['ubuntu-server']
+  // Filter to show only main branches, not per-release update branches
+  const MAIN_BRANCHES = ['master', 'ubuntu-server']
 
   return effectScope().run(() => {
     const {
@@ -30,7 +31,7 @@ function useBranchesData() {
       error: branchesError
     } = useFetchBranchesQuery({
       where: {
-        name_IN: ALLOWED_BRANCHES
+        name_IN: MAIN_BRANCHES
       }
     })
 
