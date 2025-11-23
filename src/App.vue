@@ -234,9 +234,9 @@ body {
    HEADER
    ============================================================================ */
 .app-header {
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border-bottom: 2px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 0;
 }
 
