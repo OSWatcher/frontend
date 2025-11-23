@@ -82,13 +82,17 @@ function handleCompare() {
             trigger="click"
           >
             <NButton secondary>
-              Branch: {{ selectedBranch }}
               <template #icon>
-                <i class="bi bi-chevron-down"></i>
+                <i class="bi bi-git"></i>
               </template>
+              {{ selectedBranch }}
+              <i class="bi bi-chevron-down" style="margin-left: 6px; font-size: 12px"></i>
             </NButton>
           </NDropdown>
-          <span v-else class="branch-label">{{ selectedBranch }}</span>
+          <span v-else class="branch-label">
+            <i class="bi bi-git"></i>
+            {{ selectedBranch }}
+          </span>
 
           <!-- Compare button -->
           <NButton
