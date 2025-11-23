@@ -203,17 +203,20 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .append('g')
       .attr('transform', `translate(0,${y})`)
 
-    // Background rectangle for hover effect
+    // Background rectangle for hover effect (card-like)
     const hoverBg = nodeGroup
       .append('rect')
-      .attr('x', -20)
-      .attr('y', -25)
-      .attr('width', rowWidth + 40)
-      .attr('height', laneHeight - 10)
-      .attr('fill', '#f8fafc')
-      .attr('rx', 6)
+      .attr('x', -25)
+      .attr('y', -30)
+      .attr('width', rowWidth + 50)
+      .attr('height', laneHeight - 4)
+      .attr('fill', '#f1f5f9')
+      .attr('stroke', '#e2e8f0')
+      .attr('stroke-width', 1)
+      .attr('rx', 8)
       .style('opacity', 0)
-      .style('transition', 'opacity 0.15s')
+      .style('pointer-events', 'all')
+      .style('cursor', 'pointer')
 
     // Draw commit circle
     const circle = nodeGroup
@@ -243,6 +246,7 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('font-weight', '600')
       .attr('fill', 'white')
       .style('opacity', selectionLabel ? 1 : 0)
+      .style('pointer-events', 'none')
       .text(selectionLabel || '')
 
     const updateSelectionBadge = () => {
@@ -250,17 +254,46 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       selectionBadge.text(label || '').style('opacity', label ? 1 : 0)
     }
 
-    // Hover effects
-    nodeGroup
+    // Hover effects on the entire row
+    hoverBg
       .on('mouseenter', function() {
-        hoverBg.style('opacity', 1)
-        circle.attr('r', nodeRadius * 1.3)
-        d3.select(this).select('.view-button').style('opacity', 1)
+        d3.select(this)
+          .style('opacity', 1)
+          .transition()
+          .duration(150)
+        circle
+          .transition()
+          .duration(150)
+          .attr('r', nodeRadius * 1.2)
+        d3.select(this.parentNode).select('.view-button')
+          .transition()
+          .duration(150)
+          .style('opacity', 1)
       })
       .on('mouseleave', function() {
-        hoverBg.style('opacity', 0)
-        circle.attr('r', nodeRadius)
-        d3.select(this).select('.view-button').style('opacity', 0)
+        d3.select(this)
+          .transition()
+          .duration(150)
+          .style('opacity', 0)
+        circle
+          .transition()
+          .duration(150)
+          .attr('r', nodeRadius)
+        d3.select(this.parentNode).select('.view-button')
+          .transition()
+          .duration(150)
+          .style('opacity', 0)
+      })
+      .on('click', function(event) {
+        // Don't toggle if clicking on the View button
+        if (event.target.tagName === 'A' || event.target.closest('a')) {
+          return
+        }
+        event.stopPropagation()
+        commitSelection.toggle(node.hash)
+        // Update circle color and selection badge
+        circle.attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
+        updateSelectionBadge()
       })
 
     // Draw commit text (name + description)
@@ -271,6 +304,7 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       .attr('font-size', '18px')
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .style('user-select', 'none')
+      .style('pointer-events', 'none')
 
     // Add commit name (bold, black)
     commitText
@@ -415,8 +449,23 @@ function renderSimpleGraph(nodes: CommitNode[]) {
           .append('g')
           .attr('transform', `translate(${updateIndent},${updateY})`)
 
+        // Background rectangle for hover effect (card-like)
+        const updateHoverBg = updateGroup
+          .append('rect')
+          .attr('x', -25)
+          .attr('y', -30)
+          .attr('width', rowWidth + 50 - updateIndent)
+          .attr('height', laneHeight - 4)
+          .attr('fill', '#f1f5f9')
+          .attr('stroke', '#e2e8f0')
+          .attr('stroke-width', 1)
+          .attr('rx', 8)
+          .style('opacity', 0)
+          .style('pointer-events', 'all')
+          .style('cursor', 'pointer')
+
         // Update commit circle (selectable, blue or green if selected)
-        updateGroup
+        const updateCircle = updateGroup
           .append('circle')
           .attr('r', nodeRadius)
           .attr('fill', commitSelection.isSelected(updateCommit.hash) ? '#10b981' : '#3b82f6')
@@ -439,6 +488,7 @@ function renderSimpleGraph(nodes: CommitNode[]) {
           .attr('font-size', '18px')
           .attr('font-family', 'system-ui, -apple-system, sans-serif')
           .style('user-select', 'none')
+          .style('pointer-events', 'none')
 
         // Update commit name (bold, black)
         updateText
@@ -462,6 +512,81 @@ function renderSimpleGraph(nodes: CommitNode[]) {
           // Tooltip with full text
           updateText.append('title').text(`${updateCommit.name || updateCommit.hash} — ${updateCommit.description}`)
         }
+
+        // View button for update commits (appears on hover)
+        const updateViewButton = updateGroup
+          .append('foreignObject')
+          .attr('class', 'view-button')
+          .attr('x', rowWidth - 80 - updateIndent)
+          .attr('y', -15)
+          .attr('width', 70)
+          .attr('height', 30)
+          .style('opacity', 0)
+          .style('transition', 'opacity 0.15s')
+          .style('pointer-events', 'all')
+
+        updateViewButton
+          .append('xhtml:a')
+          .attr('href', `/os/${updateCommit.hash}`)
+          .style('display', 'inline-block')
+          .style('padding', '4px 12px')
+          .style('background', '#3b82f6')
+          .style('color', 'white')
+          .style('text-decoration', 'none')
+          .style('border-radius', '4px')
+          .style('font-size', '14px')
+          .style('font-family', 'system-ui, -apple-system, sans-serif')
+          .style('font-weight', '500')
+          .style('cursor', 'pointer')
+          .style('transition', 'background 0.15s')
+          .text('View')
+          .on('mouseenter', function() {
+            d3.select(this).style('background', '#2563eb')
+          })
+          .on('mouseleave', function() {
+            d3.select(this).style('background', '#3b82f6')
+          })
+
+        // Hover effects on the entire update commit row
+        updateHoverBg
+          .on('mouseenter', function() {
+            d3.select(this)
+              .style('opacity', 1)
+              .transition()
+              .duration(150)
+            updateCircle
+              .transition()
+              .duration(150)
+              .attr('r', nodeRadius * 1.2)
+            d3.select(this.parentNode).select('.view-button')
+              .transition()
+              .duration(150)
+              .style('opacity', 1)
+          })
+          .on('mouseleave', function() {
+            d3.select(this)
+              .transition()
+              .duration(150)
+              .style('opacity', 0)
+            updateCircle
+              .transition()
+              .duration(150)
+              .attr('r', nodeRadius)
+            d3.select(this.parentNode).select('.view-button')
+              .transition()
+              .duration(150)
+              .style('opacity', 0)
+          })
+          .on('click', function(event) {
+            // Don't toggle if clicking on the View button
+            if (event.target.tagName === 'A' || event.target.closest('a')) {
+              return
+            }
+            event.stopPropagation()
+            commitSelection.toggle(updateCommit.hash)
+            // Update circle color
+            updateCircle.attr('fill', commitSelection.isSelected(updateCommit.hash) ? '#10b981' : '#3b82f6')
+          })
 
           // Vertical line between updates
           if (updateIndex < updateCommitsData.length - 1) {
