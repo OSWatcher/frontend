@@ -57,11 +57,21 @@ function buildCommitNodes(): CommitNode[] {
   return nodes
 }
 
+let isRendering = false
+
 function renderGraph() {
+  if (isRendering) {
+    console.warn('Already rendering, skipping...')
+    return
+  }
+
   if (!svgRef.value || !containerRef.value) return
 
   const nodes = buildCommitNodes()
   if (nodes.length === 0) return
+
+  isRendering = true
+  console.log('Rendering graph with', nodes.length, 'nodes')
 
   // Clear previous render
   d3.select(svgRef.value).selectAll('*').remove()
@@ -182,6 +192,8 @@ function renderGraph() {
     if (!node) return ''
     return `${node.name}\n${node.date.toLocaleString()}\n${node.description}`
   })
+
+  isRendering = false
 }
 
 function renderSimpleGraph(nodes: CommitNode[]) {
@@ -238,38 +250,24 @@ function renderSimpleGraph(nodes: CommitNode[]) {
         .attr('stroke-width', 2)
     }
   })
+
+  isRendering = false
 }
 
-// Initial render and watch for changes
+// Initial render
 onMounted(() => {
   nextTick(() => {
     renderGraph()
   })
-
-  // Re-render on window resize
-  window.addEventListener('resize', renderGraph)
 })
 
-// Watch for branch selection changes or when commits load
+// Only watch for branch selection changes
 watch(
   () => props.selectedBranch,
   () => {
     nextTick(() => {
       renderGraph()
     })
-  }
-)
-
-// Watch for commits loading (check if any branch is loading)
-watch(
-  () => props.branchesWithCommits.some(b => b.loading.value),
-  (isLoading, wasLoading) => {
-    // Re-render when loading finishes
-    if (wasLoading && !isLoading) {
-      nextTick(() => {
-        renderGraph()
-      })
-    }
   }
 )
 </script>
