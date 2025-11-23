@@ -105,8 +105,8 @@ if (typeof window !== 'undefined') {
     <NLayoutHeader bordered class="app-header">
       <div class="header-content">
         <div class="header-left">
-          <RouterLink to="/" class="logo-link">
-            <img src="@/assets/logo.png" alt="OSWatcher" class="logo-image" />
+          <RouterLink to="/" class="brand-title">
+            OSWatcher
           </RouterLink>
         </div>
 
@@ -234,9 +234,9 @@ body {
    HEADER
    ============================================================================ */
 .app-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   padding: 0;
 }
 
@@ -255,20 +255,17 @@ body {
   align-items: center;
 }
 
-.logo-link {
-  display: flex;
-  align-items: center;
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
   text-decoration: none;
-  transition: transform 0.2s;
+  letter-spacing: -0.5px;
+  transition: color 0.2s;
 }
 
-.logo-link:hover {
-  transform: scale(1.05);
-}
-
-.logo-image {
-  height: 40px;
-  width: auto;
+.brand-title:hover {
+  color: #4f46e5;
 }
 
 .header-right {
