@@ -109,33 +109,72 @@ function renderSimpleGraph(nodes: CommitNode[]) {
   // Simple vertical layout
   nodes.forEach((node, i) => {
     const y = i * laneHeight
+    const rowWidth = width - margin.left - margin.right
 
-    // Draw node group (make entire group clickable)
+    // Draw node group (container for entire commit row)
     const nodeGroup = g
       .append('g')
       .attr('transform', `translate(0,${y})`)
-      .style('cursor', 'pointer')
-      .on('click', function() {
-        commitSelection.toggle(node.hash)
-        // Update circle color directly
-        d3.select(this)
-          .select('circle')
-          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
-      })
-      .on('mouseenter', function() {
-        d3.select(this).select('circle').attr('r', nodeRadius * 1.3)
-      })
-      .on('mouseleave', function() {
-        d3.select(this).select('circle').attr('r', nodeRadius)
-      })
+
+    // Background rectangle for hover effect
+    const hoverBg = nodeGroup
+      .append('rect')
+      .attr('x', -20)
+      .attr('y', -25)
+      .attr('width', rowWidth + 40)
+      .attr('height', laneHeight - 10)
+      .attr('fill', '#f8fafc')
+      .attr('rx', 6)
+      .style('opacity', 0)
+      .style('transition', 'opacity 0.15s')
 
     // Draw commit circle
-    nodeGroup
+    const circle = nodeGroup
       .append('circle')
       .attr('r', nodeRadius)
       .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
       .attr('stroke', 'white')
       .attr('stroke-width', 2)
+      .style('cursor', 'pointer')
+      .on('click', function(event) {
+        event.stopPropagation()
+        commitSelection.toggle(node.hash)
+        // Update circle color and selection badge
+        d3.select(this)
+          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
+        updateSelectionBadge()
+      })
+
+    // Selection badge (Base/Diffee)
+    const selectionLabel = commitSelection.getSelectionLabel(node.hash)
+    const selectionBadge = nodeGroup
+      .append('text')
+      .attr('x', 0)
+      .attr('y', -18)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '10px')
+      .attr('font-weight', '600')
+      .attr('fill', 'white')
+      .style('opacity', selectionLabel ? 1 : 0)
+      .text(selectionLabel || '')
+
+    const updateSelectionBadge = () => {
+      const label = commitSelection.getSelectionLabel(node.hash)
+      selectionBadge.text(label || '').style('opacity', label ? 1 : 0)
+    }
+
+    // Hover effects
+    nodeGroup
+      .on('mouseenter', function() {
+        hoverBg.style('opacity', 1)
+        circle.attr('r', nodeRadius * 1.3)
+        d3.select(this).select('.view-button').style('opacity', 1)
+      })
+      .on('mouseleave', function() {
+        hoverBg.style('opacity', 0)
+        circle.attr('r', nodeRadius)
+        d3.select(this).select('.view-button').style('opacity', 0)
+      })
 
     // Draw commit on a single line (name + description)
     const commitText = nodeGroup
@@ -168,6 +207,40 @@ function renderSimpleGraph(nodes: CommitNode[]) {
       // Add tooltip with full text
       commitText.append('title').text(`${node.name} — ${node.description}`)
     }
+
+    // View button (appears on hover)
+    const viewButton = nodeGroup
+      .append('foreignObject')
+      .attr('class', 'view-button')
+      .attr('x', rowWidth - 80)
+      .attr('y', -15)
+      .attr('width', 70)
+      .attr('height', 30)
+      .style('opacity', 0)
+      .style('transition', 'opacity 0.15s')
+      .style('pointer-events', 'all')
+
+    viewButton
+      .append('xhtml:a')
+      .attr('href', `/os/${node.hash}`)
+      .style('display', 'inline-block')
+      .style('padding', '4px 12px')
+      .style('background', '#3b82f6')
+      .style('color', 'white')
+      .style('text-decoration', 'none')
+      .style('border-radius', '4px')
+      .style('font-size', '14px')
+      .style('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('font-weight', '500')
+      .style('cursor', 'pointer')
+      .style('transition', 'background 0.15s')
+      .text('View')
+      .on('mouseenter', function() {
+        d3.select(this).style('background', '#2563eb')
+      })
+      .on('mouseleave', function() {
+        d3.select(this).style('background', '#3b82f6')
+      })
 
     // Draw line to next commit (from bottom of current circle to top of next circle)
     if (i < nodes.length - 1) {
