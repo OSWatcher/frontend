@@ -68,32 +68,27 @@ function handleCompare() {
     <div v-else class="content">
       <!-- Header -->
       <div class="header">
-        <h2 class="title">
+        <!-- Branch selector -->
+        <NDropdown
+          v-if="branchesWithCommits.length > 1"
+          :options="branchOptions"
+          @select="handleBranchSelect"
+          trigger="click"
+        >
+          <NButton secondary size="large">
+            <template #icon>
+              <i class="bi bi-git"></i>
+            </template>
+            {{ selectedBranch }}
+            <i class="bi bi-chevron-down" style="margin-left: 6px; font-size: 12px"></i>
+          </NButton>
+        </NDropdown>
+        <span v-else class="branch-title">
           <i class="bi bi-git"></i>
-          Commit History
-        </h2>
+          {{ selectedBranch }}
+        </span>
 
         <div class="actions">
-          <!-- Branch selector -->
-          <NDropdown
-            v-if="branchesWithCommits.length > 1"
-            :options="branchOptions"
-            @select="handleBranchSelect"
-            trigger="click"
-          >
-            <NButton secondary>
-              <template #icon>
-                <i class="bi bi-git"></i>
-              </template>
-              {{ selectedBranch }}
-              <i class="bi bi-chevron-down" style="margin-left: 6px; font-size: 12px"></i>
-            </NButton>
-          </NDropdown>
-          <span v-else class="branch-label">
-            <i class="bi bi-git"></i>
-            {{ selectedBranch }}
-          </span>
-
           <!-- Compare button -->
           <NButton
             v-if="commitSelection.canDiff"
@@ -166,25 +161,19 @@ function handleCompare() {
   flex-wrap: wrap;
 }
 
-.title {
+.branch-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0;
   font-size: 24px;
   font-weight: 600;
+  color: #333;
 }
 
 .actions {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.branch-label {
-  font-size: 18px;
-  font-weight: 500;
-  color: #666;
 }
 
 .hint-text {
