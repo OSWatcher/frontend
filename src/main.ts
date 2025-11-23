@@ -7,6 +7,9 @@ import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 // bootstrap-icons
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
+// Naive UI
+import naive from 'naive-ui'
+
 import App from './App.vue'
 import router from './router'
 import posthogPlugin from './plugins/posthog'
@@ -21,6 +24,7 @@ provideApolloClient(gqlClient)
 
 app.use(pinia)
 app.use(createBootstrap())
+app.use(naive)
 app.use(router)
 
 if (import.meta.env.PROD) {

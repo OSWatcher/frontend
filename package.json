@@ -26,6 +26,7 @@
     "bootstrap-vue-next": "0.24.11",
     "d3": "^7.9.0",
     "d3-dag": "^1.1.0",
+    "naive-ui": "^2.43.2",
     "path-browserify-esm": "^1.0.6",
     "pinia": "^3.0.4",
     "posthog-js": "^1.184.2",
