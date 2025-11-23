@@ -276,14 +276,14 @@ body {
 .search-trigger {
   min-width: 200px;
   justify-content: space-between;
-  border: 1px solid #4b5563;
-  background: #374151;
-  color: #e5e7eb;
+  border: 1px solid #6b7280;
+  background: #ffffff;
+  color: #374151;
 }
 
 .search-trigger:hover {
-  background: #4b5563;
-  border-color: #6b7280;
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 .kbd {
