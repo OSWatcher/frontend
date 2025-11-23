@@ -1,4 +1,4 @@
-import { computed, effectScope, type ComputedRef, type Ref } from 'vue'
+import { computed, effectScope, ref, watch, type ComputedRef, type Ref } from 'vue'
 import {
   useFetchBranchesQuery,
   useFetchCommitHistoryQuery,
@@ -46,7 +46,6 @@ function useBranchesData() {
 }
 
 function useCommitHistoryForBranch(branch: BranchData) {
-  console.log(`[useFetchHomeData] Creating GraphQL query for branch: ${branch.name}, hash: ${branch.tracks?.hash}`)
   return effectScope().run(() => {
     const {
       result: commitResult,
@@ -68,7 +67,6 @@ function useCommitHistoryForBranch(branch: BranchData) {
 }
 
 function createBranchWithCommits(branch: BranchData): BranchWithCommits {
-  console.log(`[useFetchHomeData] Creating commit data for branch: ${branch.name}`)
   const { commits, loading, error } = useCommitHistoryForBranch(branch)
 
   const commitsWithExpandability = computed(() => {
@@ -106,9 +104,38 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
 export function useFetchHomeData() {
   const { branches, loading: branchesLoading, error: branchesError } = useBranchesData()
 
+  // Store stable query subscriptions per branch (key = branch name)
+  const branchQueriesMap = ref<Map<string, BranchWithCommits>>(new Map())
+
+  // Watch branches and create queries for any new branches
+  // Queries are created ONCE per branch and remain stable
+  watch(
+    branches,
+    (currentBranches) => {
+      currentBranches.forEach((branch) => {
+        if (!branchQueriesMap.value.has(branch.name)) {
+          const branchData = createBranchWithCommits(branch)
+          branchQueriesMap.value.set(branch.name, branchData)
+        }
+      })
+
+      // Clean up queries for branches that no longer exist
+      const currentBranchNames = new Set(currentBranches.map(b => b.name))
+      for (const branchName of branchQueriesMap.value.keys()) {
+        if (!currentBranchNames.has(branchName)) {
+          branchQueriesMap.value.delete(branchName)
+        }
+      }
+    },
+    { immediate: true }
+  )
+
+  // Computed just returns the data from stable queries
+  // This computed does NOT create new queries, so it won't cause loops
   const branchesWithCommits = computed(() => {
-    console.log(`[useFetchHomeData] Computing branchesWithCommits for ${branches.value.length} branches`)
-    return branches.value.map((branch) => createBranchWithCommits(branch))
+    return branches.value
+      .map((branch) => branchQueriesMap.value.get(branch.name))
+      .filter((data): data is BranchWithCommits => data !== undefined)
   })
 
   const allCommitsLoaded = computed(() =>

@@ -64,7 +64,7 @@ const maintenanceMode = computed(() => !!error.value)
       </div>
 
       <!-- Loading state -->
-      <div v-if="branchesWithCommits.some((b) => b.loading.value)" class="text-center p-5">
+      <div v-if="branchesWithCommits.some((b) => b.loading)" class="text-center p-5">
         <div class="spinner-border" role="status">
           <span class="visually-hidden">Loading commits...</span>
         </div>

@@ -37,8 +37,12 @@ function buildCommitNodes(): CommitNode[] {
 
   if (!currentBranch) return []
 
+  // commits is already unwrapped by Vue props
+  const commits = currentBranch.commits
+
+  if (!commits || commits.length === 0) return []
+
   const nodes: CommitNode[] = []
-  const commits = currentBranch.commits.value
 
   commits.forEach((commit) => {
     // Get parent IDs from the 'next' field (since we're going backward in history)
@@ -61,17 +65,24 @@ let isRendering = false
 
 function renderGraph() {
   if (isRendering) {
-    console.warn('Already rendering, skipping...')
     return
   }
 
-  if (!svgRef.value || !containerRef.value) return
+  if (!svgRef.value) {
+    return
+  }
+
+  if (!containerRef.value) {
+    return
+  }
 
   const nodes = buildCommitNodes()
-  if (nodes.length === 0) return
+
+  if (nodes.length === 0) {
+    return
+  }
 
   isRendering = true
-  console.log('Rendering graph with', nodes.length, 'nodes')
 
   // Clear previous render
   d3.select(svgRef.value).selectAll('*').remove()
@@ -85,115 +96,10 @@ function renderGraph() {
     parentIds: node.parentIds.length > 0 ? node.parentIds : undefined
   }))
 
-  let dag
-  try {
-    dag = stratify(dagData)
-  } catch (err) {
-    console.error('Error creating DAG:', err)
-    // Fallback: simple vertical layout without d3-dag
-    renderSimpleGraph(nodes)
-    return
-  }
-
-  // Configure layout
-  const layout = sugiyama()
-    .decross(decrossOpt())
-    .coord(coordCenter())
-    .nodeSize([laneHeight, 150])
-
-  const { width: dagWidth, height: dagHeight } = layout(dag)
-
-  // Calculate SVG dimensions
-  const width = containerRef.value.clientWidth
-  const height = Math.max(dagHeight + margin.top + margin.bottom, 400)
-
-  const svg = d3
-    .select(svgRef.value)
-    .attr('width', width)
-    .attr('height', height)
-    .attr('viewBox', [0, 0, width, height])
-
-  const g = svg
-    .append('g')
-    .attr('transform', `translate(${margin.left},${margin.top})`)
-
-  // Draw links (edges between commits)
-  const links = g
-    .append('g')
-    .attr('class', 'links')
-    .selectAll('path')
-    .data(dag.links())
-    .join('path')
-    .attr('d', (link: any) => {
-      const sourceX = link.source.x
-      const sourceY = link.source.y
-      const targetX = link.target.x
-      const targetY = link.target.y
-
-      return `M ${sourceY},${sourceX} L ${targetY},${targetX}`
-    })
-    .attr('fill', 'none')
-    .attr('stroke', '#94a3b8')
-    .attr('stroke-width', 2)
-
-  // Draw nodes (commits)
-  const allNodes = Array.from(dag.nodes())
-  const nodeGroups = g
-    .append('g')
-    .attr('class', 'nodes')
-    .selectAll('g')
-    .data(allNodes)
-    .join('g')
-    .attr('transform', (d: any) => `translate(${d.y},${d.x})`)
-    .style('cursor', 'pointer')
-
-  // Add circles for commits
-  nodeGroups
-    .append('circle')
-    .attr('r', nodeRadius)
-    .attr('fill', (d: any) => {
-      const node = nodes.find(n => n.id === d.data.id)
-      return commitSelection.isSelected(node?.hash || '') ? '#10b981' : '#3b82f6'
-    })
-    .attr('stroke', 'white')
-    .attr('stroke-width', 2)
-    .on('click', (event: MouseEvent, d: any) => {
-      const node = nodes.find(n => n.id === d.data.id)
-      if (node) {
-        commitSelection.toggle(node.hash)
-        // Update color directly without re-rendering entire graph
-        d3.select(event.currentTarget as SVGCircleElement)
-          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
-      }
-    })
-    .on('mouseenter', function() {
-      d3.select(this).attr('r', nodeRadius * 1.5)
-    })
-    .on('mouseleave', function() {
-      d3.select(this).attr('r', nodeRadius)
-    })
-
-  // Add labels for commits
-  nodeGroups
-    .append('text')
-    .attr('x', 12)
-    .attr('y', 4)
-    .text((d: any) => {
-      const node = nodes.find(n => n.id === d.data.id)
-      return node?.name || ''
-    })
-    .attr('font-size', '12px')
-    .attr('font-family', 'system-ui, -apple-system, sans-serif')
-    .style('pointer-events', 'none')
-
-  // Add tooltips
-  nodeGroups.append('title').text((d: any) => {
-    const node = nodes.find(n => n.id === d.data.id)
-    if (!node) return ''
-    return `${node.name}\n${node.date.toLocaleString()}\n${node.description}`
-  })
-
-  isRendering = false
+  // For now, just use simple vertical layout
+  // TODO: Implement proper DAG layout for showing merges and branches
+  renderSimpleGraph(nodes)
+  return
 }
 
 function renderSimpleGraph(nodes: CommitNode[]) {
@@ -261,7 +167,7 @@ onMounted(() => {
   })
 })
 
-// Only watch for branch selection changes
+// Watch for branch selection changes
 watch(
   () => props.selectedBranch,
   () => {
@@ -269,6 +175,27 @@ watch(
       renderGraph()
     })
   }
+)
+
+// Watch for commits of the currently selected branch
+watch(
+  () => {
+    const currentBranch = props.branchesWithCommits.find(
+      (b) => b.branch.name === props.selectedBranch
+    )
+
+    // Note: commits is already unwrapped by Vue props, no need for .value
+    const commits = currentBranch?.commits || []
+    return commits
+  },
+  (commits) => {
+    if (commits.length > 0) {
+      nextTick(() => {
+        renderGraph()
+      })
+    }
+  },
+  { immediate: true }
 )
 </script>
 
