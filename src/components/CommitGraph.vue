@@ -17,8 +17,8 @@ const containerRef = ref<HTMLDivElement | null>(null)
 
 // Graph dimensions
 const margin = { top: 40, right: 40, bottom: 40, left: 120 }
-const nodeRadius = 8
-const laneHeight = 50
+const nodeRadius = 10
+const laneHeight = 55
 
 interface CommitNode {
   id: string
@@ -140,10 +140,10 @@ function renderSimpleGraph(nodes: CommitNode[]) {
     // Draw commit text
     nodeGroup
       .append('text')
-      .attr('x', 16)
-      .attr('y', 5)
+      .attr('x', 18)
+      .attr('y', 6)
       .text(node.name)
-      .attr('font-size', '14px')
+      .attr('font-size', '18px')
       .attr('font-family', 'system-ui, -apple-system, sans-serif')
       .style('user-select', 'none')
 
