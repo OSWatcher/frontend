@@ -16,9 +16,9 @@ const svgRef = ref<SVGSVGElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 
 // Graph dimensions
-const margin = { top: 40, right: 40, bottom: 40, left: 100 }
-const nodeRadius = 6
-const laneHeight = 60
+const margin = { top: 40, right: 40, bottom: 40, left: 120 }
+const nodeRadius = 8
+const laneHeight = 50
 
 interface CommitNode {
   id: string
@@ -110,29 +110,42 @@ function renderSimpleGraph(nodes: CommitNode[]) {
   nodes.forEach((node, i) => {
     const y = i * laneHeight
 
-    // Draw node
-    const nodeGroup = g.append('g').attr('transform', `translate(0,${y})`)
+    // Draw node group (make entire group clickable)
+    const nodeGroup = g
+      .append('g')
+      .attr('transform', `translate(0,${y})`)
+      .style('cursor', 'pointer')
+      .on('click', function() {
+        commitSelection.toggle(node.hash)
+        // Update circle color directly
+        d3.select(this)
+          .select('circle')
+          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
+      })
+      .on('mouseenter', function() {
+        d3.select(this).select('circle').attr('r', nodeRadius * 1.3)
+      })
+      .on('mouseleave', function() {
+        d3.select(this).select('circle').attr('r', nodeRadius)
+      })
 
+    // Draw commit circle
     nodeGroup
       .append('circle')
       .attr('r', nodeRadius)
       .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
       .attr('stroke', 'white')
       .attr('stroke-width', 2)
-      .style('cursor', 'pointer')
-      .on('click', function() {
-        commitSelection.toggle(node.hash)
-        // Update color directly
-        d3.select(this)
-          .attr('fill', commitSelection.isSelected(node.hash) ? '#10b981' : '#3b82f6')
-      })
 
+    // Draw commit text
     nodeGroup
       .append('text')
-      .attr('x', 12)
-      .attr('y', 4)
+      .attr('x', 16)
+      .attr('y', 5)
       .text(node.name)
-      .attr('font-size', '12px')
+      .attr('font-size', '14px')
+      .attr('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('user-select', 'none')
 
     // Draw line to next commit
     if (i < nodes.length - 1) {
