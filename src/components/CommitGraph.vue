@@ -58,7 +58,7 @@ const CONFIG = {
     borderRadius: 8,
     padding: 25,
     offsetY: -30,
-    heightReduction: 4,
+    heightReduction: 4
   },
 
   // Circle
@@ -67,7 +67,7 @@ const CONFIG = {
     defaultColor: '#3b82f6',
     stroke: 'white',
     strokeWidth: 2,
-    hoverScale: 1.2,
+    hoverScale: 1.2
   },
 
   // Text
@@ -81,7 +81,7 @@ const CONFIG = {
     nameColor: '#000000',
     descColor: '#64748b',
     nameFontWeight: '600',
-    descFontWeight: '400',
+    descFontWeight: '400'
   },
 
   // Selection badge
@@ -89,7 +89,7 @@ const CONFIG = {
     offsetY: -18,
     fontSize: 10,
     fontWeight: '600',
-    color: 'white',
+    color: 'white'
   },
 
   // View button
@@ -104,7 +104,7 @@ const CONFIG = {
     fontSize: 14,
     fontWeight: '500',
     padding: '4px 12px',
-    borderRadius: '4px',
+    borderRadius: '4px'
   },
 
   // Expand indicator
@@ -113,7 +113,7 @@ const CONFIG = {
     collapsedColor: '#f59e0b',
     expandedColor: '#10b981',
     offsetX: -25,
-    fontSize: 14,
+    fontSize: 14
   },
 
   // Lines
@@ -121,19 +121,19 @@ const CONFIG = {
     mainStroke: '#94a3b8',
     updateStroke: '#cbd5e1',
     width: 2,
-    dashArray: '4,2',
+    dashArray: '4,2'
   },
 
   // Animation
   transition: {
-    duration: 150,
+    duration: 150
   },
 
   // Loading
   loading: {
     fontSize: 14,
-    color: '#64748b',
-  },
+    color: '#64748b'
+  }
 }
 
 // ============================================================================
@@ -158,7 +158,7 @@ function formatCommitText(name: string, description: string | null, maxLength: n
   const truncated = truncateText(description, maxLength)
   return {
     display: `${name} — ${truncated}`,
-    tooltip: `${name} — ${description}`,
+    tooltip: `${name} — ${description}`
   }
 }
 
@@ -227,11 +227,7 @@ function calculateRowWidth(containerWidth: number): number {
 /**
  * Creates a hover background rectangle
  */
-function createHoverBackground(
-  group: D3Selection,
-  width: number,
-  offsetX: number = 0
-): D3Rect {
+function createHoverBackground(group: D3Selection, width: number, offsetX: number = 0): D3Rect {
   return group
     .append('rect')
     .attr('x', -CONFIG.hover.padding)
@@ -324,7 +320,12 @@ function createSelectionBadge(group: D3Selection, label: string | null) {
 /**
  * Creates a View button
  */
-function createViewButton(group: D3Selection, commitHash: string, rowWidth: number, offsetX: number = 0) {
+function createViewButton(
+  group: D3Selection,
+  commitHash: string,
+  rowWidth: number,
+  offsetX: number = 0
+) {
   const button = group
     .append('foreignObject')
     .attr('class', 'view-button')
@@ -364,11 +365,7 @@ function createViewButton(group: D3Selection, commitHash: string, rowWidth: numb
 /**
  * Attaches hover effects to a commit row
  */
-function attachHoverEffects(
-  hoverBg: D3Rect,
-  circle: D3Circle,
-  onClick: (event: any) => void
-) {
+function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: any) => void) {
   hoverBg
     .on('mouseenter', function () {
       d3.select(this).style('opacity', 1).transition().duration(CONFIG.transition.duration)
@@ -376,7 +373,8 @@ function attachHoverEffects(
         .transition()
         .duration(CONFIG.transition.duration)
         .attr('r', CONFIG.nodeRadius * CONFIG.circle.hoverScale)
-      d3.select(this.parentNode as any).select('.view-button')
+      d3.select(this.parentNode as any)
+        .select('.view-button')
         .transition()
         .duration(CONFIG.transition.duration)
         .style('opacity', 1)
@@ -384,7 +382,8 @@ function attachHoverEffects(
     .on('mouseleave', function () {
       d3.select(this).transition().duration(CONFIG.transition.duration).style('opacity', 0)
       circle.transition().duration(CONFIG.transition.duration).attr('r', CONFIG.nodeRadius)
-      d3.select(this.parentNode as any).select('.view-button')
+      d3.select(this.parentNode as any)
+        .select('.view-button')
         .transition()
         .duration(CONFIG.transition.duration)
         .style('opacity', 0)
@@ -414,7 +413,10 @@ function createExpandIndicator(
   indicator
     .append('circle')
     .attr('r', CONFIG.expandIndicator.radius)
-    .attr('fill', isExpanded ? CONFIG.expandIndicator.expandedColor : CONFIG.expandIndicator.collapsedColor)
+    .attr(
+      'fill',
+      isExpanded ? CONFIG.expandIndicator.expandedColor : CONFIG.expandIndicator.collapsedColor
+    )
     .attr('stroke', CONFIG.circle.stroke)
     .attr('stroke-width', CONFIG.circle.strokeWidth)
 
@@ -518,7 +520,7 @@ function buildCommitNodes(): CommitNode[] {
     description: commit.description || '',
     parentIds: commit.next?.map((n) => n.hash).filter((h): h is string => !!h) || [],
     expandableCount: commit.expandableNextCommits?.length || 0,
-    expandableCommits: commit.expandableNextCommits || [],
+    expandableCommits: commit.expandableNextCommits || []
   }))
 }
 
@@ -541,7 +543,7 @@ async function toggleExpand(commitHash: string, firstUpdateHash: string) {
       try {
         const { result } = useFetchCommitHistoryQuery({
           commitHash: firstUpdateHash,
-          direction: CommitHistoryDirection.Forward,
+          direction: CommitHistoryDirection.Forward
         })
 
         await new Promise<void>((resolve) => {
@@ -573,12 +575,7 @@ async function toggleExpand(commitHash: string, firstUpdateHash: string) {
 /**
  * Renders a single main commit
  */
-function renderMainCommit(
-  g: D3Selection,
-  node: CommitNode,
-  y: number,
-  rowWidth: number
-) {
+function renderMainCommit(g: D3Selection, node: CommitNode, y: number, rowWidth: number) {
   const nodeGroup = g.append('g').attr('transform', `translate(0,${y})`)
 
   // Hover background
@@ -637,12 +634,7 @@ function renderMainCommit(
 /**
  * Renders a single update commit
  */
-function renderUpdateCommit(
-  g: D3Selection,
-  updateCommit: any,
-  updateY: number,
-  rowWidth: number
-) {
+function renderUpdateCommit(g: D3Selection, updateCommit: any, updateY: number, rowWidth: number) {
   const updateGroup = g
     .append('g')
     .attr('transform', `translate(${CONFIG.updateIndent},${updateY})`)
@@ -679,12 +671,7 @@ function renderUpdateCommit(
 /**
  * Renders all update commits for a node
  */
-function renderUpdateCommits(
-  g: D3Selection,
-  node: CommitNode,
-  y: number,
-  rowWidth: number
-) {
+function renderUpdateCommits(g: D3Selection, node: CommitNode, y: number, rowWidth: number) {
   const updateCommitsData = fetchedUpdateCommits.value.get(node.hash) || []
   const isLoading = loadingUpdateCommits.value.has(node.hash)
 
@@ -738,15 +725,18 @@ function renderSimpleGraph(nodes: CommitNode[]) {
 
   // Calculate dimensions
   const totalHeight = calculateTotalHeight(nodes, expandedCommits.value, fetchedUpdateCommits.value)
-  const nodePositions = calculateNodePositions(nodes, expandedCommits.value, fetchedUpdateCommits.value)
+  const nodePositions = calculateNodePositions(
+    nodes,
+    expandedCommits.value,
+    fetchedUpdateCommits.value
+  )
 
   // Setup SVG
-  const svg = d3
-    .select(svgRef.value)
-    .attr('width', width)
-    .attr('height', totalHeight)
+  const svg = d3.select(svgRef.value).attr('width', width).attr('height', totalHeight)
 
-  const g = svg.append('g').attr('transform', `translate(${CONFIG.margin.left},${CONFIG.margin.top})`)
+  const g = svg
+    .append('g')
+    .attr('transform', `translate(${CONFIG.margin.left},${CONFIG.margin.top})`)
 
   // Render all commits
   nodes.forEach((node, i) => {

@@ -36,7 +36,7 @@ const branchOptions = computed<DropdownOption[]>(() =>
     .filter((branchData) => branchData !== undefined)
     .map((branchData) => ({
       label: branchData.branch.name,
-      key: branchData.branch.name,
+      key: branchData.branch.name
     }))
 )
 
@@ -90,19 +90,13 @@ function handleCompare() {
 
         <div class="actions">
           <!-- Compare button -->
-          <NButton
-            v-if="commitSelection.canDiff"
-            type="success"
-            @click="handleCompare"
-          >
+          <NButton v-if="commitSelection.canDiff" type="success" @click="handleCompare">
             <template #icon>
               <i class="bi bi-file-diff"></i>
             </template>
             Compare Selected ({{ commitSelection.selectedCommits.length }}/2)
           </NButton>
-          <span v-else class="hint-text">
-            Select 2 commits to compare
-          </span>
+          <span v-else class="hint-text"> Select 2 commits to compare </span>
         </div>
       </div>
 
