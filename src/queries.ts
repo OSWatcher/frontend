@@ -170,10 +170,22 @@ const LIST_WINSTRUCT = gql`
 `
 
 const SEARCH_FS = gql`
-  query SearchFs($searchTerm: String!) {
-    search(search_term: $searchTerm) {
+  query SearchFs($searchTerm: String!, $commitRange: CommitRange!) {
+    search(search_term: $searchTerm, commit_range: $commitRange) {
       commit_name
       commit_hash
+      hash
+      path
+    }
+  }
+`
+
+const SEARCH_FS_STREAM = gql`
+  subscription SearchFsStream($commitRange: CommitRange!, $searchTerm: String!) {
+    searchStream(commit_range: $commitRange, search_term: $searchTerm) {
+      commit_name
+      commit_hash
+      hash
       path
     }
   }
@@ -229,5 +241,6 @@ export {
   LIST_SYMBOLS,
   LIST_WINSTRUCT,
   SEARCH_FS,
+  SEARCH_FS_STREAM,
   DIFF_NODES
 }
