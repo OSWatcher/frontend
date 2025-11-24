@@ -515,6 +515,12 @@ body {
   font-weight: 600;
 }
 
+/* Monospace font for file paths in search results */
+:deep(.n-data-table-td) {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', 'Courier New', monospace;
+  font-size: 13px;
+}
+
 .empty-search {
   text-align: center;
   padding: 40px 20px;
