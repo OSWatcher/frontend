@@ -4,12 +4,14 @@ import { NButton, NDropdown, NSpin, NAlert } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
+import { useBranchSelectionStore } from '@/stores/branchSelection'
 import CommitGraph from '@/components/CommitGraph.vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const { branchesWithCommits, error } = useFetchHomeData()
 const commitSelection = useCommitSelectionStore()
+const branchSelection = useBranchSelectionStore()
 
 // Branch selection
 const selectedBranch = ref('')
@@ -22,6 +24,11 @@ watch(
       const firstBranch = branches[0]
       if (firstBranch) {
         selectedBranch.value = firstBranch.branch.name
+        // Update global branch selection store
+        branchSelection.selectBranch(
+          firstBranch.branch.name,
+          firstBranch.branch.tracks?.hash || ''
+        )
       }
     }
   },
@@ -42,6 +49,11 @@ const branchOptions = computed<DropdownOption[]>(() =>
 
 function handleBranchSelect(key: string) {
   selectedBranch.value = key
+  // Update global branch selection store
+  const branch = branchesWithCommits.value.find((b) => b?.branch.name === key)
+  if (branch) {
+    branchSelection.selectBranch(key, branch.branch.tracks?.hash || '')
+  }
 }
 
 function handleCompare() {

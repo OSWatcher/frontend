@@ -21,7 +21,7 @@ import { onUnmounted } from 'vue'
 import gqlClient from '@/graphql-client'
 import { SEARCH_FS_STREAM } from '@/queries'
 import { CommitScope } from '@/graphql-types'
-import { useFetchHomeData } from '@/composables/useFetchHomeData'
+import { useBranchSelectionStore } from '@/stores/branchSelection'
 
 interface SearchResult {
   commit_name: string
@@ -40,9 +40,7 @@ const isStreaming = ref(false)
 const streamingResultCount = ref(0)
 
 const router = useRouter()
-
-// Get branches data to access commit hashes
-const { branchesWithCommits } = useFetchHomeData()
+const branchSelection = useBranchSelectionStore()
 
 // Store subscription to clean up on unmount
 let searchSubscription: any = null
@@ -108,10 +106,9 @@ const performSearch = () => {
 
   // Start streaming subscription
   try {
-    // Get the first branch's commit hash
-    const firstBranch = branchesWithCommits.value[0]
-    if (!firstBranch?.branch.tracks?.hash) {
-      console.error('No branch data available for search')
+    // Get the currently selected branch's commit hash
+    if (!branchSelection.selectedBranchHash) {
+      console.error('No branch selected for search')
       isLoading.value = false
       isStreaming.value = false
       return
@@ -120,11 +117,12 @@ const performSearch = () => {
     const variables = {
       searchTerm: searchTerm.value,
       commitRange: {
-        startCommit: firstBranch.branch.tracks.hash,
+        startCommit: branchSelection.selectedBranchHash,
         scope: CommitScope.History
       }
     }
     console.log('Starting search stream with variables:', variables)
+    console.log('Selected branch:', branchSelection.selectedBranchName)
 
     const observable = gqlClient.subscribe({
       query: SEARCH_FS_STREAM,
