@@ -55,9 +55,7 @@ const highlightSearchTerm = (text: string, searchTerm: string) => {
   return h(
     'span',
     parts.map((part, index) =>
-      regex.test(part)
-        ? h('mark', { class: 'search-highlight' }, part)
-        : part
+      regex.test(part) ? h('mark', { class: 'search-highlight' }, part) : part
     )
   )
 }
