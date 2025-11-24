@@ -120,7 +120,7 @@ export function useFetchHomeData() {
       })
 
       // Clean up queries for branches that no longer exist
-      const currentBranchNames = new Set(currentBranches.map(b => b.name))
+      const currentBranchNames = new Set(currentBranches.map((b) => b.name))
       for (const branchName of branchQueriesMap.value.keys()) {
         if (!currentBranchNames.has(branchName)) {
           branchQueriesMap.value.delete(branchName)
