@@ -588,7 +588,7 @@ function renderMainCommit(g: D3Selection, node: CommitNode, y: number, rowWidth:
   // Click handler for circle
   circle.on('click', function (event) {
     event.stopPropagation()
-    commitSelection.toggle(node.hash)
+    commitSelection.toggle(node.hash, node.name)
     d3.select(this).attr('fill', getCommitColor(commitSelection.isSelected(node.hash)))
     updateSelectionBadge()
   })
@@ -607,7 +607,7 @@ function renderMainCommit(g: D3Selection, node: CommitNode, y: number, rowWidth:
     // Don't toggle if clicking on the View button
     if (event.target.tagName === 'A' || event.target.closest('a')) return
     event.stopPropagation()
-    commitSelection.toggle(node.hash)
+    commitSelection.toggle(node.hash, node.name)
     circle.attr('fill', getCommitColor(commitSelection.isSelected(node.hash)))
     updateSelectionBadge()
   })
@@ -649,7 +649,7 @@ function renderUpdateCommit(g: D3Selection, updateCommit: any, updateY: number, 
   // Click handler for circle
   updateCircle.on('click', function (event) {
     event.stopPropagation()
-    commitSelection.toggle(updateCommit.hash)
+    commitSelection.toggle(updateCommit.hash, updateCommit.name)
     d3.select(this).attr('fill', getCommitColor(commitSelection.isSelected(updateCommit.hash)))
   })
 
@@ -657,7 +657,7 @@ function renderUpdateCommit(g: D3Selection, updateCommit: any, updateY: number, 
   attachHoverEffects(updateHoverBg, updateCircle, (event: any) => {
     if (event.target.tagName === 'A' || event.target.closest('a')) return
     event.stopPropagation()
-    commitSelection.toggle(updateCommit.hash)
+    commitSelection.toggle(updateCommit.hash, updateCommit.name)
     updateCircle.attr('fill', getCommitColor(commitSelection.isSelected(updateCommit.hash)))
   })
 

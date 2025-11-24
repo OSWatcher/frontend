@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+interface CommitInfo {
+  hash: string
+  name: string
+}
+
 /**
  * Commit Selection Store
  *
@@ -9,7 +14,7 @@ import { ref, computed } from 'vue'
  */
 export const useCommitSelectionStore = defineStore('commitSelection', () => {
   // State
-  const selectedCommits = ref<string[]>([])
+  const selectedCommits = ref<CommitInfo[]>([])
   const maxSelection = 2
 
   // Computed
@@ -18,7 +23,7 @@ export const useCommitSelectionStore = defineStore('commitSelection', () => {
   const diffLink = computed(() => {
     if (canDiff.value) {
       const [base, diffee] = selectedCommits.value
-      return `/diff/${base}/${diffee}`
+      return `/diff/${base.hash}/${diffee.hash}?base_name=${encodeURIComponent(base.name)}&diffee_name=${encodeURIComponent(diffee.name)}`
     }
     return null
   })
@@ -26,19 +31,19 @@ export const useCommitSelectionStore = defineStore('commitSelection', () => {
   const canSelect = computed(() => selectedCommits.value.length < maxSelection)
 
   // Actions
-  function toggle(hash: string) {
-    const index = selectedCommits.value.indexOf(hash)
+  function toggle(hash: string, name: string) {
+    const index = selectedCommits.value.findIndex((c) => c.hash === hash)
     if (index >= 0) {
       // Remove if already selected
       selectedCommits.value.splice(index, 1)
     } else if (selectedCommits.value.length < maxSelection) {
       // Add if under limit
-      selectedCommits.value.push(hash)
+      selectedCommits.value.push({ hash, name })
     }
   }
 
   function isSelected(hash: string): boolean {
-    return selectedCommits.value.includes(hash)
+    return selectedCommits.value.some((c) => c.hash === hash)
   }
 
   function clear() {
@@ -46,7 +51,7 @@ export const useCommitSelectionStore = defineStore('commitSelection', () => {
   }
 
   function getSelectionLabel(hash: string): string | null {
-    const index = selectedCommits.value.indexOf(hash)
+    const index = selectedCommits.value.findIndex((c) => c.hash === hash)
     if (index === -1) return null
     return index === 0 ? 'Base' : 'Diffee'
   }
