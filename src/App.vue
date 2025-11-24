@@ -38,6 +38,7 @@ const pageSize = ref(20)
 const isLoading = ref(false)
 const isStreaming = ref(false)
 const streamingResultCount = ref(0)
+const hasSearched = ref(false)
 
 const router = useRouter()
 const branchSelection = useBranchSelectionStore()
@@ -54,9 +55,7 @@ const highlightSearchTerm = (text: string, searchTerm: string) => {
 
   return h(
     'span',
-    parts.map((part, index) =>
-      regex.test(part) ? h('mark', { class: 'search-highlight' }, part) : part
-    )
+    parts.map((part) => (regex.test(part) ? h('mark', { class: 'search-highlight' }, part) : part))
   )
 }
 
@@ -100,6 +99,7 @@ const performSearch = () => {
   streamingResultCount.value = 0
   isLoading.value = true
   isStreaming.value = true
+  hasSearched.value = true
   currentPage.value = 1
 
   // Start streaming subscription
@@ -176,6 +176,7 @@ const clearSearch = () => {
   searchTerm.value = ''
   isStreaming.value = false
   streamingResultCount.value = 0
+  hasSearched.value = false
 }
 
 // Mount keyboard listener
@@ -288,7 +289,12 @@ onUnmounted(() => {
           striped
         />
 
-        <div v-else-if="searchTerm && !isLoading && !isStreaming" class="empty-search">
+        <div
+          v-else-if="
+            hasSearched && searchTerm && !isLoading && !isStreaming && searchResults.length === 0
+          "
+          class="empty-search"
+        >
           <p>No results found for "{{ searchTerm }}"</p>
         </div>
       </NSpace>
