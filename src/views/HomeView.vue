@@ -25,10 +25,7 @@ watch(
       if (firstBranch) {
         selectedBranch.value = firstBranch.branch.name
         // Update global branch selection store
-        branchSelection.selectBranch(
-          firstBranch.branch.name,
-          firstBranch.branch.tracks?.hash || ''
-        )
+        branchSelection.selectBranch(firstBranch.branch.name, firstBranch.branch.tracks?.hash || '')
       }
     }
   },
