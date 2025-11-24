@@ -17,12 +17,16 @@ import {
 } from 'naive-ui'
 import { SearchOutline } from '@vicons/ionicons5'
 import { useRouter, RouterLink } from 'vue-router'
+import { onUnmounted } from 'vue'
 import gqlClient from '@/graphql-client'
-import { SEARCH_FS } from '@/queries'
+import { SEARCH_FS_STREAM } from '@/queries'
+import { CommitScope } from '@/graphql-types'
+import { useFetchHomeData } from '@/composables/useFetchHomeData'
 
 interface SearchResult {
   commit_name: string
   commit_hash: string
+  hash: string
   path: string
 }
 
@@ -32,8 +36,16 @@ const searchResults = ref<SearchResult[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const isLoading = ref(false)
+const isStreaming = ref(false)
+const streamingResultCount = ref(0)
 
 const router = useRouter()
+
+// Get branches data to access commit hashes
+const { branchesWithCommits } = useFetchHomeData()
+
+// Store subscription to clean up on unmount
+let searchSubscription: any = null
 
 // Search columns for data table
 const searchColumns: DataTableColumns<SearchResult> = [
@@ -41,7 +53,7 @@ const searchColumns: DataTableColumns<SearchResult> = [
     title: 'Commit',
     key: 'commit_name',
     sorter: 'default',
-    width: 200,
+    width: 200
   },
   {
     title: 'Path',
@@ -61,22 +73,74 @@ const handleShortcut = (event: KeyboardEvent) => {
   }
 }
 
-const performSearch = async () => {
+const performSearch = () => {
   if (!searchTerm.value.trim()) return
 
+  // Cancel any existing subscription
+  if (searchSubscription) {
+    searchSubscription.unsubscribe()
+  }
+
+  // Reset state
+  searchResults.value = []
+  streamingResultCount.value = 0
   isLoading.value = true
+  isStreaming.value = true
+  currentPage.value = 1
+
+  // Start streaming subscription
   try {
-    const response = await gqlClient.query({
-      query: SEARCH_FS,
-      variables: { searchTerm: searchTerm.value }
+    // Get the first branch's commit hash
+    const firstBranch = branchesWithCommits.value[0]
+    if (!firstBranch?.branch.tracks?.hash) {
+      console.error('No branch data available for search')
+      isLoading.value = false
+      isStreaming.value = false
+      return
+    }
+
+    const variables = {
+      searchTerm: searchTerm.value,
+      commitRange: {
+        startCommit: firstBranch.branch.tracks.hash,
+        scope: CommitScope.History
+      }
+    }
+    console.log('Starting search stream with variables:', variables)
+
+    const observable = gqlClient.subscribe({
+      query: SEARCH_FS_STREAM,
+      variables
     })
-    searchResults.value = response.data.search || []
-    currentPage.value = 1
+
+    searchSubscription = observable.subscribe({
+      next: (result) => {
+        console.log('Received search result:', result)
+        // Progressive rendering: append each result as it arrives
+        if (result.data?.searchStream) {
+          searchResults.value.push(result.data.searchStream)
+          streamingResultCount.value++
+          isLoading.value = false // Show first results immediately
+        } else {
+          console.warn('Received result without searchStream data:', result)
+        }
+      },
+      error: (error) => {
+        console.error('Search streaming error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        isLoading.value = false
+        isStreaming.value = false
+      },
+      complete: () => {
+        console.log('Search streaming complete! Total results:', searchResults.value.length)
+        isStreaming.value = false
+        isLoading.value = false
+      }
+    })
   } catch (error) {
-    console.error('Error searching:', error)
-    searchResults.value = []
-  } finally {
+    console.error('Error starting search stream:', error)
     isLoading.value = false
+    isStreaming.value = false
   }
 }
 
@@ -89,14 +153,28 @@ const handleRowClick = (row: SearchResult) => {
 }
 
 const clearSearch = () => {
+  // Cancel subscription if active
+  if (searchSubscription) {
+    searchSubscription.unsubscribe()
+    searchSubscription = null
+  }
   searchResults.value = []
   searchTerm.value = ''
+  isStreaming.value = false
+  streamingResultCount.value = 0
 }
 
 // Mount keyboard listener
 if (typeof window !== 'undefined') {
   window.addEventListener('keydown', handleShortcut)
 }
+
+// Clean up subscription on unmount
+onUnmounted(() => {
+  if (searchSubscription) {
+    searchSubscription.unsubscribe()
+  }
+})
 </script>
 
 <template>
@@ -105,18 +183,12 @@ if (typeof window !== 'undefined') {
     <NLayoutHeader bordered class="app-header">
       <div class="header-content">
         <div class="header-left">
-          <RouterLink to="/" class="brand-title">
-            OSWatcher
-          </RouterLink>
+          <RouterLink to="/" class="brand-title"> OSWatcher </RouterLink>
         </div>
 
         <div class="header-right">
           <!-- Search Button -->
-          <NButton
-            secondary
-            @click="showSearchModal = true"
-            class="search-trigger"
-          >
+          <NButton secondary @click="showSearchModal = true" class="search-trigger">
             <template #icon>
               <NIcon><SearchOutline /></NIcon>
             </template>
@@ -136,9 +208,7 @@ if (typeof window !== 'undefined') {
     <NLayoutFooter bordered class="app-footer">
       <div class="footer-content-simple">
         <div>
-          <NGradientText type="info" :size="18">
-            OSWatcher
-          </NGradientText>
+          <NGradientText type="info" :size="18"> OSWatcher </NGradientText>
           <p class="footer-tagline">Operating System Analysis & Tracking</p>
         </div>
         <div class="footer-copyright-simple">
@@ -153,7 +223,7 @@ if (typeof window !== 'undefined') {
       preset="card"
       title="Search Filesystem"
       class="search-modal"
-      :style="{ width: '800px', maxWidth: '90vw' }"
+      :style="{ width: '1200px', maxWidth: '95vw' }"
       @after-leave="clearSearch"
     >
       <NSpace vertical :size="16">
@@ -170,37 +240,62 @@ if (typeof window !== 'undefined') {
           </template>
         </NInput>
 
+        <!-- Streaming status indicator -->
+        <div v-if="isStreaming" class="streaming-status">
+          <NSpin size="small" />
+          <span>Streaming results... ({{ streamingResultCount }} found)</span>
+        </div>
+
         <NDataTable
           v-if="searchResults.length > 0 || isLoading"
           :columns="searchColumns"
           :data="searchResults"
-          :loading="isLoading"
+          :loading="isLoading && searchResults.length === 0"
+          :max-height="500"
           :pagination="{
             page: currentPage,
             pageSize: pageSize,
             showSizePicker: true,
-            pageSizes: [10, 20, 50],
-            onChange: (page: number) => { currentPage = page },
-            onUpdatePageSize: (size: number) => { pageSize = size }
+            pageSizes: [10, 20, 50, 100],
+            onChange: (page: number) => {
+              currentPage = page
+            },
+            onUpdatePageSize: (size: number) => {
+              pageSize = size
+            }
           }"
-          :row-props="(row: SearchResult) => ({
-            style: 'cursor: pointer;',
-            onClick: () => handleRowClick(row)
-          })"
+          :row-props="
+            (row: SearchResult) => ({
+              style: 'cursor: pointer;',
+              onClick: () => handleRowClick(row)
+            })
+          "
           striped
         />
 
-        <div v-else-if="searchTerm && !isLoading" class="empty-search">
+        <div v-else-if="searchTerm && !isLoading && !isStreaming" class="empty-search">
           <p>No results found for "{{ searchTerm }}"</p>
         </div>
       </NSpace>
 
       <template #footer>
-        <NSpace justify="end">
-          <NButton @click="showSearchModal = false">Close</NButton>
-          <NButton type="primary" @click="performSearch" :loading="isLoading">
-            Search
-          </NButton>
+        <NSpace justify="space-between">
+          <span v-if="searchResults.length > 0" class="result-summary">
+            {{ searchResults.length }} result(s)
+            <span v-if="isStreaming" class="streaming-badge">● Live</span>
+          </span>
+          <span v-else></span>
+          <NSpace>
+            <NButton @click="showSearchModal = false">Close</NButton>
+            <NButton
+              type="primary"
+              @click="performSearch"
+              :loading="isLoading && searchResults.length === 0"
+              :disabled="isStreaming"
+            >
+              {{ isStreaming ? 'Streaming...' : 'Search' }}
+            </NButton>
+          </NSpace>
         </NSpace>
       </template>
     </NModal>
@@ -212,7 +307,8 @@ if (typeof window !== 'undefined') {
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    sans-serif;
   background: #f9fafb;
 }
 
@@ -354,6 +450,45 @@ body {
 /* ============================================================================
    SEARCH MODAL
    ============================================================================ */
+.streaming-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #0369a1;
+}
+
+.result-summary {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streaming-badge {
+  display: inline-flex;
+  align-items: center;
+  color: #10b981;
+  font-weight: 600;
+  font-size: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .empty-search {
   text-align: center;
   padding: 40px 20px;
