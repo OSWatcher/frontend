@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, h } from 'vue'
 import {
   NLayout,
   NLayoutHeader,
@@ -47,6 +47,23 @@ const { branchesWithCommits } = useFetchHomeData()
 // Store subscription to clean up on unmount
 let searchSubscription: any = null
 
+// Helper function to highlight search term in text
+const highlightSearchTerm = (text: string, searchTerm: string) => {
+  if (!searchTerm) return text
+
+  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+
+  return h(
+    'span',
+    parts.map((part, index) =>
+      regex.test(part)
+        ? h('mark', { class: 'search-highlight' }, part)
+        : part
+    )
+  )
+}
+
 // Search columns for data table
 const searchColumns: DataTableColumns<SearchResult> = [
   {
@@ -61,7 +78,8 @@ const searchColumns: DataTableColumns<SearchResult> = [
     sorter: 'default',
     ellipsis: {
       tooltip: true
-    }
+    },
+    render: (row) => highlightSearchTerm(row.path, searchTerm.value)
   }
 ]
 
@@ -487,6 +505,14 @@ body {
   50% {
     opacity: 0.5;
   }
+}
+
+.search-highlight {
+  background: #fef08a;
+  color: #854d0e;
+  padding: 2px 0;
+  border-radius: 2px;
+  font-weight: 600;
 }
 
 .empty-search {
