@@ -261,6 +261,7 @@ onUnmounted(() => {
         <!-- Streaming status indicator -->
         <div v-if="isStreaming" class="streaming-status">
           <NSpin size="small" />
+          <span class="streaming-badge">● Live</span>
           <span>Streaming results... ({{ streamingResultCount }} found)</span>
         </div>
 
@@ -300,7 +301,6 @@ onUnmounted(() => {
         <NSpace justify="space-between">
           <span v-if="searchResults.length > 0" class="result-summary">
             {{ searchResults.length }} result(s)
-            <span v-if="isStreaming" class="streaming-badge">● Live</span>
           </span>
           <span v-else></span>
           <NSpace>
@@ -491,9 +491,14 @@ body {
 .streaming-badge {
   display: inline-flex;
   align-items: center;
-  color: #10b981;
+  gap: 4px;
+  background: #d1fae5;
+  color: #065f46;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 0 6px;
   animation: pulse 2s ease-in-out infinite;
 }
 
