@@ -4,7 +4,6 @@ import * as d3 from 'd3'
 import type { BranchWithCommits } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
 import { useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
-import type { FetchCommitHistoryQuery } from '@/graphql-types'
 
 // ============================================================================
 // TYPES
@@ -149,8 +148,9 @@ function truncateText(text: string, maxLength: number): string {
 
 /**
  * Formats commit text with name and optional description
+ * Currently unused but kept for potential future use
  */
-function formatCommitText(name: string, description: string | null, maxLength: number) {
+function _formatCommitText(name: string, description: string | null, maxLength: number) {
   if (!description) {
     return { display: name, tooltip: name }
   }
