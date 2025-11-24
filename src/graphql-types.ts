@@ -94,12 +94,6 @@ export type BlobHas_WinregConnectionArgs = {
   where?: InputMaybe<BlobHas_WinregConnectionWhere>
 }
 
-export type BlobAggregateSelection = {
-  __typename?: 'BlobAggregateSelection'
-  count: Scalars['Int']['output']
-  hash: StringAggregateSelection
-}
-
 export type BlobEdge = {
   __typename?: 'BlobEdge'
   cursor: Scalars['String']['output']
@@ -1032,6 +1026,19 @@ export type CommitPreviousRelationship = {
   node: Commit
 }
 
+export type CommitRange = {
+  endCommit?: InputMaybe<Scalars['String']['input']>
+  scope: CommitScope
+  startCommit: Scalars['String']['input']
+}
+
+export enum CommitScope {
+  History = 'HISTORY',
+  HistoryWithUpdates = 'HISTORY_WITH_UPDATES',
+  Range = 'RANGE',
+  Single = 'SINGLE'
+}
+
 /** Fields to sort Commits by. The order in which sorts are applied is not guaranteed when specifying many fields in one CommitSort object. */
 export type CommitSort = {
   date?: InputMaybe<SortDirection>
@@ -1331,7 +1338,6 @@ export type PageInfo = {
 export type Query = {
   __typename?: 'Query'
   blobs: Array<Blob>
-  blobsAggregate: BlobAggregateSelection
   blobsConnection: BlobsConnection
   branches: Array<Branch>
   branchesAggregate: BranchAggregateSelection
@@ -1374,10 +1380,6 @@ export type Query = {
 
 export type QueryBlobsArgs = {
   options?: InputMaybe<BlobOptions>
-  where?: InputMaybe<BlobWhere>
-}
-
-export type QueryBlobsAggregateArgs = {
   where?: InputMaybe<BlobWhere>
 }
 
@@ -1467,6 +1469,7 @@ export type QueryHashablesConnectionArgs = {
 }
 
 export type QuerySearchArgs = {
+  commit_range: CommitRange
   search_term: Scalars['String']['input']
 }
 
@@ -1608,6 +1611,16 @@ export type StringAggregateSelection = {
   __typename?: 'StringAggregateSelection'
   longest?: Maybe<Scalars['String']['output']>
   shortest?: Maybe<Scalars['String']['output']>
+}
+
+export type Subscription = {
+  __typename?: 'Subscription'
+  searchStream: SearchResult
+}
+
+export type SubscriptionSearchStreamArgs = {
+  commit_range: CommitRange
+  search_term: Scalars['String']['input']
 }
 
 export type Symbol = Hashable & {
@@ -3415,6 +3428,7 @@ export type FetchStructsQuery = {
 
 export type SearchFsQueryVariables = Exact<{
   searchTerm: Scalars['String']['input']
+  commitRange: CommitRange
 }>
 
 export type SearchFsQuery = {
@@ -4325,8 +4339,8 @@ export type FetchStructsQueryCompositionFunctionResult = VueApolloComposable.Use
   FetchStructsQueryVariables
 >
 export const SearchFsDocument = gql`
-  query SearchFs($searchTerm: String!) {
-    search(search_term: $searchTerm) {
+  query SearchFs($searchTerm: String!, $commitRange: CommitRange!) {
+    search(search_term: $searchTerm, commit_range: $commitRange) {
       commit_name
       commit_hash
       path
@@ -4347,6 +4361,7 @@ export const SearchFsDocument = gql`
  * @example
  * const { result, loading, error } = useSearchFsQuery({
  *   searchTerm: // value for 'searchTerm'
+ *   commitRange: // value for 'commitRange'
  * });
  */
 export function useSearchFsQuery(

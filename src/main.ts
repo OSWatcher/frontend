@@ -1,10 +1,14 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import { createBootstrap } from 'bootstrap-vue-next'
 // bootstrap
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 // bootstrap-icons
 import 'bootstrap-icons/font/bootstrap-icons.css'
+
+// Naive UI
+import naive from 'naive-ui'
 
 import App from './App.vue'
 import router from './router'
@@ -13,11 +17,14 @@ import { provideApolloClient } from '@vue/apollo-composable'
 import gqlClient from './graphql-client'
 
 const app = createApp(App)
+const pinia = createPinia()
 
 // Provide Apollo client to the entire app
 provideApolloClient(gqlClient)
 
+app.use(pinia)
 app.use(createBootstrap())
+app.use(naive)
 app.use(router)
 
 if (import.meta.env.PROD) {

@@ -1,4 +1,4 @@
-import { computed, effectScope, type ComputedRef, type Ref } from 'vue'
+import { computed, effectScope, ref, watch, type ComputedRef, type Ref } from 'vue'
 import {
   useFetchBranchesQuery,
   useFetchCommitHistoryQuery,
@@ -21,7 +21,8 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  const ALLOWED_BRANCHES = ['ubuntu-server']
+  // Filter to show only main branches, not per-release update branches
+  const MAIN_BRANCHES = ['master', 'ubuntu-server']
 
   return effectScope().run(() => {
     const {
@@ -30,7 +31,7 @@ function useBranchesData() {
       error: branchesError
     } = useFetchBranchesQuery({
       where: {
-        name_IN: ALLOWED_BRANCHES
+        name_IN: MAIN_BRANCHES
       }
     })
 
@@ -103,18 +104,48 @@ function createBranchWithCommits(branch: BranchData): BranchWithCommits {
 export function useFetchHomeData() {
   const { branches, loading: branchesLoading, error: branchesError } = useBranchesData()
 
-  const branchesWithCommits = computed(() =>
-    branches.value.map((branch) => createBranchWithCommits(branch))
+  // Store stable query subscriptions per branch (key = branch name)
+  const branchQueriesMap = ref<Map<string, BranchWithCommits>>(new Map())
+
+  // Watch branches and create queries for any new branches
+  // Queries are created ONCE per branch and remain stable
+  watch(
+    branches,
+    (currentBranches) => {
+      currentBranches.forEach((branch) => {
+        if (!branchQueriesMap.value.has(branch.name)) {
+          const branchData = createBranchWithCommits(branch)
+          branchQueriesMap.value.set(branch.name, branchData)
+        }
+      })
+
+      // Clean up queries for branches that no longer exist
+      const currentBranchNames = new Set(currentBranches.map((b) => b.name))
+      for (const branchName of branchQueriesMap.value.keys()) {
+        if (!currentBranchNames.has(branchName)) {
+          branchQueriesMap.value.delete(branchName)
+        }
+      }
+    },
+    { immediate: true }
   )
 
+  // Computed just returns the data from stable queries
+  // This computed does NOT create new queries, so it won't cause loops
+  const branchesWithCommits = computed(() => {
+    return branches.value
+      .map((branch) => branchQueriesMap.value.get(branch.name))
+      .filter((data): data is BranchWithCommits => data !== undefined)
+  })
+
   const allCommitsLoaded = computed(() =>
-    branchesWithCommits.value.every((branchData) => !branchData.loading)
+    branchesWithCommits.value.every((branchData) => !branchData.loading.value)
   )
 
   const commitErrors = computed(() =>
     branchesWithCommits.value
-      .filter((branchData) => branchData.error)
-      .map((branchData) => branchData.error)
+      .filter((branchData) => branchData.error.value)
+      .map((branchData) => branchData.error.value)
   )
 
   return {
