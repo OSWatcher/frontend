@@ -2,7 +2,7 @@ scalar JSON
 
 # common interface for all hashable nodes
 # having a .hash property
-interface Hashable {
+interface Hashable @limit(default: 100, max: 5000) {
     hash: String!
 }
 
@@ -23,7 +23,24 @@ enum DiffStatus {
     DEL
 }
 
-type Blob implements Hashable @mutation(operations: []) {
+enum CommitHistoryDirection {
+    FORWARD
+    BACKWARD
+}
+
+enum CommitScope {
+    # Search within a single commit only
+    SINGLE
+    # Search within the commit and all its reachable history (backwards traversal)
+    HISTORY
+    # Search within the commit, its history, and all updates (bidirectional traversal)
+    HISTORY_WITH_UPDATES
+    # Search within a range of commits from startCommit to endCommit (inclusive)
+    RANGE
+}
+
+# read: needed for HAS_WINREG
+type Blob implements Hashable @query(read: true, aggregate: false) @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     has_winreg: WinRegKey @relationship(type: "HAS_WINREG", direction: OUT)
     has_symbol: [Symbol!]! @relationship(type: "HAS_SYMBOL", direction: OUT, properties: "HasNameRel")
@@ -38,7 +55,7 @@ type HasNameRel @relationshipProperties {
     name: String!
 }
 
-type Tree implements Hashable @mutation(operations: []) {
+type Tree implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     child_blobs: [Blob!]!
         @relationship(
@@ -54,29 +71,30 @@ type Tree implements Hashable @mutation(operations: []) {
         )
 }
 
-type Commit implements Hashable @mutation(operations: []) {
+type Commit implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     name: String!
     description: String
     date: String!
     previous: Commit @relationship(type: "HAS_PREVIOUS", direction: OUT)
+    next: [Commit!]! @relationship(type: "HAS_PREVIOUS", direction: IN)
     filesystem: Tree @relationship(type: "OWNS_FILESYSTEM", direction: OUT)
 }
 
-type Branch @mutation(operations: []) {
+type Branch @mutation(operations: [])  {
     name: String!
     tracks: Commit @relationship(type: "TRACKS_COMMIT", direction: OUT)
 }
 
 # Plugins types
 ## Registry
-type WinRegValue implements Hashable @mutation(operations: []) {
+type WinRegValue implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     type: String!
     value: String!
 }
 
-type WinRegKey implements Hashable @mutation(operations: []) {
+type WinRegKey implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     child_values: [WinRegValue!]!
         @relationship(
@@ -93,13 +111,13 @@ type WinRegKey implements Hashable @mutation(operations: []) {
 }
 
 ## PDBs
-type Symbol implements Hashable @mutation(operations: [])  {
+type Symbol implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     address: String!
     blob: Blob! @relationship(type: "HAS_SYMBOL", direction: IN, properties: "HasNameRel")
 }
 
-type WinStruct implements Hashable @mutation(operations: []) {
+type WinStruct implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     size: Int!
     kind: String!
@@ -108,7 +126,7 @@ type WinStruct implements Hashable @mutation(operations: []) {
     blob: Blob! @relationship(type: "HAS_STRUCT", direction: IN, properties: "HasNameRel")
 }
 
-type WinStructField implements Hashable @mutation(operations: []) {
+type WinStructField implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     offset: Int!
     data_type: JSON!
@@ -116,7 +134,7 @@ type WinStructField implements Hashable @mutation(operations: []) {
     struct: WinStruct! @relationship(type: "HAS_FIELD", direction: IN, properties: "HasNameRel")
 }
 
-type WinDataType implements Hashable @mutation(operations: []) {
+type WinDataType implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
     hash: String! @unique
     type: String!
     name: String
@@ -130,6 +148,11 @@ type WinDataType implements Hashable @mutation(operations: []) {
 type HashableNodeProps @query(read: false, aggregate: false) @mutation(operations: []) {
     hash: String!
     properties: JSON!
+}
+
+type DiffNodesAtResult @query(read: false, aggregate: false) @mutation(operations: []) {
+    total_count: Int!
+    items: [DiffItem!]!
 }
 
 type DiffItem @query(read: false, aggregate: false) @mutation(operations: []) {
@@ -170,6 +193,15 @@ input DiffNodesOptions {
     offset: Int
 }
 
+input CommitRange {
+    # The starting commit hash for the search range
+    startCommit: String!
+    # Defines the scope of commits to search within
+    scope: CommitScope!
+    # The ending commit hash (required when scope is RANGE, ignored otherwise)
+    endCommit: String = null
+}
+
 # custom Queries
 type Query {
     diffNodesAt(
@@ -181,17 +213,23 @@ type Query {
         filter: [String!] = []
         with_intermediates: Boolean = false
         options: DiffNodesOptions = null
-    ): [DiffItem!]!
-    # fetches the commit history of a branch
-    fetchCommitHistory(branch_name: String!): [Commit!]!
+    ): DiffNodesAtResult!
+    # fetches the commit history starting from a specific commit
+    fetchCommitHistory(commit_hash: String!, direction: CommitHistoryDirection = BACKWARD): [Commit!]!
     # given a node hash, traverse the children nodes following the path
     traversePath(parent_label: String!, tree_hash: String!, path: String!): String
     # get all the possibile data labels associated with an os
     getCommitExtractedDataLabels(commit_hash: String!): [String!]!
     # search
-    search(search_term: String!): [SearchResult!]!
+    search(commit_range: CommitRange!, search_term: String!): [SearchResult!]!
     # fetch symbols
     fetchSymbols(blob_hash: String!, options: SymbolOptions): [SymbolFetchResult!]!
     # fetch structs
     fetchStructs(blob_hash: String!, options: WinStructOptions): [WinStructFetchResult!]!
+}
+
+# custom Subscriptions
+type Subscription {
+    # search (streaming) - results are streamed as they are found
+    searchStream(commit_range: CommitRange!, search_term: String!): SearchResult!
 }

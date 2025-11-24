@@ -223,6 +223,83 @@ The diff system operates on any two hashable nodes:
 3. **Output**: List of changes with status (NEW/MOD/DEL)
 4. **Display**: Hierarchical diff tree with change indicators
 
+#### Implementation Details
+
+The diff algorithm is implemented as a Neo4j stored procedure (`example.diffTreesRecursive`) with the following architecture:
+
+**HashMap-Based Comparison:**
+- For each node, all outgoing relationships are collected into a HashMap
+- The HashMap **key** is the relationship's `name` property
+- The HashMap **value** contains: child node label, hash, and properties
+- Two HashMaps are built (one for base node, one for target node)
+- Keys are compared to determine differences
+
+**Critical Requirement: Unique Relationship Names:**
+- All child relationships from a parent node **must have unique `name` properties**
+- The `name` property serves as the HashMap key for matching nodes
+- Duplicate names cause HashMap collisions - the second relationship overwrites the first
+- This is enforced by the data model (Tree uses filenames, WinRegKey uses key names, etc.)
+- **Warning**: When designing new plugin data models, ensure relationship names are unique per parent
+
+**Deterministic Ordering:**
+- All HashMap keys are collected into a `TreeSet` (sorted set)
+- Iteration occurs in sorted order for deterministic diff output
+- This ensures consistent results across multiple diff executions
+
+**Three-Way Comparison Logic:**
+- **NEW**: Name exists in target but not in base → Child was added
+- **DEL**: Name exists in base but not in target → Child was removed
+- **MOD**: Name exists in both, but hashes differ → Child was modified
+- **Unchanged**: Name exists in both with identical hashes → Skipped (optimization)
+
+**Hash-Based Optimization (Merkle Tree Property):**
+- When two nodes have identical hashes, their entire subtrees are identical
+- The algorithm skips recursion into unchanged subtrees
+- This provides O(changes) performance instead of O(total nodes)
+- Makes diffing large filesystems with small changes very efficient
+
+**Recursable Node Types:**
+The algorithm can recurse into these node types:
+- `Tree` - Filesystem directories
+- `WinRegKey` - Windows Registry keys
+- `WinStruct` - Windows struct definitions (from PDB)
+- `WinStructField` - Struct field definitions
+
+Non-recursable nodes (like `Blob`, `Symbol`, `Syscall`) are treated as leaf nodes.
+
+**Relationship Property Limitations:**
+- Currently, only the `name` relationship property is exposed in diff results
+- The `name` is extracted and built into the `path` field (e.g., `/boot/vmlinuz`)
+- Other relationship properties (if present) are **not** exposed in the diff API
+- Node properties are fully exposed via `old_props` and `new_props` fields
+- **Future Enhancement**: JSON-serialized path segments could expose all relationship properties
+
+**Example Data Flow:**
+```
+Database:
+  (Tree {hash: "abc"}) -[HAS_CHILD_BLOB {name: "kernel32.dll"}]-> (Blob {hash: "def"})
+
+Java Procedure collectNodeInfo():
+  HashMap key: "kernel32.dll" (from relationship name property)
+  HashMap value: {label: "Blob", hash: "def", properties: {...}}
+
+Path Building:
+  currentPath = "/path/to/dir" + "/" + "kernel32.dll"
+  Result: "/path/to/dir/kernel32.dll"
+
+DiffResult:
+  {status: "NEW", type: "Blob", path: "/path/to/dir/kernel32.dll", new_props: {hash: "def", ...}}
+
+Frontend Display:
+  Shows filename: "kernel32.dll" (extracted from path)
+  Shows hash: "def" (from new_props.hash)
+```
+
+**Implementation Files:**
+- Java Procedure: `/grapheos-procedures/src/main/java/example/TreeDiffRecursiveProcedure.java`
+- GraphQL API: `/graphql-api/src/diff/diff.ts`
+- Frontend Components: `/src/components/diff/TreeDiffExplorer.vue`
+
 ## Component Architecture
 
 ### 1. Tree Components Hierarchy
