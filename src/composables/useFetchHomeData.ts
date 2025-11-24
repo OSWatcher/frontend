@@ -22,7 +22,7 @@ export interface BranchWithCommits {
 
 function useBranchesData() {
   // Filter to show only main branches, not per-release update branches
-  const MAIN_BRANCHES = ['master', 'ubuntu-server']
+  const MAIN_BRANCHES = ['ubuntu-server']
 
   return effectScope().run(() => {
     const {
