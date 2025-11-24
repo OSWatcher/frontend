@@ -18,7 +18,7 @@
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
-    "@apollo/client": "^3.11.10",
+    "@apollo/client": "^3.14.0",
     "@vicons/ionicons5": "^0.13.0",
     "@vue/apollo-composable": "^4.2.1",
     "axios": "^1.7.7",
@@ -27,6 +27,7 @@
     "bootstrap-vue-next": "0.24.11",
     "d3": "^7.9.0",
     "d3-dag": "^1.1.0",
+    "graphql-ws": "^6.0.6",
     "naive-ui": "^2.43.2",
     "path-browserify-esm": "^1.0.6",
     "pinia": "^3.0.4",
