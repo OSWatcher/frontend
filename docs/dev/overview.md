@@ -33,43 +33,43 @@ The HomeView displays a hierarchical structure of OS snapshots:
 3. **Update History** - Each commit can have its own history branch tracking OS updates over time
 
 **Actions**:
-- **Explore**: Click any commit to view that OS snapshot in detail (→ OSView)
-- **Compare**: Select 2 commits (base + diffee) to see what changed between them (→ DiffView)
+- **Explore**: Click any commit to view that OS snapshot in detail (→ InspectorView)
+- **Compare**: Select 2 commits (base + diffee) to see what changed between them (→ InspectorView comparison mode)
 
-### 2. OS Snapshot Explorer (OSView)
+### 2. Unified Inspector (InspectorView)
 
-**Purpose**: Explore a single OS snapshot's state
+**Purpose**: Single, unified interface for exploring OS snapshots in both single and comparison modes
 
-The OSView provides tabbed exploration of indexed data:
+The InspectorView replaces the old separate OSView/DiffView pattern with a single, cohesive system:
 
-- **Filesystem** (always available) - Browse file/directory hierarchy with breadcrumb navigation, view metadata (name, hash, type), download file contents
+**Modes**:
+- **Single Mode** (`/inspect/:commitHash`) - Explore a single OS snapshot
+- **Comparison Mode** (`/inspect/:baseHash/vs/:diffeeHash`) - Compare two OS snapshots
+
+**Layouts** (Comparison Mode Only):
+- **Unified** - Show diff in a single table with status indicators (NEW/MOD/DEL)
+- **Side-by-Side** - Show two tables side-by-side for direct comparison
+
+**Dynamic Tabs**:
+- **Filesystem** (always available) - Browse file/directory hierarchy with breadcrumb navigation, view metadata (name, hash, type, size), download file contents
 - **Registry** (Windows only) - Navigate Windows Registry hives (HKLM, HKU, etc.), view keys and values
-- **PDB Symbols** (Windows only, if extracted) - Browse debug symbols, structures, and types from binaries
+- **PDB Symbols** (Windows only, if extracted, future) - Browse debug symbols, structures, and types from binaries
 
-**Dynamic Tabs**: Additional tabs appear based on what data was extracted for the snapshot (e.g., Linux snapshots show only Filesystem)
+**Async Tab Loading**:
+- Filesystem tab displays immediately
+- Additional tabs (Registry, PDB) appear after capability check completes
+- Inline loading indicator shows when capabilities are being checked
+- No blocking spinners - users can start exploring immediately
 
-### 3. Diff Comparison Viewer (DiffView)
-
-**Purpose**: Compare two OS snapshots to see what changed
-
-The DiffView shows differences between base and diffee commits:
-
-- **Filesystem Diff** (always available) - Shows NEW (green), MOD (yellow), DEL (red) files with directory-by-directory navigation
-- **Registry Diff** (Windows only) - Shows NEW/MOD/DEL registry keys and values
-- **Symbol Diff** (Windows only, if extracted) - Shows differences in debug symbols between versions
-
-**Dynamic Tabs**: Additional diff tabs appear based on extracted data (same as OSView)
-
-**Export**: Export button allows exporting local changes (current directory) or global recursive changes (entire diff tree)
-
-### 4. Global Search
+### 3. Global Search
 
 **Purpose**: Search across all commits for specific files, registry keys, or symbols
 
 **Features**:
-- Ctrl+K keyboard shortcut
-- Fuzzy search across all indexed data
-- Jump directly to results in any commit
+- Ctrl+K / Cmd+K keyboard shortcut
+- Streaming search results (progressive loading)
+- Search across filesystem in all commits
+- Jump directly to results in InspectorView
 
 ## Data Model
 
@@ -97,7 +97,7 @@ WinRegKey → child_keys (subkeys)
 ### GraphQL API
 
 #### Configuration Files
-- **Schema**: `schema.graphql` - Complete GraphQL schema (197 lines)
+- **Schema**: `schema.graphql` - Complete GraphQL schema
 - **Code Generation**: `codegen.yml` - GraphQL Code Generator config
 - **Queries**: `src/queries.ts` - All GraphQL queries used by the frontend
 - **Generated Types**: `src/graphql-types.ts` - Auto-generated TypeScript types (run `npm run generate`)
@@ -139,45 +139,53 @@ WinRegKey → child_keys (subkeys)
 - `TRAVERSE_PATH` - Traverse path to get target node hash
 
 **Registry (Windows)**:
-- `HAS_WINREG` - Check if blob has registry data
-- `LIST_ENTRIES_FOR_KEY` - List child keys and values (with pagination via connections)
+- `GetSystemHives` - Get available registry hives for a commit
+- `DIFF_NODES` - Compare two registry keys (works for both filesystem and registry)
 
 **PDB Symbols (Windows)**:
 - `LIST_SYMBOLS` - Fetch symbols with pagination (limit, offset, sort)
 - `LIST_WINSTRUCT` - Fetch structures with fields (limit, offset, sort)
 
 **Search**:
-- `SEARCH_FS` - Search across all commits by term
+- `SEARCH_FS_STREAM` - Search across all commits by term (streaming subscription)
 
 **Diff**:
 - `DIFF_NODES` - Compare two nodes at path with filters (NEW/MOD/DEL), max depth, pagination
 
 ### Object Storage
 
-Raw file contents are stored by hash and can be downloaded via object storage endpoints.
+Raw file contents are stored by hash and can be downloaded via object storage endpoints configured in `VITE_GRAPHEORS_OBJECT_STORAGE_URI`.
 
 ## Technology Stack
 
 ### Frontend Framework
-- **Vue 3.5.12** - Composition API with `<script setup>`
-- **TypeScript 5.4.0** - Strict mode enabled
-- **Vite 5.2.8** - Fast build tool and dev server
-- **Vue Router 4.4.5** - Client-side routing
+- **Vue 3.5+** - Composition API with `<script setup>`
+- **TypeScript 5.4+** - Strict mode enabled
+- **Vite 5.2+** - Fast build tool and dev server
+- **Vue Router 4.4+** - Client-side routing
 
 ### UI Framework
-- **Bootstrap 5.3.3** - CSS framework (~200kb)
-- **Bootstrap-Vue-Next 0.24.11** - Vue 3 Bootstrap components (pre-release, not stable)
-- **Bootstrap-Icons 1.11.3** - Icon library
+- **Naive UI 2.x** - Modern Vue 3 component library
+  - TypeScript-first design
+  - Built-in dark mode support (not yet implemented)
+  - Lightweight and tree-shakeable (~150kb)
+  - Comprehensive component set
+  - Excellent documentation
 
 ### Data Layer
-- **Apollo Client 3.11.10** - GraphQL client
-- **@vue/apollo-composable 4.2.1** - Vue integration for Apollo
+- **Apollo Client 3.11+** - GraphQL client
+- **@vue/apollo-composable 4.2+** - Vue integration for Apollo
 - **GraphQL Codegen** - Auto-generates TypeScript types from schema
 
+### State Management
+- **Pinia 2.x** - Official Vue state management
+  - Used for commit selection (diff comparison)
+  - Used for branch selection (HomeView)
+
 ### Development Tools
-- **ESLint 8.57.0** - Code linting
-- **Prettier 3.2.5** - Code formatting
-- **VitePress 1.0.0** - Documentation site generator
+- **ESLint 8.57** - Code linting
+- **Prettier 3.2** - Code formatting
+- **VitePress 1.0** - Documentation site generator
 
 ### Analytics
 - **PostHog** - Product analytics (production only)
@@ -186,37 +194,53 @@ Raw file contents are stored by hash and can be downloaded via object storage en
 
 ### Views (Route-based)
 - `HomeView.vue` - Commit history browser with branch selection
-- `OSView.vue` - OS snapshot explorer with dynamic tabs
-- `DiffView.vue` - Diff comparison viewer
+- `InspectorView.vue` - Unified OS snapshot explorer and diff viewer
 
-### Shared Components
+### Core Inspector Components
+- `InspectorView.vue` - Main orchestrator (routing, mode detection, capability checking)
+- `InspectorHeader.vue` - Commit info, breadcrumbs, controls
+- `FilesystemInspector.vue` - Unified filesystem viewer (single & comparison)
+- `RegistryInspector.vue` - Unified registry viewer (single & comparison)
+
+### Supporting Components
 - `CommitsTable.vue` - Displays commit history in a table
 - `CommitExpansion.vue` - Expandable row content for divergent commits
-- `TreeExplorer.vue` - Base pattern for tree navigation (not a real component, pattern duplicated)
-- `FilesystemTree.vue` - Filesystem browser with breadcrumbs and pagination
-- `RegistryTree.vue` - Registry browser with breadcrumbs and pagination
-- `PDBExplorer.vue` - PDB symbols and structures browser
+- `CommitGraph.vue` - Visual git-style commit graph
 
-### Diff Components (in `components/diff/`)
-- Filesystem, Registry, and Symbol diff viewers
+### Old Components (Legacy, to be removed)
+- `FilesystemTree.vue` - Old filesystem browser
+- `RegistryTree.vue` - Old registry browser
+- `TreeExplorer.vue` - Old base pattern
+- `OSView.vue` - Old single snapshot view
+- `DiffView.vue` - Old diff comparison view
+- Components in `components/diff/` - Old diff viewers
 
-### State Management
-- **No centralized state management** - Uses local component refs
-- Props drilling for shared state (e.g., `selectedCommits` passed through 3 component levels)
+### Composables
+- `useFilesystemInspector.ts` - Filesystem state management
+- `useRegistryInspector.ts` - Registry state management
+- `useFetchHomeData.ts` - Branch and commit loading for HomeView
 
-### Key Patterns
-- **Bootstrap-Vue components**: BTable, BModal, BNavbar, BForm, BPagination
-- **GraphQL connections**: Paginated data using `edges` and `totalCount`
-- **Hash-based navigation**: All routes and downloads use content hashes
-- **Breadcrumb navigation**: Manual implementation in FilesystemTree and RegistryTree (duplicated code)
+### Utility Modules
+- `src/utils/filesystem.ts` - Pure functions for filesystem data transformation
+- `src/utils/registry.ts` - Pure functions for registry data transformation
+
+### Type Definitions
+- `src/types/inspector.ts` - Core Inspector types (InspectorMode, CommitContext, etc.)
+- `src/types/registry.ts` - Registry-specific types (RegistryHive, RegistryEntry, etc.)
+- `src/graphql-types.ts` - Auto-generated from GraphQL schema
+
+### State Management (Pinia Stores)
+- `commitSelection.ts` - Manages selected commits for diff comparison
+- `branchSelection.ts` - Manages currently selected branch in HomeView
 
 ## Routing Structure
 
 ```
-/                           → HomeView (commit history browser)
-/os/:commitHash             → OSView (snapshot explorer)
-  - Query params: ?os_title=<name>&filesystem=<path>
-/diff/:baseHash/:diffeeHash → DiffView (diff comparison)
+/                              → HomeView (commit history browser)
+/inspect/:commitHash           → InspectorView (single mode)
+  - Query params: ?path=<path>&branch=<name>
+/inspect/:baseHash/vs/:diffeeHash → InspectorView (comparison mode)
+  - Query params: ?path=<path>&layout=<layout>&branch=<name>
 ```
 
 ## Design Philosophy
@@ -226,3 +250,108 @@ Raw file contents are stored by hash and can be downloaded via object storage en
 3. **Comparison-Driven**: Primary value is in seeing what changed
 4. **Non-Destructive**: Read-only exploration, never modifies snapshots
 5. **Forensics-Ready**: Designed for security analysis and incident response
+6. **Type-Safe**: Full TypeScript coverage with auto-generated GraphQL types
+7. **Mode-Aware**: Components adapt to single vs comparison mode
+8. **Async First**: Don't block UI while loading optional features
+
+## Unified Inspector Benefits
+
+### Before (Old Architecture)
+- **Separate Views**: OSView (single) and DiffView (comparison) were separate components
+- **Code Duplication**: Filesystem and Registry had separate single/diff implementations
+- **Inconsistent UX**: Different navigation patterns between single and diff modes
+- **Hard to Maintain**: Bug fixes needed in multiple places
+
+### After (Unified Architecture)
+- **Single View**: InspectorView handles both single and comparison modes
+- **Shared Components**: FilesystemInspector and RegistryInspector work in both modes
+- **Consistent UX**: Same navigation, breadcrumbs, and controls across modes
+- **Easy to Maintain**: Single source of truth for each feature
+- **Easy to Extend**: Adding new tabs (e.g., PDB) only requires one component
+
+## Key Patterns
+
+### 1. Mode-Aware Components
+Components adapt based on `InspectorMode`:
+```typescript
+if (props.mode === 'single') {
+  // Show single commit data
+} else {
+  // Show diff between two commits
+}
+```
+
+### 2. Pure Utility Functions
+All data transformation in pure functions with zero side effects:
+- `src/utils/filesystem.ts` - Path manipulation, parsing, formatting
+- `src/utils/registry.ts` - Registry-specific transformations
+
+### 3. Composables for State
+Reactive state management separated from UI:
+- `useFilesystemInspector` - Manages filesystem navigation and loading
+- `useRegistryInspector` - Manages registry navigation and loading
+
+### 4. Type Safety First
+- Generated GraphQL types provide compile-time safety
+- Discriminated unions for mode handling
+- No `any` types in new code
+
+### 5. Async Capability Loading
+- Show filesystem immediately (always available)
+- Load Registry/PDB tabs in background
+- Inline loading indicator (no blocking spinners)
+- Better perceived performance
+
+## Project Structure
+
+```
+src/
+├── views/                         # Route-based views
+│   ├── HomeView.vue              # Commit history browser
+│   └── InspectorView.vue         # Unified Inspector (single & comparison)
+├── components/
+│   ├── InspectorHeader.vue       # Commit info, breadcrumbs, controls
+│   ├── FilesystemInspector.vue   # Unified filesystem viewer
+│   ├── RegistryInspector.vue     # Unified registry viewer
+│   ├── CommitsTable.vue          # Commit history table
+│   ├── CommitGraph.vue           # Visual commit graph
+│   └── [legacy components]       # To be removed
+├── composables/                   # Reusable reactive logic
+│   ├── useFilesystemInspector.ts
+│   ├── useRegistryInspector.ts
+│   └── useFetchHomeData.ts
+├── stores/                        # Pinia stores
+│   ├── commitSelection.ts
+│   └── branchSelection.ts
+├── utils/                         # Pure functions
+│   ├── filesystem.ts
+│   └── registry.ts
+├── types/                         # Type definitions
+│   ├── inspector.ts
+│   └── registry.ts
+├── router/                        # Vue Router config
+├── graphql-client.ts              # Apollo Client setup
+├── queries.ts                     # GraphQL queries
+├── graphql-types.ts               # Generated types (auto)
+└── main.ts                        # App initialization
+```
+
+## Known Issues & Future Work
+
+### Short Term
+- Remove legacy components (OSView, DiffView, old tree components)
+- Add unit tests for utils and composables
+- Add component tests for Inspectors
+- Implement error boundaries
+
+### Medium Term
+- Add PDB Inspector tab for Windows binaries
+- Implement dark mode toggle
+- Advanced search with filters (file type, size, date)
+- Export diff reports (PDF, CSV)
+
+### Long Term
+- Timeline view for tracking artifacts across many commits
+- Multi-way diff (compare 3+ commits)
+- Collaborative annotations and notes
+- Performance monitoring and alerting
