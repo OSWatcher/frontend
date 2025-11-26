@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { NButton, NDropdown, NSpin, NAlert } from 'naive-ui'
+import { ref, computed, watch, h } from 'vue'
+import { NButton, NDropdown, NSpin, NAlert, NIcon } from 'naive-ui'
 import type { DropdownOption } from 'naive-ui'
+import {
+  ConstructOutline,
+  GitBranchOutline,
+  ChevronDownOutline,
+  GitCompareOutline,
+  ArchiveOutline
+} from '@vicons/ionicons5'
 import { useFetchHomeData } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
@@ -66,7 +73,7 @@ function handleCompare() {
     <NAlert v-if="maintenanceMode" type="warning" class="maintenance-alert">
       <template #header>
         <div class="alert-header">
-          <i class="bi bi-tools"></i>
+          <NIcon :component="ConstructOutline" :size="18" />
           <span>Maintenance Mode</span>
         </div>
       </template>
@@ -86,14 +93,14 @@ function handleCompare() {
         >
           <NButton secondary size="large">
             <template #icon>
-              <i class="bi bi-git"></i>
+              <NIcon :component="GitBranchOutline" />
             </template>
             {{ selectedBranch }}
-            <i class="bi bi-chevron-down" style="margin-left: 6px; font-size: 12px"></i>
+            <NIcon :component="ChevronDownOutline" :size="16" style="margin-left: 6px" />
           </NButton>
         </NDropdown>
         <span v-else class="branch-title">
-          <i class="bi bi-git"></i>
+          <NIcon :component="GitBranchOutline" :size="24" />
           {{ selectedBranch }}
         </span>
 
@@ -101,7 +108,7 @@ function handleCompare() {
           <!-- Compare button -->
           <NButton v-if="commitSelection.canDiff" type="success" @click="handleCompare">
             <template #icon>
-              <i class="bi bi-file-diff"></i>
+              <NIcon :component="GitCompareOutline" />
             </template>
             Compare Selected ({{ commitSelection.selectedCommits.length }}/2)
           </NButton>
@@ -125,7 +132,7 @@ function handleCompare() {
 
       <!-- Empty state -->
       <div v-else class="empty-state">
-        <i class="bi bi-inbox"></i>
+        <NIcon :component="ArchiveOutline" :size="48" />
         <p>No commits found for this branch.</p>
       </div>
     </div>
@@ -206,20 +213,11 @@ function handleCompare() {
   justify-content: center;
   padding: 80px 20px;
   color: #999;
-}
-
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
+  gap: 16px;
 }
 
 .empty-state p {
   margin: 0;
   font-size: 16px;
-}
-
-/* Bootstrap icons styling */
-.bi {
-  line-height: 1;
 }
 </style>

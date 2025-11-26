@@ -1,11 +1,5 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { createBootstrap } from 'bootstrap-vue-next'
-// bootstrap
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
-// bootstrap-icons
-import 'bootstrap-icons/font/bootstrap-icons.css'
 
 // Naive UI
 import naive from 'naive-ui'
@@ -23,7 +17,6 @@ const pinia = createPinia()
 provideApolloClient(gqlClient)
 
 app.use(pinia)
-app.use(createBootstrap())
 app.use(naive)
 app.use(router)
 
