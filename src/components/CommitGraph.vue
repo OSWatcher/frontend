@@ -366,6 +366,8 @@ function createViewButton(
  * Attaches hover effects to a commit row
  */
 function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: any) => void) {
+  const parentNode = hoverBg.node()?.parentNode as any
+
   hoverBg
     .on('mouseenter', function () {
       d3.select(this).style('opacity', 1).transition().duration(CONFIG.transition.duration)
@@ -373,22 +375,50 @@ function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: 
         .transition()
         .duration(CONFIG.transition.duration)
         .attr('r', CONFIG.nodeRadius * CONFIG.circle.hoverScale)
-      d3.select(this.parentNode as any)
+      d3.select(parentNode)
         .select('.view-button')
         .transition()
         .duration(CONFIG.transition.duration)
         .style('opacity', 1)
     })
-    .on('mouseleave', function () {
+    .on('mouseleave', function (event) {
+      // Don't hide if moving to the view button
+      const relatedTarget = event.relatedTarget
+      if (relatedTarget && d3.select(parentNode).select('.view-button').node()?.contains(relatedTarget)) {
+        return
+      }
+
       d3.select(this).transition().duration(CONFIG.transition.duration).style('opacity', 0)
       circle.transition().duration(CONFIG.transition.duration).attr('r', CONFIG.nodeRadius)
-      d3.select(this.parentNode as any)
+      d3.select(parentNode)
         .select('.view-button')
         .transition()
         .duration(CONFIG.transition.duration)
         .style('opacity', 0)
     })
     .on('click', onClick)
+
+  // Also handle mouseleave from the view button
+  const handleButtonLeave = function(event: any) {
+    const relatedTarget = event.relatedTarget
+    // Don't hide if moving back to the hover background
+    if (relatedTarget && hoverBg.node()?.contains(relatedTarget)) {
+      return
+    }
+
+    hoverBg.transition().duration(CONFIG.transition.duration).style('opacity', 0)
+    circle.transition().duration(CONFIG.transition.duration).attr('r', CONFIG.nodeRadius)
+    d3.select(parentNode)
+      .select('.view-button')
+      .transition()
+      .duration(CONFIG.transition.duration)
+      .style('opacity', 0)
+  }
+
+  // Attach mouseleave to view button's foreignObject
+  d3.select(parentNode)
+    .select('.view-button')
+    .on('mouseleave', handleButtonLeave)
 }
 
 /**
