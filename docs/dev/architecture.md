@@ -11,453 +11,684 @@ This document describes the architectural patterns and design decisions for the 
 - **Vue Router 4.4+** - Client-side routing
 
 ### UI Components
-- **Naive UI 2.x** - Component library
+- **Naive UI 2.x** - Modern Vue 3 component library
   - TypeScript-first design
   - Built-in dark mode support
-  - Lightweight (~150kb)
-  - Tree-shakeable
+  - Lightweight and tree-shakeable
+  - Comprehensive component set
+  - Excellent documentation
 
 ### State Management
 - **Pinia 2.x** - Official Vue state management
-  - Used for global state (commit selection, UI preferences)
+  - Used for global state (branch selection, commit selection)
   - TypeScript-friendly with excellent type inference
   - DevTools support with time-travel debugging
 
 ### Data Layer
 - **Apollo Client 3.11+** - GraphQL client
-- **GraphQL Code Generator** - Auto-generates TypeScript types
-- **@vue/apollo-composable** - Vue integration
+- **GraphQL Code Generator** - Auto-generates TypeScript types from schema
+- **@vue/apollo-composable** - Vue integration for Apollo
 
 ### Development Tools
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Vitest** - Unit testing (optional)
-- **Playwright** - E2E testing (optional)
+- **ESLint 8.57** - Code linting
+- **Prettier 3.2** - Code formatting
+- **VitePress 1.0** - Documentation site generator
 
-## Component Patterns
+## Unified Inspector Architecture
 
-### Base Component Pattern
+### Design Philosophy
 
-The frontend uses a **Generic + Specialized** pattern to eliminate code duplication:
+The unified Inspector architecture replaces the old separate OSView/DiffView pattern with a single, cohesive system that handles both single commit viewing and comparison mode.
+
+**Key Principles:**
+1. **Single Responsibility**: One view orchestrates everything (InspectorView)
+2. **Mode-Aware Components**: Components adapt based on mode (single vs comparison)
+3. **Layout Flexibility**: Support both unified and side-by-side layouts
+4. **Type Safety**: Full TypeScript coverage with discriminated unions
+5. **Async Loading**: Don't block UI while checking capabilities
+
+### Architecture Overview
 
 ```
-BaseExplorer (generic)          BaseDiffExplorer (generic)
-├── FilesystemExplorer          ├── FilesystemDiff
-├── RegistryExplorer            ├── RegistryDiff
-└── PDBExplorer                 └── PDBDiff
+InspectorView (Orchestrator)
+├── InspectorHeader (Commit info, breadcrumbs, controls)
+├── NTabs (Dynamic tab bar)
+│   ├── FilesystemInspector (Always available)
+│   └── RegistryInspector (Windows only, loaded async)
+└── Capabilities Loading Indicator (Inline with tabs)
 ```
 
-#### BaseExplorer
+## Core Components
 
-Generic tree/table navigator for hierarchical data exploration.
+### InspectorView.vue
 
-**Features**:
-- Breadcrumb navigation
-- Pagination support
-- Export to JSON
-- Customizable columns
-- Click handling
+**Location**: `src/views/InspectorView.vue`
 
-**Props**:
+**Responsibility**: Main orchestrator that handles routing, mode detection, commit loading, and capability checking.
+
+**Routes**:
+- `/inspect/:commitHash` - Single mode (view one commit)
+- `/inspect/:baseHash/vs/:diffeeHash` - Comparison mode (diff two commits)
+
+**Query Parameters**:
+- `path` - Initial filesystem path to navigate to
+- `layout` - Layout mode for comparison ('unified' | 'side-by-side')
+- `branch` - Branch name for display in breadcrumbs
+
+**Key Features**:
 ```typescript
-interface Props<T> {
-  fetchEntries: (path: string, page: number, pageSize: number) => Promise<{
-    items: T[]
-    total_count: number
-  }>
-  columns: DataTableColumn[]
-  onItemClick?: (item: T) => void
-  initialPath?: string
-  paginate?: boolean
-  exportable?: boolean
+// Mode detection
+const inspectorMode = computed<InspectorMode>(() => {
+  return route.params.diffeeHash ? 'comparison' : 'single'
+})
+
+// Async capability checking (non-blocking)
+async function checkCapabilities(commitHash: string) {
+  const labels = await fetchExtractedDataLabels(commitHash)
+  hasRegistry.value = labels.includes('WinRegKey')
+  // UI already visible, this just adds Registry tab when ready
+}
+
+// Load filesystem immediately, check capabilities in background
+async function initializeInspector() {
+  await fetchCommitInfo() // Load commit details
+  isLoading.value = false // Show UI immediately
+  checkCapabilities()     // Load additional tabs async
 }
 ```
 
-**Usage Pattern**:
-```vue
-<!-- FilesystemExplorer.vue -->
-<BaseExplorer
-  :fetch-entries="fetchFilesystemEntries"
-  :columns="filesystemColumns"
-  :on-item-click="handleFileClick"
-/>
-```
+**State Management**:
+- `isLoading` - Main loading state (commit details only)
+- `isLoadingCapabilities` - Background loading for additional tabs
+- `singleCommit` / `baseCommit` / `diffeeCommit` - Commit contexts
+- `hasRegistry` - Whether Registry tab should be shown
 
-#### BaseDiffExplorer
+### InspectorHeader.vue
 
-Generic diff viewer with color-coded status indicators.
+**Location**: `src/components/InspectorHeader.vue`
 
-**Features**:
-- NEW/MOD/DEL status with color coding
-- Breadcrumb navigation for diff paths
-- Filter by diff status
-- Recursive depth control
-- Export local or global changes
+**Responsibility**: Displays commit information, breadcrumbs, and controls (layout toggle, comparison management).
 
 **Props**:
 ```typescript
-interface Props<T> {
-  fetchDiff: (path: string, page: number, pageSize: number) => Promise<{
-    items: T[]
-    total_count: number
-  }>
-  columns: DataTableColumn[]
-  filterStatus?: DiffStatus[]
-  maxDepth?: number
+interface Props {
+  mode: InspectorMode           // 'single' | 'comparison'
+  layout: InspectorLayout       // 'unified' | 'side-by-side'
+  commit?: CommitContext        // For single mode
+  baseCommit?: CommitContext    // For comparison mode
+  diffeeCommit?: CommitContext  // For comparison mode
+  branchName?: string           // Display in breadcrumbs
+  activeTab?: string            // Current active tab
 }
 ```
 
-**Color Scheme**:
-- **NEW** - Green (`#d4edda`)
-- **MOD** - Yellow (`#fff3cd`)
-- **DEL** - Red (`#f8d7da`)
+**Features**:
+- Shows commit name/hash with tooltip
+- Breadcrumb navigation (Home → Branch → Commit)
+- "Add vs" button in single mode
+- "Remove comparison" button in comparison mode
+- Layout toggle (unified ↔ side-by-side) in comparison mode
 
-### View Components
+### FilesystemInspector.vue
 
-#### HomeView
-- Displays branch selection
-- Shows commit history table
-- Manages commit selection for diff comparison
-- Uses Pinia store for selection state
+**Location**: `src/components/FilesystemInspector.vue`
 
-#### OSView
-- Single OS snapshot explorer
-- Dynamic tabs based on commit capabilities
-- Tabs: Filesystem (always), Registry (Windows), PDB (Windows, if extracted)
+**Responsibility**: Unified component for filesystem viewing in both single and comparison modes.
 
-#### DiffView
-- Two-commit comparison
-- Dynamic tabs matching OSView structure
-- Shows NEW/MOD/DEL changes
+**Key Features**:
+- **Mode-Aware Rendering**: Switches between single/comparison columns
+- **Breadcrumb Navigation**: Clickable path segments
+- **Pagination**: 50/100/200 items per page
+- **Download Links**: For files in single mode
+- **Diff Visualization**: Status tags and row colors in comparison mode
+
+**Column Definitions**:
+```typescript
+// Single Mode
+const singleModeColumns = [
+  { icon, name, type, size, actions (download) }
+]
+
+// Comparison Mode (Unified)
+const comparisonModeColumns = [
+  { icon, name, status, size }
+]
+
+// Side-by-Side
+const sideBySideColumns = [
+  { icon, name, type, size }
+]
+```
+
+**Diff Row Styling**:
+```css
+.diff-row-new { background-color: #f0fdf4 }      /* Green */
+.diff-row-modified { background-color: #fffbeb } /* Yellow */
+.diff-row-deleted { background-color: #fef2f2 }  /* Red */
+```
+
+### RegistryInspector.vue
+
+**Location**: `src/components/RegistryInspector.vue`
+
+**Responsibility**: Unified component for Windows Registry viewing in both single and comparison modes.
+
+**Key Features**:
+- **Hive Selection**: Dropdown to choose registry hive (HKLM, HKU, etc.)
+- **Dynamic Hive Loading**: Fetches available hives from commit data
+- **Breadcrumb Navigation**: Shows current registry path
+- **Value Display**: Shows registry value types and data
+- **Diff Support**: Same status indicators as filesystem
+
+**Hive Structure**:
+```typescript
+interface RegistryHive {
+  mountPath: string  // e.g., "HKEY_LOCAL_MACHINE/SAM"
+  hash: string       // WinRegKey root hash
+  diffeeHash?: string // For comparison mode
+}
+```
+
+**Registry Path Handling**:
+- Uses forward slash `/` as path separator (unified with backend)
+- Displays with spacing: "HKEY_LOCAL_MACHINE / SAM" for readability
+- Breadcrumbs support navigation to parent keys
 
 ## Composables
 
-Reusable logic extracted into composables to eliminate duplication:
+### useFilesystemInspector.ts
 
-### useTreeNavigation
+**Location**: `src/composables/useFilesystemInspector.ts`
 
-Manages breadcrumb navigation and path traversal.
+**Responsibility**: Reactive state management and data fetching for filesystem.
 
+**Key Functions**:
 ```typescript
-export function useTreeNavigation(initialPath = '/') {
-  const currentPath = ref(initialPath)
-  const breadcrumbs = computed(() =>
-    currentPath.value.split('/').filter(Boolean).map((segment, idx, arr) => ({
-      label: segment,
-      path: '/' + arr.slice(0, idx + 1).join('/')
-    }))
-  )
-
-  function navigateTo(path: string) {
-    currentPath.value = path
+export function useFilesystemInspector(
+  mode: InspectorMode,
+  layout: InspectorLayout,
+  commit?: CommitContext,
+  baseCommit?: CommitContext,
+  diffeeCommit?: CommitContext,
+  initialPath?: string
+) {
+  // Returns:
+  return {
+    currentPath,      // Current filesystem path
+    entries,          // Parsed and sorted entries
+    breadcrumbs,      // Navigation breadcrumbs
+    isLoading,        // Loading state
+    error,            // Error state
+    navigateToPath,   // Navigate to new path
+    refresh           // Reload current path
   }
-
-  return { currentPath, breadcrumbs, navigateTo }
 }
 ```
 
-### usePagination
+**Mode Handling**:
+- **Single Mode**: Fetches entries at path from single commit
+- **Comparison Mode**: Fetches diff entries comparing base vs diffee
 
-Shared pagination logic for tables.
+**GraphQL Queries**:
+- `TRAVERSE_PATH` - Get hash of node at path
+- `LIST_ENTRIES_FOR_TREE` - Get child blobs and trees
+- `DIFF_NODES` - Get diff between two tree nodes
 
+### useRegistryInspector.ts
+
+**Location**: `src/composables/useRegistryInspector.ts`
+
+**Responsibility**: Reactive state management and data fetching for Windows Registry.
+
+**Key Functions**:
 ```typescript
-export function usePagination(initialPageSize = 50) {
-  const currentPage = ref(1)
-  const pageSize = ref(initialPageSize)
-  const totalCount = ref(0)
-  const pageCount = computed(() => Math.ceil(totalCount.value / pageSize.value))
-
-  function setPage(page: number) {
-    currentPage.value = page
+export function useRegistryInspector(
+  mode: InspectorMode,
+  layout: InspectorLayout,
+  commit?: CommitContext,
+  baseCommit?: CommitContext,
+  diffeeCommit?: CommitContext
+) {
+  // Returns:
+  return {
+    currentPath,       // Current registry path
+    entries,           // Parsed and sorted entries
+    breadcrumbs,       // Navigation breadcrumbs
+    isLoading,         // Loading state
+    isLoadingHives,    // Hive loading state
+    error,             // Error state
+    availableHives,    // Available registry hives
+    selectedHive,      // Currently selected hive
+    navigateToPath,    // Navigate to new path
+    selectHive,        // Change selected hive
+    refresh            // Reload current path
   }
-
-  return { currentPage, pageSize, totalCount, pageCount, setPage }
 }
 ```
 
-### useGraphQLConnection
-
-Parses GraphQL connection pattern responses.
-
+**Hive Discovery**:
 ```typescript
-export function useGraphQLConnection() {
-  function parseTreeConnection(data: {
-    child_blobsConnection: { edges: any[]; totalCount: number }
-    child_treesConnection: { edges: any[]; totalCount: number }
-  }) {
-    const files = data.child_blobsConnection.edges.map(edge => ({
-      name: edge.properties.name,
-      type: NodeType.Blob,
-      hash: edge.node.hash
-    }))
+// Single mode
+const hives = await GetSystemHives(commit.hash)
 
-    const dirs = data.child_treesConnection.edges.map(edge => ({
-      name: edge.properties.name,
-      type: NodeType.Tree,
-      hash: edge.node.hash
-    }))
+// Comparison mode
+const baseHives = await GetSystemHives(baseCommit.hash)
+const diffeeHives = await GetSystemHives(diffeeCommit.hash)
+// Match hives by mount path
+```
 
-    return {
-      items: [...dirs, ...files],
-      total_count: data.child_blobsConnection.totalCount + data.child_treesConnection.totalCount
-    }
-  }
+## Utility Modules
 
-  function parseRegistryConnection(data: {
-    child_keysConnection: { edges: any[]; totalCount: number }
-    child_valuesConnection: { edges: any[]; totalCount: number }
-  }) {
-    // Similar pattern for registry
-  }
+### filesystem.ts
 
-  return { parseTreeConnection, parseRegistryConnection }
+**Location**: `src/utils/filesystem.ts`
+
+**Purpose**: Pure functions for filesystem data transformation.
+
+**Key Functions**:
+```typescript
+// Parse GraphQL response into FilesystemEntry[]
+export function parseFilesystemEntries(rawEntries, currentPath): FilesystemEntry[]
+
+// Parse GraphQL diff response into FilesystemDiffEntry[]
+export function parseFilesystemDiffEntries(rawDiffEntries, currentPath): FilesystemDiffEntry[]
+
+// Path manipulation
+export function joinPath(base: string, segment: string): string
+export function splitPath(path: string): string[]
+export function getParentPath(path: string): string
+
+// Display helpers
+export function formatFileSize(bytes?: number): string
+export function getStatusTagType(status: DiffStatus): 'success' | 'warning' | 'error'
+export function getDownloadUrl(hash: string): string
+
+// Breadcrumbs
+export function generateBreadcrumbs(path: string, includeHome = true): BreadcrumbItem[]
+
+// Sorting
+export function sortFilesystemEntries<T extends FilesystemEntry>(entries: T[]): T[]
+```
+
+### registry.ts
+
+**Location**: `src/utils/registry.ts`
+
+**Purpose**: Pure functions for registry data transformation.
+
+**Key Functions**:
+```typescript
+// Parse GraphQL response into RegistryEntry[]
+export function parseRegistryEntries(rawEntries, currentPath): RegistryEntry[]
+
+// Parse GraphQL diff response into RegistryDiffEntry[]
+export function parseRegistryDiffEntries(rawDiffEntries, currentPath): RegistryDiffEntry[]
+
+// Path manipulation (uses '/' like filesystem)
+export function joinRegistryPath(base: string, segment: string): string
+export function splitRegistryPath(path: string): string[]
+export function getParentRegistryPath(path: string): string
+
+// Display helpers
+export function formatRegistryValue(value?: string, maxLength = 100): string
+export function getRegistryStatusTagType(status: DiffStatus): TagType
+
+// Breadcrumbs
+export function generateRegistryBreadcrumbs(
+  hiveName: string,
+  path: string,
+  includeHome = true
+): RegistryBreadcrumbItem[]
+
+// Sorting
+export function sortRegistryEntries<T extends RegistryEntry>(entries: T[]): T[]
+```
+
+## Type System
+
+### inspector.ts
+
+**Location**: `src/types/inspector.ts`
+
+**Purpose**: Core type definitions for the unified Inspector architecture.
+
+**Key Types**:
+```typescript
+// Mode discrimination
+export type InspectorMode = 'single' | 'comparison'
+export type InspectorLayout = 'unified' | 'side-by-side'
+
+// Commit context
+export interface CommitContext {
+  hash: string
+  name: string
+}
+
+// Filesystem types
+export interface FilesystemEntry {
+  name: string
+  type: 'blob' | 'tree'
+  hash: string
+  size?: number
+  path: string
+}
+
+export interface FilesystemDiffEntry extends FilesystemEntry {
+  status: DiffStatus
+  baseHash?: string
+  diffeeHash?: string
+  baseSize?: number
+  diffeeSize?: number
+}
+
+// Breadcrumb navigation
+export interface BreadcrumbItem {
+  label: string
+  path?: string
+  icon?: string
 }
 ```
+
+### registry.ts
+
+**Location**: `src/types/registry.ts`
+
+**Purpose**: Type definitions for Windows Registry structures.
+
+**Key Types**:
+```typescript
+// Registry entry types
+export interface RegistryEntry {
+  name: string
+  type: 'key' | 'value'
+  path: string
+  value?: string
+  valueType?: string
+}
+
+export interface RegistryDiffEntry extends RegistryEntry {
+  status: DiffStatus
+  baseValue?: string
+  diffeeValue?: string
+  baseValueType?: string
+  diffeeValueType?: string
+}
+
+// Registry hive
+export interface RegistryHive {
+  mountPath: string
+  hash: string
+  diffeeHash?: string  // For comparison mode
+}
+
+// Breadcrumb
+export interface RegistryBreadcrumbItem {
+  label: string
+  path?: string
+  icon?: string
+}
+```
+
+## Routing Structure
+
+```
+/                              → HomeView (commit history browser)
+/inspect/:commitHash           → InspectorView (single mode)
+  - Query params: ?path=<path>&branch=<name>
+/inspect/:baseHash/vs/:diffeeHash → InspectorView (comparison mode)
+  - Query params: ?path=<path>&layout=<layout>&branch=<name>
+```
+
+### Route Evolution
+
+**Old Routes** (removed):
+- `/os/:commitHash` - Old OS view
+- `/diff/:baseHash/:diffeeHash` - Old diff view
+
+**New Routes** (current):
+- `/inspect/:commitHash` - Unified single view
+- `/inspect/:baseHash/vs/:diffeeHash` - Unified comparison view
+
+**Benefits**:
+- Clearer URL structure
+- Single code path for both modes
+- Easier to add new tabs
+- Consistent UX
 
 ## Pinia Stores
 
-### Commit Selection Store
+### commitSelection.ts
 
-Manages selected commits for diff comparison.
+**Location**: `src/stores/commitSelection.ts`
 
-**File**: `src/stores/commitSelection.ts`
+**Purpose**: Manages selected commits for diff comparison.
 
+**State**:
 ```typescript
-export const useCommitSelectionStore = defineStore('commitSelection', () => {
-  const selectedCommits = ref<string[]>([])
-  const maxSelection = 2
-
-  const canDiff = computed(() => selectedCommits.value.length === maxSelection)
-
-  const diffLink = computed(() => {
-    if (canDiff.value) {
-      const [base, diffee] = selectedCommits.value
-      return `/diff/${base}/${diffee}`
-    }
-    return null
-  })
-
-  function toggle(hash: string) {
-    const index = selectedCommits.value.indexOf(hash)
-    if (index >= 0) {
-      selectedCommits.value.splice(index, 1)
-    } else if (selectedCommits.value.length < maxSelection) {
-      selectedCommits.value.push(hash)
-    }
-  }
-
-  function clear() {
-    selectedCommits.value = []
-  }
-
-  function isSelected(hash: string): boolean {
-    return selectedCommits.value.includes(hash)
-  }
-
-  return {
-    selectedCommits,
-    canDiff,
-    diffLink,
-    toggle,
-    clear,
-    isSelected
-  }
-})
-```
-
-### UI Preferences Store
-
-Manages user interface preferences with localStorage persistence.
-
-**File**: `src/stores/preferences.ts`
-
-```typescript
-export const usePreferencesStore = defineStore('preferences', () => {
-  const darkMode = ref(loadFromStorage('darkMode', false))
-  const pageSize = ref(loadFromStorage('pageSize', 50))
-  const defaultBranch = ref<string | null>(loadFromStorage('defaultBranch', null))
-
-  // Watch and persist changes
-  watch(darkMode, (value) => saveToStorage('darkMode', value))
-  watch(pageSize, (value) => saveToStorage('pageSize', value))
-  watch(defaultBranch, (value) => saveToStorage('defaultBranch', value))
-
-  function toggleDarkMode() {
-    darkMode.value = !darkMode.value
-  }
-
-  function setPageSize(size: number) {
-    if (size > 0 && size <= 100) {
-      pageSize.value = size
-    }
-  }
-
-  return {
-    darkMode,
-    pageSize,
-    defaultBranch,
-    toggleDarkMode,
-    setPageSize
-  }
-})
-```
-
-## Naive UI Component Mapping
-
-Mapping from old Bootstrap-Vue-Next components to Naive UI:
-
-| Old Component | New Component | Usage |
-|---------------|---------------|-------|
-| BTable | NDataTable | Tables with sorting, pagination |
-| BTabs/BTab | NTabs/NTabPane | Multi-tab interfaces |
-| BButton | NButton | Actions and navigation |
-| BDropdown | NDropdown | Branch/hive selection |
-| BPagination | NPagination | Table pagination |
-| BFormCheckbox | NCheckbox | Commit selection |
-| BModal | NModal | Search dialog |
-| BNavbar | NLayout/NLayoutHeader | App header |
-| BSpinner | NSpin | Loading states |
-| - | NBreadcrumb | Path navigation (new) |
-| - | NTag | Diff status badges (new) |
-| - | NAlert | Error messages (new) |
-| - | NSpace | Consistent spacing (new) |
-
-## Theme Customization
-
-**File**: `src/naive-theme.ts`
-
-```typescript
-import { GlobalThemeOverrides } from 'naive-ui'
-
-export const naiveThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    primaryColor: '#3b4a6b',        // Brand color
-    primaryColorHover: '#4a5d87',
-    primaryColorPressed: '#2c3a52',
-    borderRadius: '4px',
-  },
-  DataTable: {
-    thColor: '#f5f5f5',             // Table header background
-    thTextColor: '#333',
-    tdColorHover: '#fafafa',
-  },
-  Tag: {
-    colorSuccess: '#d4edda',        // NEW (green)
-    colorWarning: '#fff3cd',        // MOD (yellow)
-    colorError: '#f8d7da',          // DEL (red)
-  }
+{
+  selectedCommits: string[]  // Max 2 commit hashes
 }
 ```
 
-**Usage in App.vue**:
+**Computed**:
+```typescript
+{
+  canDiff: boolean          // True when 2 commits selected
+  diffLink: string | null   // URL for diff view
+}
+```
+
+**Actions**:
+```typescript
+{
+  toggle(hash: string)      // Toggle commit selection
+  clear()                   // Clear all selections
+  isSelected(hash: string)  // Check if hash is selected
+}
+```
+
+### branchSelection.ts
+
+**Location**: `src/stores/branchSelection.ts`
+
+**Purpose**: Manages currently selected branch in HomeView.
+
+**State**:
+```typescript
+{
+  selectedBranchName: string | null
+  selectedBranchHash: string | null
+}
+```
+
+**Actions**:
+```typescript
+{
+  selectBranch(name: string, hash: string)
+  clearSelection()
+}
+```
+
+## Naive UI Component Usage
+
+### Core Components
+
+| Component | Usage | Location |
+|-----------|-------|----------|
+| NDataTable | Tables with sorting, pagination | All inspectors |
+| NTabs/NTabPane | Multi-tab interfaces | InspectorView |
+| NButton | Actions and navigation | Throughout |
+| NBreadcrumb | Path navigation | All inspectors |
+| NTag | Status indicators (NEW/MOD/DEL) | Diff views |
+| NIcon | Icons throughout | Throughout |
+| NSpin | Loading states | Loading screens |
+| NAlert | Error messages | Error states |
+| NSpace | Consistent spacing | Layouts |
+| NSelect | Dropdown selections | Registry hive picker |
+| NModal | Search dialog | App.vue |
+| NConfigProvider | Theme and config | App.vue wrapper |
+
+### Theme Configuration
+
+NConfigProvider wraps the entire app to provide consistent theming:
 
 ```vue
 <template>
-  <n-config-provider :theme="isDark ? darkTheme : undefined" :theme-overrides="naiveThemeOverrides">
-    <RouterView />
-  </n-config-provider>
+  <NConfigProvider>
+    <NLayout class="app-layout">
+      <!-- App content -->
+    </NLayout>
+  </NConfigProvider>
 </template>
-
-<script setup lang="ts">
-import { darkTheme } from 'naive-ui'
-import { naiveThemeOverrides } from '@/naive-theme'
-import { usePreferencesStore } from '@/stores/preferences'
-
-const preferences = usePreferencesStore()
-const isDark = computed(() => preferences.darkMode)
-</script>
 ```
 
-## Project Structure
+## Design Patterns
 
-```
-src/
-├── views/                      # Route-based views
-│   ├── HomeView.vue           # Commit history browser
-│   ├── OSView.vue             # OS snapshot explorer
-│   └── DiffView.vue           # Commit comparison
-├── components/
-│   ├── base/                  # Generic base components
-│   │   ├── BaseExplorer.vue
-│   │   ├── BaseDiffExplorer.vue
-│   │   └── DiffStatusTag.vue
-│   └── explorers/             # Specialized explorers
-│       ├── FilesystemExplorer.vue
-│       ├── RegistryExplorer.vue
-│       └── PDBExplorer.vue
-├── composables/               # Reusable logic
-│   ├── usePagination.ts
-│   ├── useTreeNavigation.ts
-│   └── useGraphQLConnection.ts
-├── stores/                    # Pinia stores
-│   ├── commitSelection.ts
-│   └── preferences.ts
-├── router/                    # Vue Router config
-├── graphql-client.ts          # Apollo Client setup
-├── queries.ts                 # GraphQL queries
-├── graphql-types.ts           # Generated types (auto)
-├── naive-theme.ts             # Naive UI theme
-└── main.ts                    # App initialization
+### 1. Mode-Aware Components
+
+Components adapt their behavior and UI based on `InspectorMode`:
+
+```typescript
+// Columns change based on mode
+const tableColumns = computed(() => {
+  if (props.mode === 'single') {
+    return singleModeColumns.value
+  } else {
+    return comparisonModeColumns.value
+  }
+})
+
+// Different queries based on mode
+if (mode === 'single') {
+  await fetchEntriesForSingleMode()
+} else {
+  await fetchEntriesForComparisonMode()
+}
 ```
 
-## Design Principles
+### 2. Pure Utility Functions
 
-### 1. Generic + Specialized Pattern
+All data transformation happens in pure functions (no side effects):
 
-Create generic base components that handle common functionality, then specialize for specific data types.
+```typescript
+// ✅ Good - Pure function
+export function parseFilesystemEntries(rawEntries, currentPath) {
+  return rawEntries.map(entry => ({
+    name: entry.name,
+    type: entry.type,
+    path: joinPath(currentPath, entry.name)
+  }))
+}
 
-**Benefits**:
-- Single source of truth for navigation/diff logic
-- Easy to add new data types
-- Consistent UX across features
-- Reduced code duplication (~150 lines eliminated)
+// ❌ Bad - Side effects
+function parseEntries(rawEntries) {
+  currentPath.value = '/' // Don't mutate external state
+  return entries
+}
+```
 
-### 2. Composables for Shared Logic
+### 3. Composables for State Management
 
-Extract reusable logic into composables instead of duplicating code.
+Composables encapsulate reactive state and side effects:
 
-**Benefits**:
-- Testable in isolation
-- Reusable across components
-- Type-safe
-- Better separation of concerns
+```typescript
+export function useFilesystemInspector(...props) {
+  const currentPath = ref('/')
+  const entries = ref<FilesystemEntry[]>([])
+  const isLoading = ref(false)
 
-### 3. Pinia for Global State
+  async function navigateToPath(path: string) {
+    isLoading.value = true
+    entries.value = await fetchEntries(path)
+    isLoading.value = false
+    currentPath.value = path
+  }
 
-Use Pinia stores for state that needs to be shared across multiple components or persisted.
+  return { currentPath, entries, isLoading, navigateToPath }
+}
+```
 
-**When to use stores**:
-- Commit selection (shared between HomeView and commit table)
-- UI preferences (dark mode, page size)
-- Current branch selection
+### 4. Type-Safe GraphQL
 
-**When to use local state**:
-- Component-specific UI state (modals, dropdowns)
-- Temporary form data
-- Loading states
+Always use generated types with GraphQL queries:
 
-### 4. Type Safety First
+```typescript
+// ✅ Good
+const response = await gqlClient.query<TraversePathQuery>({
+  query: TRAVERSE_PATH,
+  variables: { ... }
+})
+const hash = response.data.traversePath.hash
 
-Leverage TypeScript and auto-generated GraphQL types for compile-time safety.
+// ❌ Bad
+const response = await gqlClient.query({
+  query: TRAVERSE_PATH,
+  variables: { ... }
+})
+const hash = response.data['traversePath']['hash']  // No type safety!
+```
 
-**Avoid**:
-- `any` types - use generated GraphQL types instead
-- Untyped GraphQL queries - use typed queries or composables
-- Manual type definitions - use code generation
+### 5. Async Capability Loading
+
+Don't block the main UI while checking for optional features:
+
+```typescript
+async function initialize() {
+  await loadCommitDetails()    // Required - block on this
+  isLoading.value = false       // Show UI immediately
+
+  checkCapabilities()           // Optional - don't await
+  // Registry tab appears when ready, user can use filesystem meanwhile
+}
+```
 
 ## Performance Considerations
 
 ### Bundle Size
-- Use tree-shaking with component-level imports
-- Lazy-load non-critical routes
-- Target: <500kb initial bundle
+- Naive UI is tree-shakeable - only imported components are bundled
+- Target: <500kb initial bundle (currently achieved)
+- Lazy-load non-critical routes if needed
 
 ### Data Fetching
-- Use Apollo Client cache for repeated queries
-- Implement pagination for large datasets
-- Consider background refetching for stale data
+- Apollo Client cache reduces redundant queries
+- Pagination limits data transfer (50/100/200 items)
+- Background capability checking doesn't block UI
 
 ### Rendering
-- Use `v-show` vs `v-if` for frequently toggled elements
-- Implement virtual scrolling for long lists (if needed)
-- Memoize expensive computed properties
+- Virtual scrolling via NDataTable's `virtual-scroll` prop
+- Computed properties are memoized automatically
+- Use `v-show` for frequently toggled elements (tabs)
+
+## Testing Strategy (Future)
+
+### Unit Tests
+- Utility functions (`filesystem.ts`, `registry.ts`)
+- Composables (`useFilesystemInspector`, `useRegistryInspector`)
+- Pinia stores
+
+### Component Tests
+- Inspector components with mock data
+- Test both single and comparison modes
+- Test layout switching
+
+### E2E Tests
+- Full navigation flows
+- Search functionality
+- Diff comparison
+
+## Future Enhancements
+
+### Short Term
+- Add unit tests for utils and composables
+- Add component tests
+- Implement error boundaries
+
+### Medium Term
+- Add PDB Inspector (symbols and structures)
+- Support more than 2-way diffs
+- Advanced search with filters
+
+### Long Term
+- Timeline view for tracking changes across many commits
+- Export diff reports (PDF, CSV)
+- Collaborative annotations
