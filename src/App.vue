@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, h } from 'vue'
 import {
+  NConfigProvider,
   NLayout,
   NLayoutHeader,
   NLayoutContent,
@@ -161,8 +162,8 @@ const performSearch = () => {
 const handleRowClick = (row: SearchResult) => {
   showSearchModal.value = false
   router.push({
-    path: `/os/${row.commit_hash}`,
-    query: { os_title: row.commit_name, filesystem: row.path }
+    path: `/inspect/${row.commit_hash}`,
+    query: { path: row.path }
   })
 }
 
@@ -193,133 +194,135 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <NLayout class="app-layout">
-    <!-- Header -->
-    <NLayoutHeader bordered class="app-header">
-      <div class="header-content">
-        <div class="header-left">
-          <RouterLink to="/" class="brand-title"> OSWatcher </RouterLink>
-        </div>
+  <NConfigProvider>
+    <NLayout class="app-layout">
+      <!-- Header -->
+      <NLayoutHeader bordered class="app-header">
+        <div class="header-content">
+          <div class="header-left">
+            <RouterLink to="/" class="brand-title"> OSWatcher </RouterLink>
+          </div>
 
-        <div class="header-right">
-          <!-- Search Button -->
-          <NButton secondary @click="showSearchModal = true" class="search-trigger">
-            <template #icon>
+          <div class="header-right">
+            <!-- Search Button -->
+            <NButton secondary @click="showSearchModal = true" class="search-trigger">
+              <template #icon>
+                <NIcon><SearchOutline /></NIcon>
+              </template>
+              Search
+              <kbd class="kbd">⌘K</kbd>
+            </NButton>
+          </div>
+        </div>
+      </NLayoutHeader>
+
+      <!-- Main Content -->
+      <NLayoutContent class="app-content">
+        <RouterView />
+      </NLayoutContent>
+
+      <!-- Footer -->
+      <NLayoutFooter bordered class="app-footer">
+        <div class="footer-content-simple">
+          <div>
+            <NGradientText type="info" :size="18"> OSWatcher </NGradientText>
+            <p class="footer-tagline">Operating System Analysis & Tracking</p>
+          </div>
+          <div class="footer-copyright-simple">
+            <p>© 2024 OSWatcher</p>
+          </div>
+        </div>
+      </NLayoutFooter>
+
+      <!-- Search Modal -->
+      <NModal
+        v-model:show="showSearchModal"
+        preset="card"
+        title="Search Filesystem"
+        class="search-modal"
+        :style="{ width: '1200px', maxWidth: '95vw' }"
+        @after-leave="clearSearch"
+      >
+        <NSpace vertical :size="16">
+          <NInput
+            v-model:value="searchTerm"
+            placeholder="Search for files and directories..."
+            size="large"
+            clearable
+            autofocus
+            @keyup.enter="performSearch"
+          >
+            <template #prefix>
               <NIcon><SearchOutline /></NIcon>
             </template>
-            Search
-            <kbd class="kbd">⌘K</kbd>
-          </NButton>
-        </div>
-      </div>
-    </NLayoutHeader>
+          </NInput>
 
-    <!-- Main Content -->
-    <NLayoutContent class="app-content">
-      <RouterView />
-    </NLayoutContent>
+          <!-- Streaming status indicator -->
+          <div v-if="isStreaming" class="streaming-status">
+            <NSpin size="small" />
+            <span class="streaming-badge">● Live</span>
+            <span>Streaming results... ({{ streamingResultCount }} found)</span>
+          </div>
 
-    <!-- Footer -->
-    <NLayoutFooter bordered class="app-footer">
-      <div class="footer-content-simple">
-        <div>
-          <NGradientText type="info" :size="18"> OSWatcher </NGradientText>
-          <p class="footer-tagline">Operating System Analysis & Tracking</p>
-        </div>
-        <div class="footer-copyright-simple">
-          <p>© 2024 OSWatcher</p>
-        </div>
-      </div>
-    </NLayoutFooter>
+          <NDataTable
+            v-if="searchResults.length > 0 || isLoading"
+            :columns="searchColumns"
+            :data="searchResults"
+            :loading="isLoading && searchResults.length === 0"
+            :max-height="500"
+            :pagination="{
+              page: currentPage,
+              pageSize: pageSize,
+              showSizePicker: true,
+              pageSizes: [10, 20, 50, 100],
+              onChange: (page: number) => {
+                currentPage = page
+              },
+              onUpdatePageSize: (size: number) => {
+                pageSize = size
+              }
+            }"
+            :row-props="
+              (row: SearchResult) => ({
+                style: 'cursor: pointer;',
+                onClick: () => handleRowClick(row)
+              })
+            "
+            striped
+          />
 
-    <!-- Search Modal -->
-    <NModal
-      v-model:show="showSearchModal"
-      preset="card"
-      title="Search Filesystem"
-      class="search-modal"
-      :style="{ width: '1200px', maxWidth: '95vw' }"
-      @after-leave="clearSearch"
-    >
-      <NSpace vertical :size="16">
-        <NInput
-          v-model:value="searchTerm"
-          placeholder="Search for files and directories..."
-          size="large"
-          clearable
-          autofocus
-          @keyup.enter="performSearch"
-        >
-          <template #prefix>
-            <NIcon><SearchOutline /></NIcon>
-          </template>
-        </NInput>
-
-        <!-- Streaming status indicator -->
-        <div v-if="isStreaming" class="streaming-status">
-          <NSpin size="small" />
-          <span class="streaming-badge">● Live</span>
-          <span>Streaming results... ({{ streamingResultCount }} found)</span>
-        </div>
-
-        <NDataTable
-          v-if="searchResults.length > 0 || isLoading"
-          :columns="searchColumns"
-          :data="searchResults"
-          :loading="isLoading && searchResults.length === 0"
-          :max-height="500"
-          :pagination="{
-            page: currentPage,
-            pageSize: pageSize,
-            showSizePicker: true,
-            pageSizes: [10, 20, 50, 100],
-            onChange: (page: number) => {
-              currentPage = page
-            },
-            onUpdatePageSize: (size: number) => {
-              pageSize = size
-            }
-          }"
-          :row-props="
-            (row: SearchResult) => ({
-              style: 'cursor: pointer;',
-              onClick: () => handleRowClick(row)
-            })
-          "
-          striped
-        />
-
-        <div
-          v-else-if="
-            hasSearched && searchTerm && !isLoading && !isStreaming && searchResults.length === 0
-          "
-          class="empty-search"
-        >
-          <p>No results found for "{{ searchTerm }}"</p>
-        </div>
-      </NSpace>
-
-      <template #footer>
-        <NSpace justify="space-between">
-          <span v-if="searchResults.length > 0" class="result-summary">
-            {{ searchResults.length }} result(s)
-          </span>
-          <span v-else></span>
-          <NSpace>
-            <NButton @click="showSearchModal = false">Close</NButton>
-            <NButton
-              type="primary"
-              @click="performSearch"
-              :loading="isLoading && searchResults.length === 0"
-              :disabled="isStreaming"
-            >
-              {{ isStreaming ? 'Streaming...' : 'Search' }}
-            </NButton>
-          </NSpace>
+          <div
+            v-else-if="
+              hasSearched && searchTerm && !isLoading && !isStreaming && searchResults.length === 0
+            "
+            class="empty-search"
+          >
+            <p>No results found for "{{ searchTerm }}"</p>
+          </div>
         </NSpace>
-      </template>
-    </NModal>
-  </NLayout>
+
+        <template #footer>
+          <NSpace justify="space-between">
+            <span v-if="searchResults.length > 0" class="result-summary">
+              {{ searchResults.length }} result(s)
+            </span>
+            <span v-else></span>
+            <NSpace>
+              <NButton @click="showSearchModal = false">Close</NButton>
+              <NButton
+                type="primary"
+                @click="performSearch"
+                :loading="isLoading && searchResults.length === 0"
+                :disabled="isStreaming"
+              >
+                {{ isStreaming ? 'Streaming...' : 'Search' }}
+              </NButton>
+            </NSpace>
+          </NSpace>
+        </template>
+      </NModal>
+    </NLayout>
+  </NConfigProvider>
 </template>
 
 <style>
