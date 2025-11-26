@@ -1,0 +1,220 @@
+import { ref, computed, watch } from 'vue'
+import gqlClient from '@/graphql-client'
+import { GET_FS_ROOT, TRAVERSE_PATH, LIST_ENTRIES_FOR_TREE, DIFF_NODES } from '@/queries'
+import type {
+  InspectorMode,
+  InspectorLayout,
+  CommitContext,
+  FilesystemEntry,
+  FilesystemDiffEntry
+} from '@/types/inspector'
+import {
+  parseFilesystemEntries,
+  parseFilesystemDiffEntries,
+  generateBreadcrumbs,
+  sortEntries
+} from '@/utils/filesystem'
+
+export function useFilesystemInspector(
+  mode: InspectorMode,
+  layout: InspectorLayout,
+  commit?: CommitContext,
+  baseCommit?: CommitContext,
+  diffeeCommit?: CommitContext,
+  initialPath = '/'
+) {
+  const currentPath = ref<string>(initialPath)
+  const rawEntries = ref<any[]>([])
+  const isLoading = ref<boolean>(false)
+  const error = ref<Error | null>(null)
+  const fsRootHash = ref<string>('')
+  const baseFsRootHash = ref<string>('')
+  const diffeeFsRootHash = ref<string>('')
+
+  const entries = computed<FilesystemEntry[] | FilesystemDiffEntry[]>(() => {
+    if (mode === 'single') {
+      const parsed = parseFilesystemEntries(rawEntries.value, currentPath.value)
+      return sortEntries(parsed)
+    } else {
+      const parsed = parseFilesystemDiffEntries(rawEntries.value, currentPath.value)
+      return sortEntries(parsed)
+    }
+  })
+
+  const breadcrumbs = computed(() => {
+    return generateBreadcrumbs(currentPath.value)
+  })
+
+  async function fetchFsRootHash(commitHash: string): Promise<string> {
+    try {
+      const response = await gqlClient.query({
+        query: GET_FS_ROOT,
+        variables: { where: { hash: commitHash } }
+      })
+      const commit = response.data?.commits?.[0]
+      if (!commit) {
+        throw new Error(`Commit ${commitHash} not found`)
+      }
+      const fsRoot = commit.filesystemConnection?.edges?.[0]?.node?.hash
+      if (!fsRoot) {
+        throw new Error(`Commit ${commitHash} has no filesystem`)
+      }
+      return fsRoot
+    } catch (err) {
+      console.error('Error fetching filesystem root:', err)
+      throw err
+    }
+  }
+
+  async function traverseToPath(treeHash: string, path: string): Promise<string | null> {
+    try {
+      const response = await gqlClient.query({
+        query: TRAVERSE_PATH,
+        variables: { parent_label: 'Tree', tree_hash: treeHash, path: path }
+      })
+      const targetHash = response.data?.traversePath
+      if (!targetHash) {
+        console.warn(`Path ${path} not found in tree ${treeHash}`)
+        return null
+      }
+      return targetHash
+    } catch (err) {
+      console.warn('Error traversing path:', err)
+      return null
+    }
+  }
+
+  async function fetchEntriesForSingleMode(treeHash: string): Promise<any[]> {
+    try {
+      const response = await gqlClient.query({
+        query: LIST_ENTRIES_FOR_TREE,
+        variables: { where: { hash: treeHash } }
+      })
+      const tree = response.data?.trees?.[0]
+      if (!tree) {
+        return []
+      }
+      const blobs =
+        tree.child_blobsConnection?.edges?.map((edge: any) => ({
+          name: edge.properties.name,
+          type: 'blob',
+          hash: edge.node.hash,
+          size: edge.node.size
+        })) || []
+      const trees =
+        tree.child_treesConnection?.edges?.map((edge: any) => ({
+          name: edge.properties.name,
+          type: 'tree',
+          hash: edge.node.hash
+        })) || []
+      return [...blobs, ...trees]
+    } catch (err) {
+      console.error('Error fetching entries:', err)
+      throw err
+    }
+  }
+
+  async function fetchEntriesForComparisonMode(
+    baseTreeHash: string,
+    diffeeTreeHash: string,
+    path: string
+  ): Promise<any[]> {
+    try {
+      const response = await gqlClient.query({
+        query: DIFF_NODES,
+        variables: {
+          parentLabel: 'Tree',
+          baseNodeHash: baseTreeHash,
+          diffeeNodeHash: diffeeTreeHash,
+          atPath: path,
+          maxDepth: 0,
+          filter: ['Blob'],
+          options: { offset: 0, limit: 1000 }
+        }
+      })
+      const diffResult = response.data?.diffNodesAt
+      if (!diffResult) {
+        return []
+      }
+      return (
+        diffResult.items?.map((item: any) => ({
+          name: item.path.split('/').pop(),
+          type: item.type.toLowerCase(),
+          old_props: item.old_props,
+          new_props: item.new_props
+        })) || []
+      )
+    } catch (err) {
+      console.error('Error fetching diff entries:', err)
+      throw err
+    }
+  }
+
+  async function navigateToPath(path: string): Promise<void> {
+    isLoading.value = true
+    error.value = null
+    try {
+      if (mode === 'single') {
+        if (!commit) {
+          throw new Error('Commit is required for single mode')
+        }
+        if (!fsRootHash.value) {
+          fsRootHash.value = await fetchFsRootHash(commit.hash)
+        }
+        const targetTreeHash =
+          path === '/' ? fsRootHash.value : await traverseToPath(fsRootHash.value, path)
+        if (!targetTreeHash) {
+          throw new Error(`Path ${path} not found`)
+        }
+        const entries = await fetchEntriesForSingleMode(targetTreeHash)
+        rawEntries.value = entries
+        currentPath.value = path
+      } else {
+        if (!baseCommit || !diffeeCommit) {
+          throw new Error('Base and diffee commits are required for comparison mode')
+        }
+        if (!baseFsRootHash.value) {
+          baseFsRootHash.value = await fetchFsRootHash(baseCommit.hash)
+        }
+        if (!diffeeFsRootHash.value) {
+          diffeeFsRootHash.value = await fetchFsRootHash(diffeeCommit.hash)
+        }
+        // Pass root tree hashes and let DIFF_NODES handle path traversal internally
+        const entries = await fetchEntriesForComparisonMode(
+          baseFsRootHash.value,
+          diffeeFsRootHash.value,
+          path
+        )
+        rawEntries.value = entries
+        currentPath.value = path
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      rawEntries.value = []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function refresh(): Promise<void> {
+    await navigateToPath(currentPath.value)
+  }
+
+  watch(
+    () => [mode, commit, baseCommit, diffeeCommit],
+    () => {
+      navigateToPath(currentPath.value)
+    },
+    { immediate: true }
+  )
+
+  return {
+    currentPath,
+    entries,
+    breadcrumbs,
+    isLoading,
+    error,
+    navigateToPath,
+    refresh
+  }
+}

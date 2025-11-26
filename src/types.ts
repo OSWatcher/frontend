@@ -3,6 +3,9 @@ export enum TreeNodeType {
   Tree
 }
 
+// Alias for backward compatibility with components expecting "NodeType"
+export const NodeType = TreeNodeType
+
 export function treeNodeTypeToString(type: TreeNodeType): string {
   return TreeNodeType[type]
 }
