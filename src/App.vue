@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h } from 'vue'
+import { ref, h, onMounted } from 'vue'
 import {
   NConfigProvider,
   NLayout,
@@ -23,7 +23,7 @@ import { SearchOutline, PersonCircleOutline, LogOutOutline } from '@vicons/ionic
 import { useRouter, RouterLink } from 'vue-router'
 import { onUnmounted } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
-import gqlClient from '@/graphql-client'
+import gqlClient, { setAuthTokenGetter } from '@/graphql-client'
 import { SEARCH_FS_STREAM } from '@/queries'
 import { CommitScope } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
@@ -49,7 +49,19 @@ const router = useRouter()
 const branchSelection = useBranchSelectionStore()
 
 // Auth0
-const { isAuthenticated, isLoading: isAuthLoading, user, loginWithRedirect, logout } = useAuth0()
+const {
+  isAuthenticated,
+  isLoading: isAuthLoading,
+  user,
+  loginWithRedirect,
+  logout,
+  getAccessTokenSilently
+} = useAuth0()
+
+// Set up auth token getter for Apollo Client
+onMounted(() => {
+  setAuthTokenGetter(() => getAccessTokenSilently())
+})
 
 // User dropdown options
 const userDropdownOptions: DropdownOption[] = [
