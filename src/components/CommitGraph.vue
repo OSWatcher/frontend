@@ -339,7 +339,7 @@ function createViewButton(
 
   button
     .append('xhtml:a')
-    .attr('href', `/os/${commitHash}`)
+    .attr('href', `/inspect/${commitHash}`)
     .style('display', 'inline-block')
     .style('padding', CONFIG.viewButton.padding)
     .style('background', CONFIG.viewButton.bgColor)

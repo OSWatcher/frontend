@@ -23,7 +23,7 @@ export const useCommitSelectionStore = defineStore('commitSelection', () => {
   const diffLink = computed(() => {
     if (canDiff.value) {
       const [base, diffee] = selectedCommits.value
-      return `/diff/${base.hash}/${diffee.hash}?base_name=${encodeURIComponent(base.name)}&diffee_name=${encodeURIComponent(diffee.name)}`
+      return `/inspect/${base.hash}/vs/${diffee.hash}`
     }
     return null
   })
