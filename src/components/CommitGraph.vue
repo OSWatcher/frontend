@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as d3 from 'd3'
 import type { BranchWithCommits } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
@@ -338,13 +339,12 @@ function createViewButton(
     .style('pointer-events', 'all')
 
   button
-    .append('xhtml:a')
-    .attr('href', `/inspect/${commitHash}`)
+    .append('xhtml:button')
     .style('display', 'inline-block')
     .style('padding', CONFIG.viewButton.padding)
     .style('background', CONFIG.viewButton.bgColor)
     .style('color', CONFIG.viewButton.color)
-    .style('text-decoration', 'none')
+    .style('border', 'none')
     .style('border-radius', CONFIG.viewButton.borderRadius)
     .style('font-size', `${CONFIG.viewButton.fontSize}px`)
     .style('font-family', CONFIG.text.fontFamily)
@@ -352,6 +352,10 @@ function createViewButton(
     .style('cursor', 'pointer')
     .style('transition', `background ${CONFIG.transition.duration}ms`)
     .text('View')
+    .on('click', function (event) {
+      event.stopPropagation()
+      router.push({ name: 'InspectorSingle', params: { commitHash } })
+    })
     .on('mouseenter', function () {
       d3.select(this).style('background', CONFIG.viewButton.hoverBgColor)
     })
@@ -384,7 +388,10 @@ function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: 
     .on('mouseleave', function (event) {
       // Don't hide if moving to the view button
       const relatedTarget = event.relatedTarget
-      if (relatedTarget && d3.select(parentNode).select('.view-button').node()?.contains(relatedTarget)) {
+      if (
+        relatedTarget &&
+        d3.select(parentNode).select('.view-button').node()?.contains(relatedTarget)
+      ) {
         return
       }
 
@@ -399,7 +406,7 @@ function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: 
     .on('click', onClick)
 
   // Also handle mouseleave from the view button
-  const handleButtonLeave = function(event: any) {
+  const handleButtonLeave = function (event: any) {
     const relatedTarget = event.relatedTarget
     // Don't hide if moving back to the hover background
     if (relatedTarget && hoverBg.node()?.contains(relatedTarget)) {
@@ -416,9 +423,7 @@ function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: 
   }
 
   // Attach mouseleave to view button's foreignObject
-  d3.select(parentNode)
-    .select('.view-button')
-    .on('mouseleave', handleButtonLeave)
+  d3.select(parentNode).select('.view-button').on('mouseleave', handleButtonLeave)
 }
 
 /**
@@ -516,6 +521,7 @@ function createLoadingIndicator(g: D3Selection, x: number, y: number) {
 
 const props = defineProps<Props>()
 const commitSelection = useCommitSelectionStore()
+const router = useRouter()
 
 const svgRef = ref<SVGSVGElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -635,7 +641,7 @@ function renderMainCommit(g: D3Selection, node: CommitNode, y: number, rowWidth:
   // Hover effects
   attachHoverEffects(hoverBg, circle, (event: any) => {
     // Don't toggle if clicking on the View button
-    if (event.target.tagName === 'A' || event.target.closest('a')) return
+    if (event.target.tagName === 'BUTTON' || event.target.closest('button')) return
     event.stopPropagation()
     commitSelection.toggle(node.hash, node.name)
     circle.attr('fill', getCommitColor(commitSelection.isSelected(node.hash)))
@@ -685,7 +691,7 @@ function renderUpdateCommit(g: D3Selection, updateCommit: any, updateY: number, 
 
   // Hover effects
   attachHoverEffects(updateHoverBg, updateCircle, (event: any) => {
-    if (event.target.tagName === 'A' || event.target.closest('a')) return
+    if (event.target.tagName === 'BUTTON' || event.target.closest('button')) return
     event.stopPropagation()
     commitSelection.toggle(updateCommit.hash, updateCommit.name)
     updateCircle.attr('fill', getCommitColor(commitSelection.isSelected(updateCommit.hash)))
