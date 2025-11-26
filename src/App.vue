@@ -14,11 +14,15 @@ import {
   NGradientText,
   NIcon,
   NSpin,
-  type DataTableColumns
+  NDropdown,
+  NAvatar,
+  type DataTableColumns,
+  type DropdownOption
 } from 'naive-ui'
-import { SearchOutline } from '@vicons/ionicons5'
+import { SearchOutline, PersonCircleOutline, LogOutOutline } from '@vicons/ionicons5'
 import { useRouter, RouterLink } from 'vue-router'
 import { onUnmounted } from 'vue'
+import { useAuth0 } from '@auth0/auth0-vue'
 import gqlClient from '@/graphql-client'
 import { SEARCH_FS_STREAM } from '@/queries'
 import { CommitScope } from '@/graphql-types'
@@ -43,6 +47,24 @@ const hasSearched = ref(false)
 
 const router = useRouter()
 const branchSelection = useBranchSelectionStore()
+
+// Auth0
+const { isAuthenticated, isLoading: isAuthLoading, user, loginWithRedirect, logout } = useAuth0()
+
+// User dropdown options
+const userDropdownOptions: DropdownOption[] = [
+  {
+    label: 'Logout',
+    key: 'logout',
+    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
+  }
+]
+
+const handleUserDropdownSelect = (key: string) => {
+  if (key === 'logout') {
+    logout({ logoutParams: { returnTo: window.location.origin + import.meta.env.BASE_URL } })
+  }
+}
 
 // Store subscription to clean up on unmount
 let searchSubscription: any = null
@@ -212,6 +234,39 @@ onUnmounted(() => {
               Search
               <kbd class="kbd">⌘K</kbd>
             </NButton>
+
+            <!-- Auth: Login/User Dropdown -->
+            <div v-if="!isAuthLoading">
+              <!-- Login Button -->
+              <NButton v-if="!isAuthenticated" secondary @click="loginWithRedirect">
+                <template #icon>
+                  <NIcon><PersonCircleOutline /></NIcon>
+                </template>
+                Login
+              </NButton>
+
+              <!-- User Dropdown -->
+              <NDropdown
+                v-else
+                :options="userDropdownOptions"
+                @select="handleUserDropdownSelect"
+                trigger="click"
+              >
+                <div class="user-profile">
+                  <NAvatar
+                    v-if="user?.picture"
+                    round
+                    :size="32"
+                    :src="user.picture"
+                    :fallback-src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.email || 'User')}`"
+                  />
+                  <NAvatar v-else round :size="32">
+                    <NIcon><PersonCircleOutline /></NIcon>
+                  </NAvatar>
+                  <span class="user-name">{{ user?.name || user?.email || 'User' }}</span>
+                </div>
+              </NDropdown>
+            </div>
           </div>
         </div>
       </NLayoutHeader>
@@ -390,6 +445,7 @@ body {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .search-trigger {
@@ -403,6 +459,31 @@ body {
 .search-trigger:hover {
   background: #f9fafb;
   border-color: #9ca3af;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-profile:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.user-name {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kbd {
