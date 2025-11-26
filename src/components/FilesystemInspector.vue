@@ -60,22 +60,13 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
       h(
         'span',
         {
-          onClick: () => row.type === 'tree' && navigateToPath(row.path),
           style: {
-            cursor: row.type === 'tree' ? 'pointer' : 'default',
             fontWeight: row.type === 'tree' ? '600' : '400'
           }
         },
         row.name
       )
   },
-  {
-    key: 'type',
-    title: 'Type',
-    width: 100,
-    render: (row) => (row.type === 'blob' ? 'File' : 'Directory')
-  },
-  { key: 'size', title: 'Size', width: 120, render: (row) => formatFileSize(row.size) },
   {
     key: 'actions',
     title: 'Actions',
@@ -89,7 +80,8 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
             secondary: true,
             tag: 'a',
             href: getDownloadUrl(row.hash),
-            download: row.name
+            download: row.name,
+            onClick: (e: Event) => e.stopPropagation()
           },
           { icon: () => h(NIcon, () => h(DownloadOutline)), default: () => 'Download' }
         )
@@ -118,9 +110,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
       h(
         'span',
         {
-          onClick: () => row.type === 'tree' && navigateToPath(row.path),
           style: {
-            cursor: row.type === 'tree' ? 'pointer' : 'default',
             fontWeight: row.type === 'tree' ? '600' : '400'
           }
         },
@@ -133,8 +123,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
     width: 120,
     render: (row) =>
       h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
-  },
-  { key: 'size', title: 'Size', width: 200, render: (row) => formatFileSize(row.size) }
+  }
 ])
 
 const sideBySideColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
@@ -164,14 +153,7 @@ const sideBySideColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
         },
         row.name
       )
-  },
-  {
-    key: 'type',
-    title: 'Type',
-    width: 100,
-    render: (row) => (row.type === 'blob' ? 'File' : 'Directory')
-  },
-  { key: 'size', title: 'Size', width: 120, render: (row) => formatFileSize(row.size) }
+  }
 ])
 
 const baseEntries = computed<FilesystemEntry[]>(() => {
@@ -222,9 +204,21 @@ function getIconComponent(iconName: string) {
 }
 
 function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
-  if (props.mode === 'single') return {}
-  const diffEntry = row as FilesystemDiffEntry
-  return { class: `diff-row-${diffEntry.status.toLowerCase()}` }
+  const baseProps: any = {}
+
+  // Add click handler for folders
+  if (row.type === 'tree') {
+    baseProps.onClick = () => navigateToPath(row.path)
+    baseProps.style = { cursor: 'pointer' }
+  }
+
+  // Add diff status class for comparison mode
+  if (props.mode === 'comparison') {
+    const diffEntry = row as FilesystemDiffEntry
+    baseProps.class = `diff-row-${diffEntry.status.toLowerCase()}`
+  }
+
+  return baseProps
 }
 </script>
 
@@ -252,8 +246,13 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
     }}</NAlert>
 
     <div v-else>
+      <!-- Empty State -->
+      <div v-if="entries.length === 0" class="empty-folder">
+        <NEmpty description="This folder is empty" />
+      </div>
+
       <!-- Unified View (Single Mode or Unified Layout) -->
-      <div v-if="mode === 'single' || layout === 'unified'">
+      <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
         <NDataTable
           :columns="tableColumns"
           :data="entries"
@@ -263,7 +262,6 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
           virtual-scroll
           :max-height="600"
         />
-        <NEmpty v-if="entries.length === 0 && !isLoading" description="No entries found" />
       </div>
 
       <!-- Side-by-Side View (Comparison Mode Only) -->
@@ -306,9 +304,10 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 }
 .breadcrumb-nav {
   padding: 12px 16px;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: white;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .loading-container {
   display: flex;
@@ -320,6 +319,20 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 .loading-text {
   margin: 0;
   color: #666;
+}
+.empty-folder {
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.table-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 :deep(.diff-row-new) {
   background-color: #f0fdf4 !important;
@@ -340,15 +353,34 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 16px;
 }
 .panel-title {
-  margin: 0;
+  margin: 0 -16px 12px -16px;
   font-size: 16px;
   font-weight: 600;
   color: #374151;
-  padding: 8px 12px;
+  padding: 12px 16px;
   background: #f9fafb;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Improve row hover state */
+:deep(.n-data-table-tr:hover) {
+  background-color: #f0f9ff !important;
+}
+
+/* Improve font sizing for better readability */
+:deep(.n-data-table-td) {
+  font-size: 14px;
+}
+
+:deep(.n-data-table-th) {
+  font-size: 13px;
+  font-weight: 600;
 }
 </style>

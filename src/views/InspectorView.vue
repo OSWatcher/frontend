@@ -431,7 +431,7 @@ watch(
 
 .inspector-view {
   min-height: 100vh;
-  background: #f9fafb;
+  background: #f3f4f6;
   display: flex;
   flex-direction: column;
 }
