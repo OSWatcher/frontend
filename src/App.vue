@@ -250,7 +250,12 @@ onUnmounted(() => {
             <!-- Auth: Login/User Dropdown -->
             <div v-if="!isAuthLoading">
               <!-- Login Button -->
-              <NButton v-if="!isAuthenticated" secondary @click="loginWithRedirect">
+              <NButton
+                v-if="!isAuthenticated"
+                type="info"
+                @click="loginWithRedirect"
+                class="login-button"
+              >
                 <template #icon>
                   <NIcon><PersonCircleOutline /></NIcon>
                 </template>
