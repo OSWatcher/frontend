@@ -58,6 +58,69 @@ VITE_GRAPHEORS_OBJECT_STORAGE_URI=https://storage.oswatcher.com
 
 ## Optional Environment Variables
 
+### Auth0 Configuration
+
+Auth0 authentication is integrated but optional. If not configured, the application will still function but authentication features will not work.
+
+#### `VITE_AUTH0_DOMAIN`
+
+**Type:** `string`
+**Required:** No (for authentication features)
+**Description:** Your Auth0 tenant domain.
+
+**Example Values:**
+```bash
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+```
+
+**How to obtain:**
+1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
+2. Navigate to your Application settings
+3. Copy the "Domain" field
+
+**File Location:** `src/main.ts`
+
+#### `VITE_AUTH0_CLIENT_ID`
+
+**Type:** `string`
+**Required:** No (for authentication features)
+**Description:** Your Auth0 application client ID.
+
+**Example Values:**
+```bash
+VITE_AUTH0_CLIENT_ID=abc123xyz789
+```
+
+**How to obtain:**
+1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
+2. Navigate to Applications > Applications
+3. Select your SPA application
+4. Copy the "Client ID" field
+
+**File Location:** `src/main.ts`
+
+#### `VITE_AUTH0_AUDIENCE`
+
+**Type:** `string`
+**Required:** No (for API authentication)
+**Description:** Your Auth0 API identifier (audience). Required for obtaining access tokens for the GraphQL API.
+
+**Example Values:**
+```bash
+VITE_AUTH0_AUDIENCE=https://your-api.example.com
+```
+
+**How to obtain:**
+1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
+2. Navigate to Applications > APIs
+3. Create or select your API
+4. Copy the "Identifier" field
+
+**File Location:** `src/main.ts`
+
+**Backend Integration:**
+See `AUTH0_BACKEND_SETUP.md` for instructions on configuring the Neo4j GraphQL backend to verify Auth0 tokens.
+
 ### PostHog Configuration
 
 PostHog analytics is automatically configured based on production builds and uses the GraphQL API domain for event tracking. No additional environment variables are required for PostHog.
@@ -76,6 +139,11 @@ VITE_GRAPHEOS_API_URI=http://localhost:4000
 
 # Object storage endpoint
 VITE_GRAPHEORS_OBJECT_STORAGE_URI=http://localhost:9000
+
+# Auth0 Configuration (optional)
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+VITE_AUTH0_CLIENT_ID=your_client_id_here
+VITE_AUTH0_AUDIENCE=https://your-api.example.com
 ```
 
 ### Production Environment
@@ -88,6 +156,11 @@ VITE_GRAPHEOS_API_URI=https://api.oswatcher.com
 
 # Object storage endpoint
 VITE_GRAPHEORS_OBJECT_STORAGE_URI=https://storage.oswatcher.com
+
+# Auth0 Configuration (optional)
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+VITE_AUTH0_CLIENT_ID=your_production_client_id
+VITE_AUTH0_AUDIENCE=https://api.oswatcher.com
 ```
 
 ## Variable Naming Convention
@@ -147,6 +220,9 @@ Environment variable types are defined in `env.d.ts`:
 interface ImportMetaEnv {
   readonly VITE_GRAPHEOS_API_URI: string
   readonly VITE_GRAPHEORS_OBJECT_STORAGE_URI: string
+  readonly VITE_AUTH0_DOMAIN: string
+  readonly VITE_AUTH0_CLIENT_ID: string
+  readonly VITE_AUTH0_AUDIENCE: string
 }
 ```
 
