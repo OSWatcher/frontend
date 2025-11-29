@@ -48,7 +48,7 @@ npm run docs:build  # Build documentation
 - `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
 - `VITE_AUTH0_AUDIENCE` - Auth0 API identifier
 
-See `.env.example` for details and `AUTH0_BACKEND_SETUP.md` for backend configuration.
+See `.env.example` for configuration details.
 
 ## Tech Stack
 

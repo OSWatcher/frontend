@@ -119,7 +119,7 @@ VITE_AUTH0_AUDIENCE=https://your-api.example.com
 **File Location:** `src/main.ts`
 
 **Backend Integration:**
-See `AUTH0_BACKEND_SETUP.md` for instructions on configuring the Neo4j GraphQL backend to verify Auth0 tokens.
+The backend Neo4j GraphQL server must be configured to verify Auth0 JWT tokens using the JWKS endpoint.
 
 ### PostHog Configuration
 

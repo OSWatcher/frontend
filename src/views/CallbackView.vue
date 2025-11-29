@@ -6,25 +6,43 @@
  * The Auth0 SDK automatically processes the callback and extracts tokens.
  * We show a loading state while this happens, then redirect to home.
  */
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NSpin } from 'naive-ui'
+import { NSpin, useMessage } from 'naive-ui'
 import { useAuth0 } from '@auth0/auth0-vue'
 
 const router = useRouter()
+const message = useMessage()
 const { isLoading, error } = useAuth0()
+const intervalId = ref<NodeJS.Timeout | null>(null)
 
 onMounted(() => {
   // Wait for Auth0 to process the callback
-  const checkAuth = setInterval(() => {
+  intervalId.value = setInterval(() => {
     if (!isLoading.value) {
-      clearInterval(checkAuth)
-      if (!error.value) {
+      if (intervalId.value) {
+        clearInterval(intervalId.value)
+        intervalId.value = null
+      }
+
+      if (error.value) {
+        // Authentication failed - show error and redirect
+        message.error('Authentication failed. Please try again.')
+        router.push('/')
+      } else {
         // Successful authentication - redirect to home
         router.push('/')
       }
     }
   }, 100)
+})
+
+onUnmounted(() => {
+  // Clean up interval if component unmounts before auth completes
+  if (intervalId.value) {
+    clearInterval(intervalId.value)
+    intervalId.value = null
+  }
 })
 </script>
 
