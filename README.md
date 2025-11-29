@@ -1,24 +1,64 @@
-# frontend
+# OSWatcher Frontend
 
-## Project setup
-```
+Vue.js application for exploring operating system analysis data with commit history, filesystem inspection, and optional authentication.
+
+## Quick Start
+
+```bash
+# Install dependencies
 npm install
+
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start development server
+npm run dev
 ```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
+## Development Commands
+
+```bash
+npm run dev         # Start development server with hot reload
+npm run build       # Build for production
+npm run preview     # Preview production build
+npm run lint        # Run ESLint with auto-fix
+npm run type-check  # Run TypeScript checks
+npm run format      # Format code with Prettier
+npm run generate    # Generate GraphQL types from schema
 ```
 
-### Compiles and minifies for production
-```
-npm run build
+## Documentation
+
+```bash
+npm run docs:dev    # Start documentation server
+npm run docs:build  # Build documentation
 ```
 
-### Lints and fixes files
-```
-npm run lint
-```
+## Configuration
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+### Required Environment Variables
+
+- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint
+- `VITE_GRAPHEORS_OBJECT_STORAGE_URI` - Object storage URL
+
+### Optional: Auth0 Authentication
+
+- `VITE_AUTH0_DOMAIN` - Your Auth0 tenant domain
+- `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
+- `VITE_AUTH0_AUDIENCE` - Auth0 API identifier
+
+See `.env.example` for configuration details.
+
+## Tech Stack
+
+- Vue 3 + TypeScript + Composition API
+- Naive UI component library
+- Apollo Client (GraphQL)
+- Auth0 (optional authentication)
+- Vite build tool
+- D3.js for visualizations
+
+## License
+
+See LICENSE file for details.

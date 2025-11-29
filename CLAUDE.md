@@ -28,17 +28,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Technology Stack
 - **Frontend**: Vue 3 with Composition API and TypeScript
-- **UI Framework**: Bootstrap Vue Next with Bootstrap 5
+- **UI Framework**: Naive UI component library
+- **Authentication**: Auth0 (optional, configured via environment variables)
 - **GraphQL**: Apollo Client for API communication
 - **Build Tool**: Vite with Vue plugin
-- **Styling**: Bootstrap CSS with custom SCSS
+- **Styling**: CSS with scoped component styles
 
 ### Project Structure
-- `src/views/` - Main application views (HomeView, OSView, DiffView)
+- `src/views/` - Main application views (HomeView, InspectorView, CallbackView)
 - `src/components/` - Reusable Vue components organized by feature
 - `src/router/` - Vue Router configuration
 - `src/queries.ts` - GraphQL queries and mutations
-- `src/graphql-client.ts` - Apollo Client setup and configuration
+- `src/graphql-client.ts` - Apollo Client setup and configuration with Auth0 token injection
 - `src/graphql-types.ts` - Auto-generated TypeScript types from GraphQL schema
 - `docs/reference/` - Technical reference documentation (VitePress)
 
@@ -46,12 +47,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OSWatcher Frontend** is a Vue.js application for exploring operating system analysis data. The application provides:
 
-1. **Commit History View** (`HomeView`): Displays git-like commit history with branch support and diff comparison functionality
-2. **OS Analysis View** (`OSView`): Multi-tab interface for exploring:
-   - Filesystem trees
-   - Windows Registry data
-   - PDB symbol information
-3. **Diff View** (`DiffView`): Compare two commits showing differences across filesystem, registry, and symbols
+1. **Commit History View** (`HomeView`): Displays git-like commit history with branch support and diff comparison functionality using D3.js visualization
+2. **Inspector View** (`InspectorView`): Unified interface for exploring commits with two modes:
+   - **Single Mode**: View a single commit's data (filesystem, registry, symbols)
+   - **Comparison Mode**: Compare two commits showing differences
+   - Supports both unified and side-by-side layouts
+3. **Authentication** (`CallbackView`): Auth0 integration for user authentication (optional, not enforced by default)
 
 ### GraphQL Integration
 - Schema located at `schema.graphql` defines the data model
@@ -60,15 +61,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - All queries centralized in `src/queries.ts`
 
 ### Component Architecture
-- Tree-based components (`FilesystemTree`, `RegistryTree`, `PDBExplorer`) for hierarchical data
-- Diff components (`FilesystemTreeDiff`, `RegistryTreeDiff`, etc.) for comparison views
-- Reusable table components (`CommitsTable`) for data display
+- **Inspector Components**: Unified architecture for both single and comparison modes
+  - `FilesystemInspector` - Handles filesystem exploration with mode-aware columns
+  - `RegistryInspector` - Windows Registry data viewing
+  - `InspectorHeader` - Mode switching and layout controls
+- **Graph Visualization**: D3.js-based commit graph with interactive features
+- **Authentication UI**: Login/logout components integrated in App header
+- Naive UI components for consistent design (NDataTable, NButton, NModal, etc.)
 
 ### Environment Configuration
 
 #### Required Environment Variables
 - `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint URL (used for Apollo Client and PostHog events)
 - `VITE_GRAPHEORS_OBJECT_STORAGE_URI` - Object storage URL for downloading files by hash
+
+#### Optional Environment Variables (Auth0)
+- `VITE_AUTH0_DOMAIN` - Auth0 tenant domain (e.g., your-tenant.us.auth0.com)
+- `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
+- `VITE_AUTH0_AUDIENCE` - Auth0 API identifier for access tokens
+
+Authentication is optional and not enforced by default. When configured, the application will:
+- Display login/logout UI in the header
+- Automatically include Bearer tokens in GraphQL requests
+- Support social login (Google, GitHub) and email/password authentication
+- Use localStorage with refresh tokens for persistent sessions
 
 #### Development Setup
 1. Copy `.env.example` to `.env` and configure required variables
@@ -88,7 +104,10 @@ The project includes comprehensive technical reference documentation:
 - Documentation is built with VitePress and includes search, navigation, and live reload
 
 ### Development Notes
-- Search functionality (Ctrl+K) is currently disabled in navigation
-- The application expects a Neo4j-backed GraphQL API serving commit, filesystem, registry, and PDB data
-- Bootstrap Vue Next provides consistent UI components with dark mode support
-- Type safety enforced through TypeScript and auto-generated GraphQL types
+- **Search functionality**: Global filesystem search available via Ctrl+K (streams results from GraphQL)
+- **Backend**: Expects Neo4j-backed GraphQL API serving commit, filesystem, registry, and PDB data
+- **Authentication**: Auth0 integration is optional and can be enabled via environment variables
+- **UI Library**: Naive UI provides consistent component design and theming
+- **Type Safety**: Enforced through TypeScript and auto-generated GraphQL types
+- **Token Management**: Apollo Client automatically injects Auth0 Bearer tokens when available
+- **Routing**: Uses Vue Router with support for single and comparison inspector modes

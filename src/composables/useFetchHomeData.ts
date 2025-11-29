@@ -21,21 +21,19 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  // Filter to show only main branches, not per-release update branches
-  const MAIN_BRANCHES = ['ubuntu-server']
+  // Filter to show only main branches in the dropdown
+  const MAIN_BRANCHES = ['ubuntu-server', 'master']
 
   return effectScope().run(() => {
     const {
       result: branchesResult,
       loading: branchesLoading,
       error: branchesError
-    } = useFetchBranchesQuery({
-      where: {
-        name_IN: MAIN_BRANCHES
-      }
-    })
+    } = useFetchBranchesQuery()
 
-    const branches = computed(() => branchesResult.value?.branches || [])
+    const branches = computed(() =>
+      (branchesResult.value?.branches || []).filter((branch) => MAIN_BRANCHES.includes(branch.name))
+    )
 
     return {
       branches,
@@ -47,12 +45,22 @@ function useBranchesData() {
 
 function useCommitHistoryForBranch(branch: BranchData) {
   return effectScope().run(() => {
+    // Skip fetching if branch has no tracked commit
+    const commitHash = branch.tracks?.hash
+    if (!commitHash) {
+      return {
+        commits: computed(() => []),
+        loading: ref(false),
+        error: ref(null)
+      }
+    }
+
     const {
       result: commitResult,
       loading: commitLoading,
       error: commitError
     } = useFetchCommitHistoryQuery({
-      commitHash: branch.tracks?.hash || '',
+      commitHash,
       direction: CommitHistoryDirection.Backward
     })
 
