@@ -60,7 +60,10 @@ const {
 
 // Set up auth token getter for Apollo Client
 onMounted(() => {
-  setAuthTokenGetter(() => getAccessTokenSilently())
+  setAuthTokenGetter(
+    () => getAccessTokenSilently(),
+    () => isAuthenticated.value
+  )
 })
 
 // User dropdown options

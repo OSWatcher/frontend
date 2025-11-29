@@ -32,7 +32,7 @@ app.use(
       redirect_uri: window.location.origin + import.meta.env.BASE_URL + 'callback',
       audience: import.meta.env.VITE_AUTH0_AUDIENCE || ''
     },
-    useRefreshTokens: true,
+    useRefreshTokens: false,
     cacheLocation: 'localstorage'
   })
 )
