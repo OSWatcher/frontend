@@ -42,7 +42,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/graphql-client.ts` - Apollo Client setup and configuration with Auth0 token injection
 - `src/graphql-types.ts` - Auto-generated TypeScript types from GraphQL schema
 - `docs/reference/` - Technical reference documentation (VitePress)
-- `AUTH0_BACKEND_SETUP.md` - Backend configuration guide for Auth0 + Neo4j GraphQL
 
 ### Key Application Concepts
 
@@ -91,7 +90,6 @@ Authentication is optional and not enforced by default. When configured, the app
 1. Copy `.env.example` to `.env` and configure required variables
 2. The `.env` file contains backend service configuration (Neo4j, MinIO, etc.) for local development
 3. Frontend-specific variables must be prefixed with `VITE_` to be accessible in the browser
-4. For Auth0 setup, see `AUTH0_BACKEND_SETUP.md` for backend configuration
 
 #### Build Configuration
 - Production base path set to `/frontend/` in Vite config

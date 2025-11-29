@@ -43,7 +43,7 @@ const authLink = setContext(async (_, { headers }) => {
     }
   } catch (error) {
     // If token retrieval fails (e.g., user not authenticated), proceed without token
-    console.log('No auth token available:', error)
+    console.debug('No auth token available:', error)
     return { headers }
   }
 })
@@ -69,7 +69,7 @@ const wsLink = new GraphQLWsLink(
           authorization: token ? `Bearer ${token}` : ''
         }
       } catch (error) {
-        console.log('No auth token available for WebSocket:', error)
+        console.debug('No auth token available for WebSocket:', error)
         return {}
       }
     }
