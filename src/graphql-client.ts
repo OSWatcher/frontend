@@ -18,18 +18,25 @@ if (!apiUri) {
   throw new Error('VITE_GRAPHEOS_API_URI environment variable is required')
 }
 
-// Global token getter - will be set by App.vue
+// Global token getter and auth checker - will be set by App.vue
 let getAccessTokenSilently: (() => Promise<string>) | null = null
+let isAuthenticated: (() => boolean) | null = null
 
-export function setAuthTokenGetter(getter: () => Promise<string>) {
+export function setAuthTokenGetter(getter: () => Promise<string>, authChecker: () => boolean) {
   getAccessTokenSilently = getter
+  isAuthenticated = authChecker
 }
 
 // Auth Link: adds Bearer token to requests if user is authenticated
 const authLink = setContext(async (_, { headers }) => {
   try {
-    // If no token getter is set up yet, or user not authenticated, proceed without token
-    if (!getAccessTokenSilently) {
+    // If no token getter is set up yet, proceed without token
+    if (!getAccessTokenSilently || !isAuthenticated) {
+      return { headers }
+    }
+
+    // Check if user is authenticated before trying to get token
+    if (!isAuthenticated()) {
       return { headers }
     }
 
@@ -60,7 +67,12 @@ const wsLink = new GraphQLWsLink(
     url: new URL('graphql', wsUri).toString(),
     connectionParams: async () => {
       try {
-        if (!getAccessTokenSilently) {
+        if (!getAccessTokenSilently || !isAuthenticated) {
+          return {}
+        }
+
+        // Check if user is authenticated before trying to get token
+        if (!isAuthenticated()) {
           return {}
         }
 
