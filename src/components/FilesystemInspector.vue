@@ -70,20 +70,20 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
   {
     key: 'actions',
     title: 'Actions',
-    width: 120,
+    width: 100,
     render: (row) => {
       if (row.type === 'blob') {
         return h(
           NButton,
           {
             size: 'small',
-            secondary: true,
+            type: 'primary',
             tag: 'a',
             href: getDownloadUrl(row.hash),
             download: row.name,
             onClick: (e: Event) => e.stopPropagation()
           },
-          { icon: () => h(NIcon, () => h(DownloadOutline)), default: () => 'Download' }
+          { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
         )
       }
       return null
@@ -229,7 +229,9 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         :clickable="!!item.path"
         @click="item.path ? navigateToPath(item.path) : undefined"
       >
-        <NIcon v-if="item.icon" :size="16"><component :is="getIconComponent(item.icon)" /></NIcon>
+        <NIcon v-if="item.icon" :size="16">
+          <component :is="getIconComponent(item.icon)" />
+        </NIcon>
         {{ item.label }}
       </NBreadcrumbItem>
     </NBreadcrumb>
@@ -297,6 +299,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   flex-direction: column;
   gap: 16px;
 }
+
 .breadcrumb-nav {
   padding: 12px 16px;
   background: white;
@@ -304,6 +307,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -311,10 +315,12 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   padding: 60px 20px;
   gap: 16px;
 }
+
 .loading-text {
   margin: 0;
   color: #666;
 }
+
 .empty-folder {
   padding: 60px 20px;
   background: white;
@@ -322,6 +328,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
 .table-container {
   background: white;
   border: 1px solid #e5e7eb;
@@ -329,21 +336,26 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
+
 :deep(.diff-row-new) {
   background-color: #f0fdf4 !important;
 }
+
 :deep(.diff-row-modified) {
   background-color: #fffbeb !important;
 }
+
 :deep(.diff-row-deleted) {
   background-color: #fef2f2 !important;
   opacity: 0.7;
 }
+
 .side-by-side-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+
 .side-by-side-panel {
   display: flex;
   flex-direction: column;
@@ -354,6 +366,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 16px;
 }
+
 .panel-title {
   margin: 0 -16px 12px -16px;
   font-size: 16px;
@@ -382,16 +395,19 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 /* Icon styling for better visual appearance */
 /* Default gray for all table icons */
 :deep(.n-data-table-td:first-child .n-icon) {
-  color: #6b7280 !important; /* gray-500 for files by default */
+  color: #6b7280 !important;
+  /* gray-500 for files by default */
 }
 
 /* Yellow for folder rows - target the row that has folder behavior */
-:deep(.n-data-table-tr[style*="cursor: pointer"] .n-data-table-td:first-child .n-icon) {
-  color: #f59e0b !important; /* amber-500 for folders */
+:deep(.n-data-table-tr[style*='cursor: pointer'] .n-data-table-td:first-child .n-icon) {
+  color: #f59e0b !important;
+  /* amber-500 for folders */
 }
 
 /* Breadcrumb icons styling */
 :deep(.breadcrumb-nav .n-icon) {
-  color: #f59e0b !important; /* amber-500 for breadcrumb icons */
+  color: #f59e0b !important;
+  /* amber-500 for breadcrumb icons */
 }
 </style>
