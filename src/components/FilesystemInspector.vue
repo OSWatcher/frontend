@@ -28,7 +28,6 @@ const props = defineProps({
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
   diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  initialPath: { type: String, default: '/' },
   targetDirectory: { type: String, default: '/' },
   highlightFile: { type: String, default: '' }
 })
@@ -224,8 +223,12 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 <template>
   <div class="filesystem-inspector">
     <NBreadcrumb class="breadcrumb-nav">
-      <NBreadcrumbItem v-for="(item, index) in breadcrumbs" :key="index" :clickable="!!item.path"
-        @click="item.path ? navigateToPath(item.path) : undefined">
+      <NBreadcrumbItem
+        v-for="(item, index) in breadcrumbs"
+        :key="index"
+        :clickable="!!item.path"
+        @click="item.path ? navigateToPath(item.path) : undefined"
+      >
         <NIcon v-if="item.icon" :size="16">
           <component :is="getIconComponent(item.icon)" />
         </NIcon>
@@ -240,7 +243,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
     <NAlert v-else-if="error" type="error" title="Error Loading Filesystem">{{
       error.message
-      }}</NAlert>
+    }}</NAlert>
 
     <div v-else>
       <!-- Empty State -->
@@ -250,19 +253,40 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
       <!-- Unified View (Single Mode or Unified Layout) -->
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
-        <NDataTable :columns="tableColumns" :data="entries" :row-props="getRowProps" striped virtual-scroll
-          :max-height="900" />
+        <NDataTable
+          :columns="tableColumns"
+          :data="entries"
+          :row-props="getRowProps"
+          striped
+          virtual-scroll
+          :max-height="900"
+        />
       </div>
 
       <!-- Side-by-Side View (Comparison Mode Only) -->
-      <div v-else-if="mode === 'comparison' && layout === 'side-by-side'" class="side-by-side-container">
+      <div
+        v-else-if="mode === 'comparison' && layout === 'side-by-side'"
+        class="side-by-side-container"
+      >
         <div class="side-by-side-panel">
           <h3 class="panel-title">Base ({{ baseCommit?.name }})</h3>
-          <NDataTable :columns="sideBySideColumns" :data="baseEntries" striped virtual-scroll :max-height="900" />
+          <NDataTable
+            :columns="sideBySideColumns"
+            :data="baseEntries"
+            striped
+            virtual-scroll
+            :max-height="900"
+          />
         </div>
         <div class="side-by-side-panel">
           <h3 class="panel-title">Diffee ({{ diffeeCommit?.name }})</h3>
-          <NDataTable :columns="sideBySideColumns" :data="diffeeEntries" striped virtual-scroll :max-height="900" />
+          <NDataTable
+            :columns="sideBySideColumns"
+            :data="diffeeEntries"
+            striped
+            virtual-scroll
+            :max-height="900"
+          />
         </div>
       </div>
     </div>
