@@ -157,8 +157,6 @@ const performSearch = () => {
         scope: CommitScope.History
       }
     }
-    console.log('Starting search stream with variables:', variables)
-    console.log('Selected branch:', branchSelection.selectedBranchName)
 
     const observable = gqlClient.subscribe({
       query: SEARCH_FS_STREAM,
@@ -167,14 +165,11 @@ const performSearch = () => {
 
     searchSubscription = observable.subscribe({
       next: (result) => {
-        console.log('Received search result:', result)
         // Progressive rendering: append each result as it arrives
         if (result.data?.searchStream) {
           searchResults.value.push(result.data.searchStream)
           streamingResultCount.value++
           isLoading.value = false // Show first results immediately
-        } else {
-          console.warn('Received result without searchStream data:', result)
         }
       },
       error: (error) => {
@@ -184,7 +179,6 @@ const performSearch = () => {
         isStreaming.value = false
       },
       complete: () => {
-        console.log('Search streaming complete! Total results:', searchResults.value.length)
         isStreaming.value = false
         isLoading.value = false
       }
@@ -198,9 +192,17 @@ const performSearch = () => {
 
 const handleRowClick = (row: SearchResult) => {
   showSearchModal.value = false
+  // Parse the file path to get directory and filename
+  const pathParts = row.path.split('/')
+  const filename = pathParts.pop() || ''
+  const directory = pathParts.join('/') || '/'
+
   router.push({
     path: `/inspect/${row.commit_hash}`,
-    query: { path: row.path }
+    query: {
+      directory: directory,
+      highlight: filename
+    }
   })
 }
 
@@ -244,7 +246,9 @@ onUnmounted(() => {
             <!-- Search Button -->
             <NButton secondary @click="showSearchModal = true" class="search-trigger">
               <template #icon>
-                <NIcon><SearchOutline /></NIcon>
+                <NIcon>
+                  <SearchOutline />
+                </NIcon>
               </template>
               Search
               <kbd class="kbd">⌘K</kbd>
@@ -253,35 +257,24 @@ onUnmounted(() => {
             <!-- Auth: Login/User Dropdown -->
             <div v-if="!isAuthLoading">
               <!-- Login Button -->
-              <NButton
-                v-if="!isAuthenticated"
-                type="info"
-                @click="loginWithRedirect"
-                class="login-button"
-              >
+              <NButton v-if="!isAuthenticated" type="info" @click="loginWithRedirect" class="login-button">
                 <template #icon>
-                  <NIcon><PersonCircleOutline /></NIcon>
+                  <NIcon>
+                    <PersonCircleOutline />
+                  </NIcon>
                 </template>
                 Login
               </NButton>
 
               <!-- User Dropdown -->
-              <NDropdown
-                v-else
-                :options="userDropdownOptions"
-                @select="handleUserDropdownSelect"
-                trigger="click"
-              >
+              <NDropdown v-else :options="userDropdownOptions" @select="handleUserDropdownSelect" trigger="click">
                 <div class="user-profile">
-                  <NAvatar
-                    v-if="user?.picture"
-                    round
-                    :size="32"
-                    :src="user.picture"
-                    :fallback-src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.email || 'User')}`"
-                  />
+                  <NAvatar v-if="user?.picture" round :size="32" :src="user.picture"
+                    :fallback-src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.email || 'User')}`" />
                   <NAvatar v-else round :size="32">
-                    <NIcon><PersonCircleOutline /></NIcon>
+                    <NIcon>
+                      <PersonCircleOutline />
+                    </NIcon>
                   </NAvatar>
                   <span class="user-name">{{ user?.name || user?.email || 'User' }}</span>
                 </div>
@@ -310,25 +303,15 @@ onUnmounted(() => {
       </NLayoutFooter>
 
       <!-- Search Modal -->
-      <NModal
-        v-model:show="showSearchModal"
-        preset="card"
-        title="Search Filesystem"
-        class="search-modal"
-        :style="{ width: '1200px', maxWidth: '95vw' }"
-        @after-leave="clearSearch"
-      >
+      <NModal v-model:show="showSearchModal" preset="card" title="Search Filesystem" class="search-modal"
+        :style="{ width: '1200px', maxWidth: '95vw' }" @after-leave="clearSearch">
         <NSpace vertical :size="16">
-          <NInput
-            v-model:value="searchTerm"
-            placeholder="Search for files and directories..."
-            size="large"
-            clearable
-            autofocus
-            @keyup.enter="performSearch"
-          >
+          <NInput v-model:value="searchTerm" placeholder="Search for files and directories..." size="large" clearable
+            autofocus @keyup.enter="performSearch">
             <template #prefix>
-              <NIcon><SearchOutline /></NIcon>
+              <NIcon>
+                <SearchOutline />
+              </NIcon>
             </template>
           </NInput>
 
@@ -339,13 +322,8 @@ onUnmounted(() => {
             <span>Streaming results... ({{ streamingResultCount }} found)</span>
           </div>
 
-          <NDataTable
-            v-if="searchResults.length > 0 || isLoading"
-            :columns="searchColumns"
-            :data="searchResults"
-            :loading="isLoading && searchResults.length === 0"
-            :max-height="500"
-            :pagination="{
+          <NDataTable v-if="searchResults.length > 0 || isLoading" :columns="searchColumns" :data="searchResults"
+            :loading="isLoading && searchResults.length === 0" :max-height="500" :pagination="{
               page: currentPage,
               pageSize: pageSize,
               showSizePicker: true,
@@ -356,22 +334,15 @@ onUnmounted(() => {
               onUpdatePageSize: (size: number) => {
                 pageSize = size
               }
-            }"
-            :row-props="
-              (row: SearchResult) => ({
+            }" :row-props="(row: SearchResult) => ({
                 style: 'cursor: pointer;',
                 onClick: () => handleRowClick(row)
               })
-            "
-            striped
-          />
+              " striped />
 
-          <div
-            v-else-if="
-              hasSearched && searchTerm && !isLoading && !isStreaming && searchResults.length === 0
-            "
-            class="empty-search"
-          >
+          <div v-else-if="
+            hasSearched && searchTerm && !isLoading && !isStreaming && searchResults.length === 0
+          " class="empty-search">
             <p>No results found for "{{ searchTerm }}"</p>
           </div>
         </NSpace>
@@ -384,12 +355,8 @@ onUnmounted(() => {
             <span v-else></span>
             <NSpace>
               <NButton @click="showSearchModal = false">Close</NButton>
-              <NButton
-                type="primary"
-                @click="performSearch"
-                :loading="isLoading && searchResults.length === 0"
-                :disabled="isStreaming"
-              >
+              <NButton type="primary" @click="performSearch" :loading="isLoading && searchResults.length === 0"
+                :disabled="isStreaming">
                 {{ isStreaming ? 'Streaming...' : 'Search' }}
               </NButton>
             </NSpace>
@@ -609,10 +576,12 @@ body {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

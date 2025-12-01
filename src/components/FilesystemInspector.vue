@@ -28,17 +28,21 @@ const props = defineProps({
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
   diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  initialPath: { type: String, default: '/' }
+  initialPath: { type: String, default: '/' },
+  targetDirectory: { type: String, default: '/' },
+  highlightFile: { type: String, default: '' }
 })
 
-const { entries, breadcrumbs, isLoading, error, navigateToPath } = useFilesystemInspector(
-  props.mode,
-  props.layout,
-  props.commit,
-  props.baseCommit,
-  props.diffeeCommit,
-  props.initialPath
-)
+const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile } =
+  useFilesystemInspector(
+    props.mode,
+    props.layout,
+    props.commit,
+    props.baseCommit,
+    props.diffeeCommit,
+    props.targetDirectory,
+    props.highlightFile
+  )
 
 const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
   {
@@ -208,6 +212,11 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
     baseProps.class = `diff-row-${diffEntry.status.toLowerCase()}`
   }
 
+  // Add highlighting class for highlighted files
+  if (highlightedFile.value && row.name === highlightedFile.value) {
+    baseProps.class = baseProps.class ? `${baseProps.class} highlighted-file` : 'highlighted-file'
+  }
+
   return baseProps
 }
 </script>
@@ -215,12 +224,8 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 <template>
   <div class="filesystem-inspector">
     <NBreadcrumb class="breadcrumb-nav">
-      <NBreadcrumbItem
-        v-for="(item, index) in breadcrumbs"
-        :key="index"
-        :clickable="!!item.path"
-        @click="item.path ? navigateToPath(item.path) : undefined"
-      >
+      <NBreadcrumbItem v-for="(item, index) in breadcrumbs" :key="index" :clickable="!!item.path"
+        @click="item.path ? navigateToPath(item.path) : undefined">
         <NIcon v-if="item.icon" :size="16">
           <component :is="getIconComponent(item.icon)" />
         </NIcon>
@@ -235,7 +240,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
     <NAlert v-else-if="error" type="error" title="Error Loading Filesystem">{{
       error.message
-    }}</NAlert>
+      }}</NAlert>
 
     <div v-else>
       <!-- Empty State -->
@@ -245,40 +250,19 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
       <!-- Unified View (Single Mode or Unified Layout) -->
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
-        <NDataTable
-          :columns="tableColumns"
-          :data="entries"
-          :row-props="getRowProps"
-          striped
-          virtual-scroll
-          :max-height="900"
-        />
+        <NDataTable :columns="tableColumns" :data="entries" :row-props="getRowProps" striped virtual-scroll
+          :max-height="900" />
       </div>
 
       <!-- Side-by-Side View (Comparison Mode Only) -->
-      <div
-        v-else-if="mode === 'comparison' && layout === 'side-by-side'"
-        class="side-by-side-container"
-      >
+      <div v-else-if="mode === 'comparison' && layout === 'side-by-side'" class="side-by-side-container">
         <div class="side-by-side-panel">
           <h3 class="panel-title">Base ({{ baseCommit?.name }})</h3>
-          <NDataTable
-            :columns="sideBySideColumns"
-            :data="baseEntries"
-            striped
-            virtual-scroll
-            :max-height="900"
-          />
+          <NDataTable :columns="sideBySideColumns" :data="baseEntries" striped virtual-scroll :max-height="900" />
         </div>
         <div class="side-by-side-panel">
           <h3 class="panel-title">Diffee ({{ diffeeCommit?.name }})</h3>
-          <NDataTable
-            :columns="sideBySideColumns"
-            :data="diffeeEntries"
-            striped
-            virtual-scroll
-            :max-height="900"
-          />
+          <NDataTable :columns="sideBySideColumns" :data="diffeeEntries" striped virtual-scroll :max-height="900" />
         </div>
       </div>
     </div>
@@ -332,34 +316,53 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 /* Diff row styling with subtle and appealing visual backgrounds */
 :deep(.n-data-table-tr.diff-row-new),
 :deep(.n-data-table-tr.diff-row-new .n-data-table-td) {
-  background-color: #dcfce7 !important; /* light green */
+  background-color: #dcfce7 !important;
+  /* light green */
 }
 
 :deep(.n-data-table-tr.diff-row-modified),
 :deep(.n-data-table-tr.diff-row-modified .n-data-table-td) {
-  background-color: #fef3c7 !important; /* light amber */
+  background-color: #fef3c7 !important;
+  /* light amber */
 }
 
 :deep(.n-data-table-tr.diff-row-deleted),
 :deep(.n-data-table-tr.diff-row-deleted .n-data-table-td) {
-  background-color: #fee2e2 !important; /* light red */
+  background-color: #fee2e2 !important;
+  /* light red */
   opacity: 0.9 !important;
 }
 
 /* Subtle hover effects */
 :deep(.n-data-table-tr.diff-row-new:hover),
 :deep(.n-data-table-tr.diff-row-new:hover .n-data-table-td) {
-  background-color: #bbf7d0 !important; /* green-200 */
+  background-color: #bbf7d0 !important;
+  /* green-200 */
 }
 
 :deep(.n-data-table-tr.diff-row-modified:hover),
 :deep(.n-data-table-tr.diff-row-modified:hover .n-data-table-td) {
-  background-color: #fde68a !important; /* amber-200 */
+  background-color: #fde68a !important;
+  /* amber-200 */
 }
 
 :deep(.n-data-table-tr.diff-row-deleted:hover),
 :deep(.n-data-table-tr.diff-row-deleted:hover .n-data-table-td) {
-  background-color: #fecaca !important; /* red-200 */
+  background-color: #fecaca !important;
+  /* red-200 */
+}
+
+/* File highlighting styles */
+:deep(.n-data-table-tr.highlighted-file),
+:deep(.n-data-table-tr.highlighted-file .n-data-table-td) {
+  background-color: #eff6ff !important;
+  /* blue-50 - subtle blue background */
+}
+
+:deep(.n-data-table-tr.highlighted-file:hover),
+:deep(.n-data-table-tr.highlighted-file:hover .n-data-table-td) {
+  background-color: #dbeafe !important;
+  /* blue-100 - slightly darker on hover */
 }
 
 .side-by-side-container {
@@ -407,12 +410,14 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 /* Icon styling for better visual appearance */
 /* Default gray for all table icons */
 :deep(.n-data-table-td:first-child .n-icon) {
-  color: #6b7280 !important; /* gray-500 for files by default */
+  color: #6b7280 !important;
+  /* gray-500 for files by default */
 }
 
 /* Yellow for folder rows - target the row that has folder behavior */
 :deep(.n-data-table-tr[style*='cursor: pointer'] .n-data-table-td:first-child .n-icon) {
-  color: #f59e0b !important; /* amber-500 for folders */
+  color: #f59e0b !important;
+  /* amber-500 for folders */
 }
 
 /* Breadcrumb icons styling */

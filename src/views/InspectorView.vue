@@ -117,13 +117,32 @@ const inspectorMode = computed<InspectorMode>(() => {
 })
 
 /**
- * Initial Path
+ * Initial Path (backward compatibility)
  *
  * Gets initial filesystem path from query params (e.g., ?path=/etc/systemd)
  * Defaults to root '/' if not specified
  */
 const initialPath = computed<string>(() => {
   return (route.query.path as string) || '/'
+})
+
+/**
+ * Target Directory
+ *
+ * Gets target directory from query params (e.g., ?directory=/etc/systemd)
+ * Falls back to path parameter for backward compatibility
+ */
+const targetDirectory = computed<string>(() => {
+  return (route.query.directory as string) || initialPath.value
+})
+
+/**
+ * Highlight File
+ *
+ * Gets file to highlight from query params (e.g., ?highlight=apparmor.conf)
+ */
+const highlightFile = computed<string>(() => {
+  return (route.query.highlight as string) || ''
 })
 
 // ===================================================================
@@ -388,7 +407,8 @@ watch(
               :mode="inspectorMode"
               :layout="inspectorLayout"
               :commit="singleCommit"
-              :initial-path="initialPath"
+              :target-directory="targetDirectory"
+              :highlight-file="highlightFile"
             />
             <FilesystemInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
@@ -396,7 +416,8 @@ watch(
               :layout="inspectorLayout"
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
-              :initial-path="initialPath"
+              :target-directory="targetDirectory"
+              :highlight-file="highlightFile"
             />
           </NTabPane>
 
