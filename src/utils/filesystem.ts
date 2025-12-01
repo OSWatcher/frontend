@@ -90,15 +90,6 @@ export function generateBreadcrumbs(path: string, includeHome = true): Breadcrum
   return breadcrumbs
 }
 
-export function getDownloadUrl(hash: string): string {
-  const storageUri = import.meta.env.VITE_GRAPHEORS_OBJECT_STORAGE_URI
-  if (!storageUri) {
-    console.warn('VITE_GRAPHEORS_OBJECT_STORAGE_URI not configured')
-    return ''
-  }
-  return `${storageUri}/${hash}`
-}
-
 export function formatFileSize(bytes: number | undefined, decimals = 1): string {
   if (bytes === undefined || bytes === null) return '-'
   if (bytes === 0) return '0 B'

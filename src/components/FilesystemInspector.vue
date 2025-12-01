@@ -21,7 +21,8 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
-import { formatFileSize, getStatusTagType, getDownloadUrl } from '@/utils/filesystem'
+import { getStatusTagType } from '@/utils/filesystem'
+import { getDownloadUrl } from '@/download'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
