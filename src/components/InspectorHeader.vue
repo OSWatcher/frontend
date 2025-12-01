@@ -13,7 +13,7 @@ import {
 } from '@vicons/ionicons5'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 
-const props = defineProps({
+const _props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
   layout: { type: String as PropType<InspectorLayout>, default: 'unified' },
   commit: { type: Object as PropType<CommitContext>, default: undefined },

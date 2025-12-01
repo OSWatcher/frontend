@@ -90,6 +90,15 @@ export function generateBreadcrumbs(path: string, includeHome = true): Breadcrum
   return breadcrumbs
 }
 
+export function getDownloadUrl(hash: string): string {
+  const apiUri = import.meta.env.VITE_GRAPHEOS_API_URI
+  if (!apiUri) {
+    console.warn('VITE_GRAPHEOS_API_URI not configured')
+    return ''
+  }
+  return `${apiUri}/blob/${hash}`
+}
+
 export function formatFileSize(bytes: number | undefined, decimals = 1): string {
   if (bytes === undefined || bytes === null) return '-'
   if (bytes === 0) return '0 B'
