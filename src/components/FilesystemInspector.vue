@@ -378,4 +378,20 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   font-size: 13px;
   font-weight: 600;
 }
+
+/* Icon styling for better visual appearance */
+/* Default gray for all table icons */
+:deep(.n-data-table-td:first-child .n-icon) {
+  color: #6b7280 !important; /* gray-500 for files by default */
+}
+
+/* Yellow for folder rows - target the row that has folder behavior */
+:deep(.n-data-table-tr[style*="cursor: pointer"] .n-data-table-td:first-child .n-icon) {
+  color: #f59e0b !important; /* amber-500 for folders */
+}
+
+/* Breadcrumb icons styling */
+:deep(.breadcrumb-nav .n-icon) {
+  color: #f59e0b !important; /* amber-500 for breadcrumb icons */
+}
 </style>
