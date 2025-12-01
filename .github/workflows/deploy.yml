@@ -43,17 +43,16 @@ jobs:
         env:
           NODE_ENV: production
           VITE_GRAPHEOS_API_URI: ${{ vars.VITE_GRAPHEOS_API_URI }}
-          VITE_GRAPHEORS_OBJECT_STORAGE_URI: ${{ vars.VITE_GRAPHEORS_OBJECT_STORAGE_URI }}
           VITE_POSTHOG_API_KEY: ${{ secrets.VITE_POSTHOG_API_KEY }}
           VITE_AUTH0_DOMAIN: ${{ secrets.VITE_AUTH0_DOMAIN }}
           VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
           VITE_AUTH0_AUDIENCE: ${{ secrets.VITE_AUTH0_AUDIENCE }}
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: 'dist'
+          path: "dist"
 
       - name: Deploy to GitHub Pages
         id: deployment
