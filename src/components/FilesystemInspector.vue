@@ -190,8 +190,6 @@ const tableColumns = computed(() => {
   }
 })
 
-const paginationConfig = { pageSize: 50, showSizePicker: true, pageSizes: [20, 50, 100, 200] }
-
 function getIconComponent(iconName: string) {
   switch (iconName) {
     case 'home':
@@ -256,7 +254,6 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         <NDataTable
           :columns="tableColumns"
           :data="entries"
-          :pagination="paginationConfig"
           :row-props="getRowProps"
           striped
           virtual-scroll
@@ -274,7 +271,6 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
           <NDataTable
             :columns="sideBySideColumns"
             :data="baseEntries"
-            :pagination="paginationConfig"
             striped
             virtual-scroll
             :max-height="600"
@@ -285,7 +281,6 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
           <NDataTable
             :columns="sideBySideColumns"
             :data="diffeeEntries"
-            :pagination="paginationConfig"
             striped
             virtual-scroll
             :max-height="600"
