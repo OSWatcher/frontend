@@ -257,7 +257,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
           :row-props="getRowProps"
           striped
           virtual-scroll
-          :max-height="600"
+          :max-height="900"
         />
       </div>
 
@@ -273,7 +273,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
             :data="baseEntries"
             striped
             virtual-scroll
-            :max-height="600"
+            :max-height="900"
           />
         </div>
         <div class="side-by-side-panel">
@@ -283,7 +283,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
             :data="diffeeEntries"
             striped
             virtual-scroll
-            :max-height="600"
+            :max-height="900"
           />
         </div>
       </div>
