@@ -39,8 +39,7 @@ npm run docs:build  # Build documentation
 
 ### Required Environment Variables
 
-- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint
-- `VITE_GRAPHEORS_OBJECT_STORAGE_URI` - Object storage URL
+- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint (also used for blob downloads via `/blob/:hash`)
 
 ### Optional: Auth0 Authentication
 
