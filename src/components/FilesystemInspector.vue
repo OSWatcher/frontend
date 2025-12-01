@@ -6,7 +6,6 @@ import {
   NBreadcrumbItem,
   NIcon,
   NButton,
-  NTag,
   NSpin,
   NAlert,
   NEmpty,
@@ -21,7 +20,7 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
-import { getStatusTagType, getDownloadUrl } from '@/utils/filesystem'
+import { getDownloadUrl } from '@/utils/filesystem'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -116,13 +115,6 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
         },
         row.name
       )
-  },
-  {
-    key: 'status',
-    title: 'Status',
-    width: 120,
-    render: (row) =>
-      h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
   }
 ])
 
@@ -337,17 +329,37 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   overflow: hidden;
 }
 
-:deep(.diff-row-new) {
-  background-color: #f0fdf4 !important;
+/* Diff row styling with subtle and appealing visual backgrounds */
+:deep(.n-data-table-tr.diff-row-new),
+:deep(.n-data-table-tr.diff-row-new .n-data-table-td) {
+  background-color: #dcfce7 !important; /* light green */
 }
 
-:deep(.diff-row-modified) {
-  background-color: #fffbeb !important;
+:deep(.n-data-table-tr.diff-row-modified),
+:deep(.n-data-table-tr.diff-row-modified .n-data-table-td) {
+  background-color: #fef3c7 !important; /* light amber */
 }
 
-:deep(.diff-row-deleted) {
-  background-color: #fef2f2 !important;
-  opacity: 0.7;
+:deep(.n-data-table-tr.diff-row-deleted),
+:deep(.n-data-table-tr.diff-row-deleted .n-data-table-td) {
+  background-color: #fee2e2 !important; /* light red */
+  opacity: 0.9 !important;
+}
+
+/* Subtle hover effects */
+:deep(.n-data-table-tr.diff-row-new:hover),
+:deep(.n-data-table-tr.diff-row-new:hover .n-data-table-td) {
+  background-color: #bbf7d0 !important; /* green-200 */
+}
+
+:deep(.n-data-table-tr.diff-row-modified:hover),
+:deep(.n-data-table-tr.diff-row-modified:hover .n-data-table-td) {
+  background-color: #fde68a !important; /* amber-200 */
+}
+
+:deep(.n-data-table-tr.diff-row-deleted:hover),
+:deep(.n-data-table-tr.diff-row-deleted:hover .n-data-table-td) {
+  background-color: #fecaca !important; /* red-200 */
 }
 
 .side-by-side-container {
@@ -395,14 +407,12 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 /* Icon styling for better visual appearance */
 /* Default gray for all table icons */
 :deep(.n-data-table-td:first-child .n-icon) {
-  color: #6b7280 !important;
-  /* gray-500 for files by default */
+  color: #6b7280 !important; /* gray-500 for files by default */
 }
 
 /* Yellow for folder rows - target the row that has folder behavior */
 :deep(.n-data-table-tr[style*='cursor: pointer'] .n-data-table-td:first-child .n-icon) {
-  color: #f59e0b !important;
-  /* amber-500 for folders */
+  color: #f59e0b !important; /* amber-500 for folders */
 }
 
 /* Breadcrumb icons styling */
