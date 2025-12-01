@@ -26,8 +26,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/tests/setup.ts'],
     env: {
-      VITE_GRAPHEOS_API_URI: 'http://localhost:4000/graphql',
-      VITE_GRAPHEORS_OBJECT_STORAGE_URI: 'http://localhost:9000'
+      VITE_GRAPHEOS_API_URI: 'http://localhost:4000/graphql'
     }
   }
 })

@@ -8,12 +8,12 @@ This document provides a complete reference for all environment variables used i
 
 **Type:** `string`  
 **Required:** Yes  
-**Description:** The base URL for the GraphQL API endpoint.
+**Description:** The base URL for the backend API endpoint.
 
 **Usage:**
-- Used by Apollo Client to establish GraphQL connection
+- Used by Apollo Client to establish GraphQL connection (appends `/graphql` path)
 - Used by PostHog for event tracking (API domain extraction)
-- Automatically appends `/graphql` path for GraphQL endpoint
+- Used for blob downloads via REST API endpoint `/blob/:hash`
 
 **Example Values:**
 ```bash
@@ -33,28 +33,7 @@ if (!apiUri) {
 }
 ```
 
-**File Location:** `src/graphql-client.ts:6-8`
-
-### `VITE_GRAPHEORS_OBJECT_STORAGE_URI`
-
-**Type:** `string`  
-**Required:** Yes  
-**Description:** The base URL for object storage service used for file downloads.
-
-**Usage:**
-- Used by download utilities to fetch files by hash
-- Provides access to binary data stored outside the GraphQL API
-
-**Example Values:**
-```bash
-# Development
-VITE_GRAPHEORS_OBJECT_STORAGE_URI=http://localhost:9000
-
-# Production  
-VITE_GRAPHEORS_OBJECT_STORAGE_URI=https://storage.oswatcher.com
-```
-
-**File Location:** `src/download.ts`
+**File Location:** `src/graphql-client.ts:6-8`, `src/download.ts`, `src/utils/filesystem.ts`
 
 ## Optional Environment Variables
 
@@ -134,11 +113,8 @@ PostHog analytics is automatically configured based on production builds and use
 Create a `.env` file in the project root:
 
 ```bash
-# GraphQL API endpoint
+# Backend API endpoint (GraphQL and blob downloads)
 VITE_GRAPHEOS_API_URI=http://localhost:4000
-
-# Object storage endpoint
-VITE_GRAPHEORS_OBJECT_STORAGE_URI=http://localhost:9000
 
 # Auth0 Configuration (optional)
 VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
@@ -151,11 +127,8 @@ VITE_AUTH0_AUDIENCE=https://your-api.example.com
 Environment variables should be set through your deployment platform:
 
 ```bash
-# GraphQL API endpoint
+# Backend API endpoint (GraphQL and blob downloads)
 VITE_GRAPHEOS_API_URI=https://api.oswatcher.com
-
-# Object storage endpoint
-VITE_GRAPHEORS_OBJECT_STORAGE_URI=https://storage.oswatcher.com
 
 # Auth0 Configuration (optional)
 VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
@@ -219,7 +192,6 @@ Environment variable types are defined in `env.d.ts`:
 ```typescript
 interface ImportMetaEnv {
   readonly VITE_GRAPHEOS_API_URI: string
-  readonly VITE_GRAPHEORS_OBJECT_STORAGE_URI: string
   readonly VITE_AUTH0_DOMAIN: string
   readonly VITE_AUTH0_CLIENT_ID: string
   readonly VITE_AUTH0_AUDIENCE: string
@@ -242,8 +214,8 @@ interface ImportMetaEnv {
    - Ensure the `/graphql` endpoint exists
 
 3. **File Download Failures**
-   - Verify `VITE_GRAPHEORS_OBJECT_STORAGE_URI` is correctly configured
-   - Check object storage service availability
+   - Verify `VITE_GRAPHEOS_API_URI` is correctly configured
+   - Check that the backend REST API `/blob/:hash` endpoint is accessible
    - Ensure proper authentication/access permissions
 
 ### Debugging
