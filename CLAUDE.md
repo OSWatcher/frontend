@@ -72,8 +72,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Environment Configuration
 
 #### Required Environment Variables
-- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint URL (used for Apollo Client and PostHog events)
-- `VITE_GRAPHEORS_OBJECT_STORAGE_URI` - Object storage URL for downloading files by hash
+- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint URL (used for Apollo Client, PostHog events, and blob downloads via REST API `/blob/:hash`)
 
 #### Optional Environment Variables (Auth0)
 - `VITE_AUTH0_DOMAIN` - Auth0 tenant domain (e.g., your-tenant.us.auth0.com)

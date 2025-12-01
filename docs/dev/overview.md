@@ -152,9 +152,9 @@ WinRegKey → child_keys (subkeys)
 **Diff**:
 - `DIFF_NODES` - Compare two nodes at path with filters (NEW/MOD/DEL), max depth, pagination
 
-### Object Storage
+### Blob Downloads
 
-Raw file contents are stored by hash and can be downloaded via object storage endpoints configured in `VITE_GRAPHEORS_OBJECT_STORAGE_URI`.
+Raw file contents are stored by hash and can be downloaded via the backend REST API endpoint `/blob/:hash` using the base URL configured in `VITE_GRAPHEOS_API_URI`.
 
 ## Technology Stack
 
