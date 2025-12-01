@@ -12,7 +12,8 @@ import {
   parseFilesystemEntries,
   parseFilesystemDiffEntries,
   generateBreadcrumbs,
-  sortEntries
+  sortEntries,
+  getParentPath
 } from '@/utils/filesystem'
 
 export function useFilesystemInspector(
@@ -21,9 +22,11 @@ export function useFilesystemInspector(
   commit?: CommitContext,
   baseCommit?: CommitContext,
   diffeeCommit?: CommitContext,
-  initialPath = '/'
+  targetDirectory = '/',
+  highlightFile = ''
 ) {
-  const currentPath = ref<string>(initialPath)
+  const currentPath = ref<string>(targetDirectory)
+  const highlightedFile = ref<string>(highlightFile)
   const rawEntries = ref<any[]>([])
   const isLoading = ref<boolean>(false)
   const error = ref<Error | null>(null)
@@ -150,7 +153,7 @@ export function useFilesystemInspector(
     }
   }
 
-  async function navigateToPath(path: string): Promise<void> {
+  async function navigateToDirectory(dirPath: string, fileToHighlight?: string): Promise<void> {
     isLoading.value = true
     error.value = null
     try {
@@ -162,13 +165,14 @@ export function useFilesystemInspector(
           fsRootHash.value = await fetchFsRootHash(commit.hash)
         }
         const targetTreeHash =
-          path === '/' ? fsRootHash.value : await traverseToPath(fsRootHash.value, path)
+          dirPath === '/' ? fsRootHash.value : await traverseToPath(fsRootHash.value, dirPath)
         if (!targetTreeHash) {
-          throw new Error(`Path ${path} not found`)
+          throw new Error(`Directory ${dirPath} not found`)
         }
         const entries = await fetchEntriesForSingleMode(targetTreeHash)
         rawEntries.value = entries
-        currentPath.value = path
+        currentPath.value = dirPath
+        highlightedFile.value = fileToHighlight || ''
       } else {
         if (!baseCommit || !diffeeCommit) {
           throw new Error('Base and diffee commits are required for comparison mode')
@@ -183,10 +187,11 @@ export function useFilesystemInspector(
         const entries = await fetchEntriesForComparisonMode(
           baseFsRootHash.value,
           diffeeFsRootHash.value,
-          path
+          dirPath
         )
         rawEntries.value = entries
-        currentPath.value = path
+        currentPath.value = dirPath
+        highlightedFile.value = fileToHighlight || ''
       }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
@@ -196,14 +201,34 @@ export function useFilesystemInspector(
     }
   }
 
+  // Backward compatibility function that intelligently handles file vs directory paths
+  async function navigateToPath(path: string): Promise<void> {
+    if (path === '/') {
+      return navigateToDirectory('/')
+    }
+
+    // Try to detect if this is likely a file path
+    const fileName = path.split('/').pop() || ''
+    const hasExtension = fileName.includes('.')
+
+    if (hasExtension) {
+      // Likely a file - navigate to parent directory and highlight file
+      const parentDir = getParentPath(path)
+      return navigateToDirectory(parentDir, fileName)
+    } else {
+      // Likely a directory
+      return navigateToDirectory(path)
+    }
+  }
+
   async function refresh(): Promise<void> {
-    await navigateToPath(currentPath.value)
+    await navigateToDirectory(currentPath.value, highlightedFile.value)
   }
 
   watch(
     () => [mode, commit, baseCommit, diffeeCommit],
     () => {
-      navigateToPath(currentPath.value)
+      navigateToDirectory(currentPath.value, highlightedFile.value)
     },
     { immediate: true }
   )
@@ -215,6 +240,8 @@ export function useFilesystemInspector(
     isLoading,
     error,
     navigateToPath,
+    navigateToDirectory,
+    highlightedFile,
     refresh
   }
 }
