@@ -22,7 +22,7 @@ export interface BranchWithCommits {
 
 function useBranchesData() {
   // Filter to show only main branches in the dropdown
-  const MAIN_BRANCHES = ['ubuntu-server', 'master']
+  const MAIN_BRANCHES = ['ubuntu-server', 'windows']
 
   return effectScope().run(() => {
     const {
