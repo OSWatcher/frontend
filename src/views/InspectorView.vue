@@ -429,7 +429,11 @@ watch(
           </NTabPane>
 
           <!-- Registry Tab (only if available and user is authenticated) -->
-          <NTabPane v-if="hasRegistry && isAuthenticated" name="registry" tab="Registry">
+          <NTabPane
+            v-if="hasRegistry && inspectorMode !== 'comparison'"
+            name="registry"
+            tab="Registry"
+          >
             <RegistryInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
