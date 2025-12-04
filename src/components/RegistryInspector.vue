@@ -466,32 +466,32 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
 /* Diff status - NEW (green) */
 :deep(.n-data-table-tr.diff-row-new),
 :deep(.n-data-table-tr.diff-row-new .n-data-table-td) {
-  background-color: #f0fdf4 !important; /* green-50 */
+  background-color: #dcfce7 !important; /* green-200 - matches file explorer */
 }
 :deep(.n-data-table-tr.diff-row-new:hover),
 :deep(.n-data-table-tr.diff-row-new:hover .n-data-table-td) {
-  background-color: #bbf7d0 !important; /* green-200 */
+  background-color: #bbf7d0 !important; /* green-300 */
 }
 
-/* Diff status - MODIFIED (amber) */
-:deep(.n-data-table-tr.diff-row-modified),
-:deep(.n-data-table-tr.diff-row-modified .n-data-table-td) {
-  background-color: #fffbeb !important; /* amber-50 */
+/* Diff status - MOD (amber) - API returns "MOD" not "MODIFIED" */
+:deep(.n-data-table-tr.diff-row-mod),
+:deep(.n-data-table-tr.diff-row-mod .n-data-table-td) {
+  background-color: #fef3c7 !important; /* amber-200 - matches file explorer */
 }
-:deep(.n-data-table-tr.diff-row-modified:hover),
-:deep(.n-data-table-tr.diff-row-modified:hover .n-data-table-td) {
-  background-color: #fde68a !important; /* amber-200 */
+:deep(.n-data-table-tr.diff-row-mod:hover),
+:deep(.n-data-table-tr.diff-row-mod:hover .n-data-table-td) {
+  background-color: #fde68a !important; /* amber-300 */
 }
 
-/* Diff status - DELETED (red) */
-:deep(.n-data-table-tr.diff-row-deleted),
-:deep(.n-data-table-tr.diff-row-deleted .n-data-table-td) {
-  background-color: #fef2f2 !important; /* red-50 */
-  opacity: 0.7;
+/* Diff status - DEL (red) - API returns "DEL" not "DELETED" */
+:deep(.n-data-table-tr.diff-row-del),
+:deep(.n-data-table-tr.diff-row-del .n-data-table-td) {
+  background-color: #fee2e2 !important; /* red-200 - matches file explorer */
+  opacity: 0.9 !important;
 }
-:deep(.n-data-table-tr.diff-row-deleted:hover),
-:deep(.n-data-table-tr.diff-row-deleted:hover .n-data-table-td) {
-  background-color: #fecaca !important; /* red-200 */
+:deep(.n-data-table-tr.diff-row-del:hover),
+:deep(.n-data-table-tr.diff-row-del:hover .n-data-table-td) {
+  background-color: #fecaca !important; /* red-300 */
 }
 
 /* Side-by-side container */
