@@ -252,7 +252,15 @@ function getIconComponent(iconName: string) {
 }
 
 function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
+  const baseProps: any = {}
   const classes: string[] = []
+
+  // Add click handler for registry keys (like folders)
+  if (row.type === 'key') {
+    baseProps.onClick = () => navigateToPath(row.path)
+    baseProps.style = { cursor: 'pointer' }
+    classes.push('registry-key')
+  }
 
   // Add diff status class for comparison mode
   if (props.mode === 'comparison') {
@@ -260,12 +268,11 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
     classes.push(`diff-row-${diffEntry.status.toLowerCase()}`)
   }
 
-  // Add registry-key class for key rows (to style icons)
-  if (row.type === 'key') {
-    classes.push('registry-key')
+  if (classes.length > 0) {
+    baseProps.class = classes.join(' ')
   }
 
-  return { class: classes.join(' ') }
+  return baseProps
 }
 </script>
 
