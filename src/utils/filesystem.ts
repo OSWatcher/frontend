@@ -96,7 +96,9 @@ export function getDownloadUrl(hash: string): string {
     console.warn('VITE_GRAPHEOS_API_URI not configured')
     return ''
   }
-  return `${apiUri}/blob/${hash}`
+  // URL constructor handles path normalization automatically
+  const url = new URL(`/blob/${hash}`, apiUri)
+  return url.toString()
 }
 
 export function formatFileSize(bytes: number | undefined, decimals = 1): string {
