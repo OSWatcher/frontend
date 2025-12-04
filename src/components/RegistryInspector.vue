@@ -252,9 +252,20 @@ function getIconComponent(iconName: string) {
 }
 
 function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
-  if (props.mode === 'single') return {}
-  const diffEntry = row as RegistryDiffEntry
-  return { class: `diff-row-${diffEntry.status.toLowerCase()}` }
+  const classes: string[] = []
+
+  // Add diff status class for comparison mode
+  if (props.mode === 'comparison') {
+    const diffEntry = row as RegistryDiffEntry
+    classes.push(`diff-row-${diffEntry.status.toLowerCase()}`)
+  }
+
+  // Add registry-key class for key rows (to style icons)
+  if (row.type === 'key') {
+    classes.push('registry-key')
+  }
+
+  return { class: classes.join(' ') }
 }
 </script>
 
@@ -427,14 +438,14 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   overflow: hidden;
 }
 
-/* Registry key icon color (yellow, like folders) */
-:deep(.n-data-table-tr[style*='cursor: pointer'] .n-data-table-td:first-child .n-icon) {
-  color: #f59e0b !important; /* amber-500 for registry keys */
-}
-
-/* Registry value icon color (gray, like files) */
+/* Registry value icon color (gray, like files) - default for all */
 :deep(.n-data-table-td:first-child .n-icon) {
   color: #6b7280 !important; /* gray-500 for registry values */
+}
+
+/* Registry key icon color (yellow, like folders) - override for keys */
+:deep(.n-data-table-tr.registry-key .n-data-table-td:first-child .n-icon) {
+  color: #f59e0b !important; /* amber-500 for registry keys */
 }
 
 /* Row hover effect */
