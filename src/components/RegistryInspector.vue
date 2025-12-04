@@ -240,8 +240,6 @@ const tableColumns = computed(() => {
   }
 })
 
-const paginationConfig = { pageSize: 50, showSizePicker: true, pageSizes: [20, 50, 100, 200] }
-
 function getIconComponent(iconName: string) {
   switch (iconName) {
     case 'home':
@@ -320,16 +318,19 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
       <div v-else>
         <!-- Unified View -->
         <div v-if="mode === 'single' || layout === 'unified'">
-          <NDataTable
-            :columns="tableColumns"
-            :data="entries"
-            :pagination="paginationConfig"
-            :row-props="getRowProps"
-            striped
-            virtual-scroll
-            :max-height="600"
-          />
-          <NEmpty v-if="entries.length === 0 && !isLoading" description="No entries found" />
+          <div v-if="entries.length > 0" class="table-container">
+            <NDataTable
+              :columns="tableColumns"
+              :data="entries"
+              :row-props="getRowProps"
+              striped
+              virtual-scroll
+              :max-height="900"
+            />
+          </div>
+          <div v-else class="empty-folder">
+            <NEmpty description="No entries found" />
+          </div>
         </div>
 
         <!-- Side-by-Side View -->
@@ -342,10 +343,9 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             <NDataTable
               :columns="sideBySideColumns"
               :data="baseEntries"
-              :pagination="paginationConfig"
               striped
               virtual-scroll
-              :max-height="600"
+              :max-height="900"
             />
           </div>
           <div class="side-by-side-panel">
@@ -353,10 +353,9 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             <NDataTable
               :columns="sideBySideColumns"
               :data="diffeeEntries"
-              :pagination="paginationConfig"
               striped
               virtual-scroll
-              :max-height="600"
+              :max-height="900"
             />
           </div>
         </div>
@@ -371,23 +370,32 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   flex-direction: column;
   gap: 16px;
 }
+
 .hive-selector {
   padding: 12px 16px;
   background: #f9fafb;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
 }
+
 .hive-label {
   font-weight: 600;
   color: #374151;
   font-size: 14px;
 }
+
 .breadcrumb-nav {
   padding: 12px 16px;
   background: #f9fafb;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
 }
+
+/* Breadcrumb icons (yellow) */
+:deep(.breadcrumb-nav .n-icon) {
+  color: #f59e0b !important; /* amber-500 */
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -395,38 +403,111 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   padding: 60px 20px;
   gap: 16px;
 }
+
 .loading-text {
   margin: 0;
   color: #666;
 }
-:deep(.diff-row-new) {
-  background-color: #f0fdf4 !important;
+
+/* Empty state styling */
+.empty-folder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #9ca3af;
 }
-:deep(.diff-row-modified) {
-  background-color: #fffbeb !important;
+
+/* Table container styling */
+.table-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
-:deep(.diff-row-deleted) {
-  background-color: #fef2f2 !important;
+
+/* Registry key icon color (yellow, like folders) */
+:deep(.n-data-table-tr[style*='cursor: pointer'] .n-data-table-td:first-child .n-icon) {
+  color: #f59e0b !important; /* amber-500 for registry keys */
+}
+
+/* Registry value icon color (gray, like files) */
+:deep(.n-data-table-td:first-child .n-icon) {
+  color: #6b7280 !important; /* gray-500 for registry values */
+}
+
+/* Row hover effect */
+:deep(.n-data-table-tr:hover) {
+  background-color: #f0f9ff !important; /* light blue hover */
+}
+
+/* Font sizing */
+:deep(.n-data-table-td) {
+  font-size: 14px;
+}
+
+:deep(.n-data-table-th) {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Diff status - NEW (green) */
+:deep(.n-data-table-tr.diff-row-new),
+:deep(.n-data-table-tr.diff-row-new .n-data-table-td) {
+  background-color: #f0fdf4 !important; /* green-50 */
+}
+:deep(.n-data-table-tr.diff-row-new:hover),
+:deep(.n-data-table-tr.diff-row-new:hover .n-data-table-td) {
+  background-color: #bbf7d0 !important; /* green-200 */
+}
+
+/* Diff status - MODIFIED (amber) */
+:deep(.n-data-table-tr.diff-row-modified),
+:deep(.n-data-table-tr.diff-row-modified .n-data-table-td) {
+  background-color: #fffbeb !important; /* amber-50 */
+}
+:deep(.n-data-table-tr.diff-row-modified:hover),
+:deep(.n-data-table-tr.diff-row-modified:hover .n-data-table-td) {
+  background-color: #fde68a !important; /* amber-200 */
+}
+
+/* Diff status - DELETED (red) */
+:deep(.n-data-table-tr.diff-row-deleted),
+:deep(.n-data-table-tr.diff-row-deleted .n-data-table-td) {
+  background-color: #fef2f2 !important; /* red-50 */
   opacity: 0.7;
 }
-.side-by-side-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+:deep(.n-data-table-tr.diff-row-deleted:hover),
+:deep(.n-data-table-tr.diff-row-deleted:hover .n-data-table-td) {
+  background-color: #fecaca !important; /* red-200 */
 }
+
+/* Side-by-side container */
+.side-by-side-container {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  margin-top: 16px;
+}
+
 .side-by-side-panel {
+  flex: 1;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
+
 .panel-title {
-  margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #374151;
   padding: 8px 12px;
-  background: #f9fafb;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  margin: 0 0 12px 0;
 }
 </style>
