@@ -24,7 +24,6 @@ const _props = defineProps({
 })
 
 const emit = defineEmits<{
-  addComparison: []
   removeComparison: []
   layoutChange: [layout: InspectorLayout]
 }>()
@@ -32,10 +31,6 @@ const emit = defineEmits<{
 function shortHash(hash: string | undefined): string {
   if (!hash) return ''
   return hash.slice(0, 7)
-}
-
-function handleAddComparison() {
-  emit('addComparison')
 }
 
 function handleRemoveComparison() {
@@ -76,11 +71,6 @@ function handleLayoutChange(newLayout: InspectorLayout) {
             </div>
           </div>
         </NCard>
-        <NButton secondary class="vs-button" @click="handleAddComparison">
-          <template #icon
-            ><NIcon><GitCompareOutline /></NIcon></template
-          >+ vs
-        </NButton>
       </div>
 
       <div v-else class="comparison-mode-selector">

@@ -93,9 +93,15 @@ export function useRegistryInspector(
           }))
       }
 
-      // Select first hive by default
+      // Select a useful default hive (prefer SOFTWARE > SYSTEM > first available)
       if (availableHives.value.length > 0) {
-        selectedHive.value = availableHives.value[0]
+        const softwareHive = availableHives.value.find((h) =>
+          h.mountPath.toUpperCase().includes('SOFTWARE')
+        )
+        const systemHive = availableHives.value.find((h) =>
+          h.mountPath.toUpperCase().includes('SYSTEM')
+        )
+        selectedHive.value = softwareHive || systemHive || availableHives.value[0]
       }
     } catch (err) {
       console.error('Error fetching registry hives:', err)
