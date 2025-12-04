@@ -26,6 +26,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NSpin, NAlert, NTabs, NTabPane } from 'naive-ui'
+import { useAuth0 } from '@auth0/auth0-vue'
 import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
@@ -40,6 +41,12 @@ import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/gra
 
 const route = useRoute()
 const router = useRouter()
+
+// ===================================================================
+// AUTHENTICATION
+// ===================================================================
+
+const { isAuthenticated } = useAuth0()
 
 // ===================================================================
 // STATE
@@ -421,8 +428,8 @@ watch(
             />
           </NTabPane>
 
-          <!-- Registry Tab (only if available) -->
-          <NTabPane v-if="hasRegistry" name="registry" tab="Registry">
+          <!-- Registry Tab (only if available and user is authenticated) -->
+          <NTabPane v-if="hasRegistry && isAuthenticated" name="registry" tab="Registry">
             <RegistryInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
