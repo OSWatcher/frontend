@@ -150,11 +150,14 @@ const performSearch = () => {
       return
     }
 
+    // Use HISTORY_WITH_UPDATES scope for authenticated users, HISTORY for others
+    const scope = isAuthenticated.value ? CommitScope.HistoryWithUpdates : CommitScope.History
+
     const variables = {
       searchTerm: searchTerm.value,
       commitRange: {
         startCommit: branchSelection.selectedBranchHash,
-        scope: CommitScope.History
+        scope: scope
       }
     }
 
