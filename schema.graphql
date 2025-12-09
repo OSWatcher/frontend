@@ -2,7 +2,7 @@ scalar JSON
 
 # common interface for all hashable nodes
 # having a .hash property
-interface Hashable @limit(default: 100, max: 5000) {
+interface Hashable @limit(default: 5000, max: 5000) {
     hash: String!
 }
 
@@ -40,7 +40,7 @@ enum CommitScope {
 }
 
 # read: needed for HAS_WINREG
-type Blob implements Hashable @query(read: true, aggregate: false) @mutation(operations: []) @limit(default: 100, max: 5000) {
+type Blob implements Hashable @query(read: true, aggregate: false) @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     has_winreg: WinRegKey @relationship(type: "HAS_WINREG", direction: OUT)
     has_symbol: [Symbol!]! @relationship(type: "HAS_SYMBOL", direction: OUT, properties: "HasNameRel")
@@ -55,7 +55,7 @@ type HasNameRel @relationshipProperties {
     name: String!
 }
 
-type Tree implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type Tree implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     child_blobs: [Blob!]!
         @relationship(
@@ -71,11 +71,11 @@ type Tree implements Hashable @mutation(operations: []) @limit(default: 100, max
         )
 }
 
-type Commit implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type Commit implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     name: String!
     description: String
-    date: String!
+    date: DateTime!
     previous: Commit @relationship(type: "HAS_PREVIOUS", direction: OUT)
     next: [Commit!]! @relationship(type: "HAS_PREVIOUS", direction: IN)
     filesystem: Tree @relationship(type: "OWNS_FILESYSTEM", direction: OUT)
@@ -88,13 +88,13 @@ type Branch @mutation(operations: [])  {
 
 # Plugins types
 ## Registry
-type WinRegValue implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type WinRegValue implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     type: String!
     value: String!
 }
 
-type WinRegKey implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type WinRegKey implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     child_values: [WinRegValue!]!
         @relationship(
@@ -111,13 +111,13 @@ type WinRegKey implements Hashable @mutation(operations: []) @limit(default: 100
 }
 
 ## PDBs
-type Symbol implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type Symbol implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     address: String!
     blob: Blob! @relationship(type: "HAS_SYMBOL", direction: IN, properties: "HasNameRel")
 }
 
-type WinStruct implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type WinStruct implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     size: Int!
     kind: String!
@@ -126,7 +126,7 @@ type WinStruct implements Hashable @mutation(operations: []) @limit(default: 100
     blob: Blob! @relationship(type: "HAS_STRUCT", direction: IN, properties: "HasNameRel")
 }
 
-type WinStructField implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type WinStructField implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     offset: Int!
     data_type: JSON!
@@ -134,7 +134,7 @@ type WinStructField implements Hashable @mutation(operations: []) @limit(default
     struct: WinStruct! @relationship(type: "HAS_FIELD", direction: IN, properties: "HasNameRel")
 }
 
-type WinDataType implements Hashable @mutation(operations: []) @limit(default: 100, max: 5000) {
+type WinDataType implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     type: String!
     name: String
