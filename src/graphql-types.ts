@@ -20,6 +20,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean }
   Int: { input: number; output: number }
   Float: { input: number; output: number }
+  DateTime: { input: any; output: any }
   JSON: { input: any; output: any }
 }
 
@@ -487,7 +488,7 @@ export type BranchCommitTracksAggregationSelection = {
 
 export type BranchCommitTracksNodeAggregateSelection = {
   __typename?: 'BranchCommitTracksNodeAggregateSelection'
-  date: StringAggregateSelection
+  date: DateTimeAggregateSelection
   description: StringAggregateSelection
   hash: StringAggregateSelection
   name: StringAggregateSelection
@@ -545,21 +546,16 @@ export type BranchTracksNodeAggregationWhereInput = {
   AND?: InputMaybe<Array<BranchTracksNodeAggregationWhereInput>>
   NOT?: InputMaybe<BranchTracksNodeAggregationWhereInput>
   OR?: InputMaybe<Array<BranchTracksNodeAggregationWhereInput>>
-  date_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  date_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  date_MAX_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LTE?: InputMaybe<Scalars['DateTime']['input']>
   description_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
@@ -638,7 +634,7 @@ export type BranchesConnection = {
 
 export type Commit = Hashable & {
   __typename?: 'Commit'
-  date: Scalars['String']['output']
+  date: Scalars['DateTime']['output']
   description?: Maybe<Scalars['String']['output']>
   filesystem?: Maybe<Tree>
   filesystemAggregate?: Maybe<CommitTreeFilesystemAggregationSelection>
@@ -713,7 +709,7 @@ export type CommitPreviousConnectionArgs = {
 export type CommitAggregateSelection = {
   __typename?: 'CommitAggregateSelection'
   count: Scalars['Int']['output']
-  date: StringAggregateSelection
+  date: DateTimeAggregateSelection
   description: StringAggregateSelection
   hash: StringAggregateSelection
   name: StringAggregateSelection
@@ -727,7 +723,7 @@ export type CommitCommitNextAggregationSelection = {
 
 export type CommitCommitNextNodeAggregateSelection = {
   __typename?: 'CommitCommitNextNodeAggregateSelection'
-  date: StringAggregateSelection
+  date: DateTimeAggregateSelection
   description: StringAggregateSelection
   hash: StringAggregateSelection
   name: StringAggregateSelection
@@ -741,7 +737,7 @@ export type CommitCommitPreviousAggregationSelection = {
 
 export type CommitCommitPreviousNodeAggregateSelection = {
   __typename?: 'CommitCommitPreviousNodeAggregateSelection'
-  date: StringAggregateSelection
+  date: DateTimeAggregateSelection
   description: StringAggregateSelection
   hash: StringAggregateSelection
   name: StringAggregateSelection
@@ -849,21 +845,16 @@ export type CommitNextNodeAggregationWhereInput = {
   AND?: InputMaybe<Array<CommitNextNodeAggregationWhereInput>>
   NOT?: InputMaybe<CommitNextNodeAggregationWhereInput>
   OR?: InputMaybe<Array<CommitNextNodeAggregationWhereInput>>
-  date_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  date_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  date_MAX_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LTE?: InputMaybe<Scalars['DateTime']['input']>
   description_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
@@ -958,21 +949,16 @@ export type CommitPreviousNodeAggregationWhereInput = {
   AND?: InputMaybe<Array<CommitPreviousNodeAggregationWhereInput>>
   NOT?: InputMaybe<CommitPreviousNodeAggregationWhereInput>
   OR?: InputMaybe<Array<CommitPreviousNodeAggregationWhereInput>>
-  date_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  date_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  date_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  date_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  date_MAX_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MAX_LTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_EQUAL?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_MIN_LTE?: InputMaybe<Scalars['DateTime']['input']>
   description_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
   description_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
@@ -1062,11 +1048,12 @@ export type CommitWhere = {
   AND?: InputMaybe<Array<CommitWhere>>
   NOT?: InputMaybe<CommitWhere>
   OR?: InputMaybe<Array<CommitWhere>>
-  date?: InputMaybe<Scalars['String']['input']>
-  date_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  date_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  date_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  date_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  date?: InputMaybe<Scalars['DateTime']['input']>
+  date_GT?: InputMaybe<Scalars['DateTime']['input']>
+  date_GTE?: InputMaybe<Scalars['DateTime']['input']>
+  date_IN?: InputMaybe<Array<Scalars['DateTime']['input']>>
+  date_LT?: InputMaybe<Scalars['DateTime']['input']>
+  date_LTE?: InputMaybe<Scalars['DateTime']['input']>
   description?: InputMaybe<Scalars['String']['input']>
   description_CONTAINS?: InputMaybe<Scalars['String']['input']>
   description_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
@@ -1116,6 +1103,12 @@ export type CommitsConnection = {
   edges: Array<CommitEdge>
   pageInfo: PageInfo
   totalCount: Scalars['Int']['output']
+}
+
+export type DateTimeAggregateSelection = {
+  __typename?: 'DateTimeAggregateSelection'
+  max?: Maybe<Scalars['DateTime']['output']>
+  min?: Maybe<Scalars['DateTime']['output']>
 }
 
 export type DiffItem = {
@@ -3265,7 +3258,7 @@ export type FetchCommitHistoryQuery = {
   __typename?: 'Query'
   fetchCommitHistory: Array<{
     __typename?: 'Commit'
-    date: string
+    date: any
     description?: string | null
     hash: string
     name: string
@@ -3285,7 +3278,7 @@ export type FetchCommitDetailsQuery = {
     hash: string
     name: string
     description?: string | null
-    date: string
+    date: any
   }>
 }
 
@@ -3437,8 +3430,25 @@ export type SearchFsQuery = {
     __typename?: 'SearchResult'
     commit_name: string
     commit_hash: string
+    hash: string
     path: string
   }>
+}
+
+export type SearchFsStreamSubscriptionVariables = Exact<{
+  commitRange: CommitRange
+  searchTerm: Scalars['String']['input']
+}>
+
+export type SearchFsStreamSubscription = {
+  __typename?: 'Subscription'
+  searchStream: {
+    __typename?: 'SearchResult'
+    commit_name: string
+    commit_hash: string
+    hash: string
+    path: string
+  }
 }
 
 export type DiffNodesQueryVariables = Exact<{
@@ -4343,6 +4353,7 @@ export const SearchFsDocument = gql`
     search(search_term: $searchTerm, commit_range: $commitRange) {
       commit_name
       commit_hash
+      hash
       path
     }
   }
@@ -4408,6 +4419,66 @@ export type SearchFsQueryCompositionFunctionResult = VueApolloComposable.UseQuer
   SearchFsQuery,
   SearchFsQueryVariables
 >
+export const SearchFsStreamDocument = gql`
+  subscription SearchFsStream($commitRange: CommitRange!, $searchTerm: String!) {
+    searchStream(commit_range: $commitRange, search_term: $searchTerm) {
+      commit_name
+      commit_hash
+      hash
+      path
+    }
+  }
+`
+
+/**
+ * __useSearchFsStreamSubscription__
+ *
+ * To run a query within a Vue component, call `useSearchFsStreamSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useSearchFsStreamSubscription` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the subscription
+ * @param options that will be passed into the subscription, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/subscription.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useSearchFsStreamSubscription({
+ *   commitRange: // value for 'commitRange'
+ *   searchTerm: // value for 'searchTerm'
+ * });
+ */
+export function useSearchFsStreamSubscription(
+  variables:
+    | SearchFsStreamSubscriptionVariables
+    | VueCompositionApi.Ref<SearchFsStreamSubscriptionVariables>
+    | ReactiveFunction<SearchFsStreamSubscriptionVariables>,
+  options:
+    | VueApolloComposable.UseSubscriptionOptions<
+        SearchFsStreamSubscription,
+        SearchFsStreamSubscriptionVariables
+      >
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseSubscriptionOptions<
+          SearchFsStreamSubscription,
+          SearchFsStreamSubscriptionVariables
+        >
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseSubscriptionOptions<
+          SearchFsStreamSubscription,
+          SearchFsStreamSubscriptionVariables
+        >
+      > = {}
+) {
+  return VueApolloComposable.useSubscription<
+    SearchFsStreamSubscription,
+    SearchFsStreamSubscriptionVariables
+  >(SearchFsStreamDocument, variables, options)
+}
+export type SearchFsStreamSubscriptionCompositionFunctionResult =
+  VueApolloComposable.UseSubscriptionReturn<
+    SearchFsStreamSubscription,
+    SearchFsStreamSubscriptionVariables
+  >
 export const DiffNodesDocument = gql`
   query DiffNodes(
     $parentLabel: String!
