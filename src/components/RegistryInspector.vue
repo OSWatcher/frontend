@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, type PropType } from 'vue'
+import { computed, h, ref, type PropType } from 'vue'
 import {
   NDataTable,
   NBreadcrumb,
@@ -7,19 +7,26 @@ import {
   NIcon,
   NSelect,
   NTag,
+  NButton,
+  NDropdown,
   NSpin,
   NAlert,
   NEmpty,
   NSpace,
   type DataTableColumns,
-  type SelectOption
+  type SelectOption,
+  type DropdownOption
 } from 'naive-ui'
-import { DocumentOutline, HomeOutline, FolderOutline } from '@vicons/ionicons5'
+import { DocumentOutline, HomeOutline, FolderOutline, DownloadOutline } from '@vicons/ionicons5'
+import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
 import { DiffStatus } from '@/graphql-types'
 import { formatRegistryValue, getRegistryStatusTagType } from '@/utils/registry'
+import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
+import gqlClient from '@/graphql-client'
+import { DIFF_NODES } from '@/queries'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -38,7 +45,8 @@ const {
   availableHives,
   selectedHive,
   navigateToPath,
-  selectHive
+  selectHive,
+  currentPath
 } = useRegistryInspector(
   props.mode,
   props.layout,
@@ -46,6 +54,147 @@ const {
   props.baseCommit,
   props.diffeeCommit
 )
+
+// Authentication for full export
+const { isAuthenticated } = useAuth0()
+const isExporting = ref(false)
+
+// Export local diff (current registry key level only)
+async function exportLocalDiff() {
+  const diffEntries = entries.value as RegistryDiffEntry[]
+
+  const exportData = {
+    metadata: {
+      exportedAt: new Date().toISOString(),
+      baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
+      diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
+      scope: 'local' as const,
+      path: currentPath.value,
+      hive: selectedHive.value?.mountPath || '',
+      totalEntries: diffEntries.length
+    },
+    entries: diffEntries.map((e) => ({
+      path: e.path,
+      name: e.name,
+      type: e.type,
+      status: e.status,
+      valueType: e.valueType,
+      value: e.value,
+      baseValue: e.baseValue,
+      diffeeValue: e.diffeeValue,
+      baseValueType: e.baseValueType,
+      diffeeValueType: e.diffeeValueType
+    }))
+  }
+
+  const filename = generateExportFilename(
+    'registry',
+    props.baseCommit?.name || 'base',
+    props.diffeeCommit?.name || 'diffee',
+    'local'
+  )
+  downloadJsonFile(exportData, filename)
+}
+
+// Export full diff (recursive)
+async function exportFullDiff() {
+  if (!isAuthenticated.value || !selectedHive.value) return
+
+  isExporting.value = true
+  try {
+    // Call DIFF_NODES with maxDepth: null for recursive
+    const response = await gqlClient.query({
+      query: DIFF_NODES,
+      variables: {
+        parentLabel: 'WinRegKey',
+        baseNodeHash: selectedHive.value.hash,
+        diffeeNodeHash: (selectedHive.value as any).diffeeHash,
+        atPath: '/',
+        maxDepth: null, // Recursive!
+        filter: ['WinRegValue'],
+        options: { offset: 0, limit: 10000 }
+      }
+    })
+
+    const items = response.data?.diffNodesAt?.items || []
+    const exportData = {
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
+        diffeeCommit: {
+          name: props.diffeeCommit?.name || '',
+          hash: props.diffeeCommit?.hash || ''
+        },
+        scope: 'full' as const,
+        path: '/',
+        hive: selectedHive.value?.mountPath || '',
+        totalEntries: items.length
+      },
+      entries: items.map((item: any) => ({
+        path: item.path,
+        name: item.path.split('/').pop() || '',
+        type: item.type === 'WinRegKey' ? 'key' : 'value',
+        status: item.status,
+        valueType: item.new_props?.type || item.old_props?.type,
+        value: item.new_props?.value || item.old_props?.value,
+        baseValue: item.old_props?.value,
+        diffeeValue: item.new_props?.value,
+        baseValueType: item.old_props?.type,
+        diffeeValueType: item.new_props?.type
+      }))
+    }
+
+    const filename = generateExportFilename(
+      'registry',
+      props.baseCommit?.name || 'base',
+      props.diffeeCommit?.name || 'diffee',
+      'full'
+    )
+    downloadJsonFile(exportData, filename)
+  } catch (err) {
+    console.error('Error exporting full diff:', err)
+    alert('Error exporting full diff. Please try again.')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+// Export dropdown options
+const exportOptions = computed<DropdownOption[]>(() => [
+  {
+    label: 'Export Current Key',
+    key: 'local',
+    disabled: isExporting.value,
+    props: {
+      onClick: exportLocalDiff
+    }
+  },
+  {
+    label: 'Export Full Hive',
+    key: 'full',
+    disabled: !isAuthenticated.value || isExporting.value,
+    props: {
+      onClick: () => {
+        if (isAuthenticated.value) {
+          exportFullDiff()
+        }
+      }
+    },
+    children: !isAuthenticated.value
+      ? [
+          {
+            type: 'render',
+            render: () =>
+              h(
+                'div',
+                { style: { padding: '8px 12px', fontSize: '12px', color: '#999' } },
+                '🔒 Login required'
+              )
+          }
+        ]
+      : undefined
+  }
+])
 
 // Hive selector options
 const hiveOptions = computed<SelectOption[]>(() =>
@@ -308,18 +457,34 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
 
     <!-- Main Content -->
     <template v-else-if="selectedHive">
-      <!-- Breadcrumbs -->
-      <NBreadcrumb class="breadcrumb-nav">
-        <NBreadcrumbItem
-          v-for="(item, index) in breadcrumbs"
-          :key="index"
-          :clickable="!!item.path"
-          @click="item.path ? navigateToPath(item.path) : undefined"
-        >
-          <NIcon v-if="item.icon" :size="16"><component :is="getIconComponent(item.icon)" /></NIcon>
-          {{ item.label }}
-        </NBreadcrumbItem>
-      </NBreadcrumb>
+      <!-- Header row with breadcrumb and export buttons -->
+      <div class="header-row">
+        <NBreadcrumb class="breadcrumb-nav">
+          <NBreadcrumbItem
+            v-for="(item, index) in breadcrumbs"
+            :key="index"
+            :clickable="!!item.path"
+            @click="item.path ? navigateToPath(item.path) : undefined"
+          >
+            <NIcon v-if="item.icon" :size="16"
+              ><component :is="getIconComponent(item.icon)"
+            /></NIcon>
+            {{ item.label }}
+          </NBreadcrumbItem>
+        </NBreadcrumb>
+
+        <!-- Export button with dropdown (only in comparison mode) -->
+        <div v-if="mode === 'comparison'" class="export-buttons">
+          <NDropdown :options="exportOptions" trigger="click">
+            <NButton size="small" :loading="isExporting">
+              <template #icon
+                ><NIcon><DownloadOutline /></NIcon
+              ></template>
+              Export
+            </NButton>
+          </NDropdown>
+        </div>
+      </div>
 
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-container">
@@ -402,11 +567,23 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   font-size: 14px;
 }
 
-.breadcrumb-nav {
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   padding: 12px 16px;
   background: #f9fafb;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+}
+
+.breadcrumb-nav {
+  flex: 1;
+}
+
+.export-buttons {
+  flex-shrink: 0;
 }
 
 /* Breadcrumb icons (yellow) */
