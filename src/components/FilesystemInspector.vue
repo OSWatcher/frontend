@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { computed, h, type PropType } from 'vue'
+import { computed, h, ref, type PropType } from 'vue'
 import {
   NDataTable,
   NBreadcrumb,
   NBreadcrumbItem,
   NIcon,
   NButton,
+  NButtonGroup,
+  NTooltip,
   NSpin,
   NAlert,
   NEmpty,
   type DataTableColumns
 } from 'naive-ui'
 import { DocumentOutline, FolderOutline, DownloadOutline, HomeOutline } from '@vicons/ionicons5'
+import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
 import type {
   InspectorMode,
@@ -21,6 +24,9 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { getDownloadUrl } from '@/utils/filesystem'
+import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
+import gqlClient from '@/graphql-client'
+import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -32,7 +38,7 @@ const props = defineProps({
   highlightFile: { type: String, default: '' }
 })
 
-const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile } =
+const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile, currentPath } =
   useFilesystemInspector(
     props.mode,
     props.layout,
@@ -42,6 +48,114 @@ const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile 
     props.targetDirectory,
     props.highlightFile
   )
+
+// Authentication for full export
+const { isAuthenticated } = useAuth0()
+const isExporting = ref(false)
+
+// Export local diff (current directory only)
+async function exportLocalDiff() {
+  const exportData = {
+    metadata: {
+      exportedAt: new Date().toISOString(),
+      baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
+      diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
+      scope: 'local' as const,
+      path: currentPath.value,
+      totalEntries: entries.value.length
+    },
+    entries: entries.value.map((e: FilesystemDiffEntry) => ({
+      path: e.path,
+      name: e.name,
+      type: e.type,
+      status: e.status,
+      baseHash: e.baseHash,
+      diffeeHash: e.diffeeHash,
+      baseSize: e.baseSize,
+      diffeeSize: e.diffeeSize
+    }))
+  }
+
+  const filename = generateExportFilename(
+    'filesystem',
+    props.baseCommit?.name || 'base',
+    props.diffeeCommit?.name || 'diffee',
+    'local'
+  )
+  downloadJsonFile(exportData, filename)
+}
+
+// Export full diff (recursive)
+async function exportFullDiff() {
+  if (!isAuthenticated.value) return
+
+  isExporting.value = true
+  try {
+    // Fetch filesystem root hashes
+    const baseRootResponse = await gqlClient.query({
+      query: GET_FS_ROOT,
+      variables: { where: { hash: props.baseCommit?.hash } }
+    })
+    const diffeeRootResponse = await gqlClient.query({
+      query: GET_FS_ROOT,
+      variables: { where: { hash: props.diffeeCommit?.hash } }
+    })
+
+    const baseTreeHash = baseRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
+    const diffeeTreeHash = diffeeRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
+
+    if (!baseTreeHash || !diffeeTreeHash) {
+      throw new Error('Could not fetch filesystem root hashes')
+    }
+
+    // Call DIFF_NODES with maxDepth: null for recursive
+    const response = await gqlClient.query({
+      query: DIFF_NODES,
+      variables: {
+        parentLabel: 'Tree',
+        baseNodeHash: baseTreeHash,
+        diffeeNodeHash: diffeeTreeHash,
+        atPath: '/',
+        maxDepth: null, // Recursive!
+        filter: ['Blob'],
+        options: { offset: 0, limit: 10000 }
+      }
+    })
+
+    const items = response.data?.diffNodesAt?.items || []
+    const exportData = {
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
+        diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
+        scope: 'full' as const,
+        path: '/',
+        totalEntries: items.length
+      },
+      entries: items.map((item: any) => ({
+        path: item.path,
+        name: item.path.split('/').pop() || '',
+        type: item.type,
+        status: item.status,
+        baseHash: item.old_props?.hash,
+        diffeeHash: item.new_props?.hash
+      }))
+    }
+
+    const filename = generateExportFilename(
+      'filesystem',
+      props.baseCommit?.name || 'base',
+      props.diffeeCommit?.name || 'diffee',
+      'full'
+    )
+    downloadJsonFile(exportData, filename)
+  } catch (err) {
+    console.error('Error exporting full diff:', err)
+    alert('Error exporting full diff. Please try again.')
+  } finally {
+    isExporting.value = false
+  }
+}
 
 const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
   {
@@ -222,19 +336,45 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
 <template>
   <div class="filesystem-inspector">
-    <NBreadcrumb class="breadcrumb-nav">
-      <NBreadcrumbItem
-        v-for="(item, index) in breadcrumbs"
-        :key="index"
-        :clickable="!!item.path"
-        @click="item.path ? navigateToPath(item.path) : undefined"
-      >
-        <NIcon v-if="item.icon" :size="16">
-          <component :is="getIconComponent(item.icon)" />
-        </NIcon>
-        {{ item.label }}
-      </NBreadcrumbItem>
-    </NBreadcrumb>
+    <!-- Header row with breadcrumb and export buttons -->
+    <div class="header-row">
+      <NBreadcrumb class="breadcrumb-nav">
+        <NBreadcrumbItem
+          v-for="(item, index) in breadcrumbs"
+          :key="index"
+          :clickable="!!item.path"
+          @click="item.path ? navigateToPath(item.path) : undefined"
+        >
+          <NIcon v-if="item.icon" :size="16">
+            <component :is="getIconComponent(item.icon)" />
+          </NIcon>
+          {{ item.label }}
+        </NBreadcrumbItem>
+      </NBreadcrumb>
+
+      <!-- Export buttons (only in comparison mode) -->
+      <div v-if="mode === 'comparison'" class="export-buttons">
+        <NButtonGroup size="small">
+          <NButton @click="exportLocalDiff" :disabled="isExporting">
+            <template #icon><NIcon><DownloadOutline /></NIcon></template>
+            Export Local
+          </NButton>
+          <NTooltip v-if="!isAuthenticated">
+            <template #trigger>
+              <NButton disabled>
+                <template #icon><NIcon><DownloadOutline /></NIcon></template>
+                Export Full
+              </NButton>
+            </template>
+            Login required for full export
+          </NTooltip>
+          <NButton v-else @click="exportFullDiff" :loading="isExporting">
+            <template #icon><NIcon><DownloadOutline /></NIcon></template>
+            Export Full
+          </NButton>
+        </NButtonGroup>
+      </div>
+    </div>
 
     <div v-if="isLoading" class="loading-container">
       <NSpin size="large" />
@@ -300,12 +440,24 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   gap: 16px;
 }
 
-.breadcrumb-nav {
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   padding: 12px 16px;
   background: white;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.breadcrumb-nav {
+  flex: 1;
+}
+
+.export-buttons {
+  flex-shrink: 0;
 }
 
 .loading-container {
