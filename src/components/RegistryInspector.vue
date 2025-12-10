@@ -61,6 +61,8 @@ const isExporting = ref(false)
 
 // Export local diff (current registry key level only)
 async function exportLocalDiff() {
+  const diffEntries = entries.value as RegistryDiffEntry[]
+
   const exportData = {
     metadata: {
       exportedAt: new Date().toISOString(),
@@ -69,9 +71,9 @@ async function exportLocalDiff() {
       scope: 'local' as const,
       path: currentPath.value,
       hive: selectedHive.value?.mountPath || '',
-      totalEntries: entries.value.length
+      totalEntries: diffEntries.length
     },
-    entries: entries.value.map((e: RegistryDiffEntry) => ({
+    entries: diffEntries.map((e) => ({
       path: e.path,
       name: e.name,
       type: e.type,

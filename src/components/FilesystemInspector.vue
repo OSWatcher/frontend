@@ -55,6 +55,8 @@ const isExporting = ref(false)
 
 // Export local diff (current directory only)
 async function exportLocalDiff() {
+  const diffEntries = entries.value as FilesystemDiffEntry[]
+
   const exportData = {
     metadata: {
       exportedAt: new Date().toISOString(),
@@ -62,9 +64,9 @@ async function exportLocalDiff() {
       diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
       scope: 'local' as const,
       path: currentPath.value,
-      totalEntries: entries.value.length
+      totalEntries: diffEntries.length
     },
-    entries: entries.value.map((e: FilesystemDiffEntry) => ({
+    entries: diffEntries.map((e) => ({
       path: e.path,
       name: e.name,
       type: e.type,
