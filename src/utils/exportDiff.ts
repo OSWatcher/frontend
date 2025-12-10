@@ -4,12 +4,14 @@
  * Shared functions for exporting diff data from Filesystem and Registry inspectors
  */
 
+import type { DiffStatus } from '@/types/inspector'
+
 // Types for export data
 export interface ExportedDiffEntry {
   path: string
   name: string
   type: string
-  status: 'NEW' | 'MOD' | 'DEL'
+  status: DiffStatus
   [key: string]: any // Allow additional fields based on component type
 }
 
