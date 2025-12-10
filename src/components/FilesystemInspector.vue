@@ -103,8 +103,10 @@ async function exportFullDiff() {
       variables: { where: { hash: props.diffeeCommit?.hash } }
     })
 
-    const baseTreeHash = baseRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
-    const diffeeTreeHash = diffeeRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
+    const baseTreeHash =
+      baseRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
+    const diffeeTreeHash =
+      diffeeRootResponse.data?.commits?.[0]?.filesystemConnection?.edges?.[0]?.node?.hash
 
     if (!baseTreeHash || !diffeeTreeHash) {
       throw new Error('Could not fetch filesystem root hashes')
@@ -129,7 +131,10 @@ async function exportFullDiff() {
       metadata: {
         exportedAt: new Date().toISOString(),
         baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
-        diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
+        diffeeCommit: {
+          name: props.diffeeCommit?.name || '',
+          hash: props.diffeeCommit?.hash || ''
+        },
         scope: 'full' as const,
         path: '/',
         totalEntries: items.length
@@ -395,7 +400,9 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
       <div v-if="mode === 'comparison'" class="export-buttons">
         <NDropdown :options="exportOptions" trigger="click">
           <NButton size="small" :loading="isExporting">
-            <template #icon><NIcon><DownloadOutline /></NIcon></template>
+            <template #icon
+              ><NIcon><DownloadOutline /></NIcon
+            ></template>
             Export
           </NButton>
         </NDropdown>
