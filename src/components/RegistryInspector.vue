@@ -121,7 +121,10 @@ async function exportFullDiff() {
       metadata: {
         exportedAt: new Date().toISOString(),
         baseCommit: { name: props.baseCommit?.name || '', hash: props.baseCommit?.hash || '' },
-        diffeeCommit: { name: props.diffeeCommit?.name || '', hash: props.diffeeCommit?.hash || '' },
+        diffeeCommit: {
+          name: props.diffeeCommit?.name || '',
+          hash: props.diffeeCommit?.hash || ''
+        },
         scope: 'full' as const,
         path: '/',
         hive: selectedHive.value?.mountPath || '',
@@ -463,7 +466,9 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             :clickable="!!item.path"
             @click="item.path ? navigateToPath(item.path) : undefined"
           >
-            <NIcon v-if="item.icon" :size="16"><component :is="getIconComponent(item.icon)" /></NIcon>
+            <NIcon v-if="item.icon" :size="16"
+              ><component :is="getIconComponent(item.icon)"
+            /></NIcon>
             {{ item.label }}
           </NBreadcrumbItem>
         </NBreadcrumb>
@@ -472,7 +477,9 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
         <div v-if="mode === 'comparison'" class="export-buttons">
           <NDropdown :options="exportOptions" trigger="click">
             <NButton size="small" :loading="isExporting">
-              <template #icon><NIcon><DownloadOutline /></NIcon></template>
+              <template #icon
+                ><NIcon><DownloadOutline /></NIcon
+              ></template>
               Export
             </NButton>
           </NDropdown>
