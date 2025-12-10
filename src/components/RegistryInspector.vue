@@ -8,14 +8,14 @@ import {
   NSelect,
   NTag,
   NButton,
-  NButtonGroup,
-  NTooltip,
+  NDropdown,
   NSpin,
   NAlert,
   NEmpty,
   NSpace,
   type DataTableColumns,
-  type SelectOption
+  type SelectOption,
+  type DropdownOption
 } from 'naive-ui'
 import { DocumentOutline, HomeOutline, FolderOutline, DownloadOutline } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
@@ -153,6 +153,43 @@ async function exportFullDiff() {
     isExporting.value = false
   }
 }
+
+// Export dropdown options
+const exportOptions = computed<DropdownOption[]>(() => [
+  {
+    label: 'Export Current Key',
+    key: 'local',
+    disabled: isExporting.value,
+    props: {
+      onClick: exportLocalDiff
+    }
+  },
+  {
+    label: 'Export Full Hive',
+    key: 'full',
+    disabled: !isAuthenticated.value || isExporting.value,
+    props: {
+      onClick: () => {
+        if (isAuthenticated.value) {
+          exportFullDiff()
+        }
+      }
+    },
+    children: !isAuthenticated.value
+      ? [
+          {
+            type: 'render',
+            render: () =>
+              h(
+                'div',
+                { style: { padding: '8px 12px', fontSize: '12px', color: '#999' } },
+                '🔒 Login required'
+              )
+          }
+        ]
+      : undefined
+  }
+])
 
 // Hive selector options
 const hiveOptions = computed<SelectOption[]>(() =>
@@ -429,27 +466,14 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           </NBreadcrumbItem>
         </NBreadcrumb>
 
-        <!-- Export buttons (only in comparison mode) -->
+        <!-- Export button with dropdown (only in comparison mode) -->
         <div v-if="mode === 'comparison'" class="export-buttons">
-          <NButtonGroup size="small">
-            <NButton @click="exportLocalDiff" :disabled="isExporting">
+          <NDropdown :options="exportOptions" trigger="click">
+            <NButton size="small" :loading="isExporting">
               <template #icon><NIcon><DownloadOutline /></NIcon></template>
-              Export Local
+              Export
             </NButton>
-            <NTooltip v-if="!isAuthenticated">
-              <template #trigger>
-                <NButton disabled>
-                  <template #icon><NIcon><DownloadOutline /></NIcon></template>
-                  Export Full
-                </NButton>
-              </template>
-              Login required for full export
-            </NTooltip>
-            <NButton v-else @click="exportFullDiff" :loading="isExporting">
-              <template #icon><NIcon><DownloadOutline /></NIcon></template>
-              Export Full
-            </NButton>
-          </NButtonGroup>
+          </NDropdown>
         </div>
       </div>
 
