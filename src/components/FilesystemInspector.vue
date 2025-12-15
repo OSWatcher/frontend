@@ -23,6 +23,7 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
+import { TreeNodeType } from '@/types'
 import { getDownloadUrl } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
@@ -210,7 +211,7 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
       h(
         NIcon,
         { size: 20 },
-        { default: () => h(row.type === 'blob' ? DocumentOutline : FolderOutline) }
+        { default: () => h(row.type === TreeNodeType.Blob ? DocumentOutline : FolderOutline) }
       )
   },
   {
@@ -221,7 +222,7 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
         'span',
         {
           style: {
-            fontWeight: row.type === 'tree' ? '600' : '400'
+            fontWeight: row.type === TreeNodeType.Tree ? '600' : '400'
           }
         },
         row.name
@@ -232,7 +233,7 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
     title: 'Actions',
     width: 100,
     render: (row) => {
-      if (row.type === 'blob') {
+      if (row.type === TreeNodeType.Blob) {
         return h(
           NButton,
           {
@@ -260,7 +261,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
       h(
         NIcon,
         { size: 20 },
-        { default: () => h(row.type === 'blob' ? DocumentOutline : FolderOutline) }
+        { default: () => h(row.type === TreeNodeType.Blob ? DocumentOutline : FolderOutline) }
       )
   },
   {
@@ -271,7 +272,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
         'span',
         {
           style: {
-            fontWeight: row.type === 'tree' ? '600' : '400'
+            fontWeight: row.type === TreeNodeType.Tree ? '600' : '400'
           }
         },
         row.name
@@ -288,7 +289,7 @@ const sideBySideColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
       h(
         NIcon,
         { size: 20 },
-        { default: () => h(row.type === 'blob' ? DocumentOutline : FolderOutline) }
+        { default: () => h(row.type === TreeNodeType.Blob ? DocumentOutline : FolderOutline) }
       )
   },
   {
@@ -298,10 +299,10 @@ const sideBySideColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
       h(
         'span',
         {
-          onClick: () => row.type === 'tree' && navigateToPath(row.path),
+          onClick: () => row.type === TreeNodeType.Tree && navigateToPath(row.path, row.type),
           style: {
-            cursor: row.type === 'tree' ? 'pointer' : 'default',
-            fontWeight: row.type === 'tree' ? '600' : '400'
+            cursor: row.type === TreeNodeType.Tree ? 'pointer' : 'default',
+            fontWeight: row.type === TreeNodeType.Tree ? '600' : '400'
           }
         },
         row.name
@@ -358,8 +359,8 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   const baseProps: any = {}
 
   // Add click handler for folders
-  if (row.type === 'tree') {
-    baseProps.onClick = () => navigateToPath(row.path)
+  if (row.type === TreeNodeType.Tree) {
+    baseProps.onClick = () => navigateToPath(row.path, row.type)
     baseProps.style = { cursor: 'pointer' }
   }
 

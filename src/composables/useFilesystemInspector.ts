@@ -8,6 +8,7 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
+import { TreeNodeType } from '@/types'
 import {
   parseFilesystemEntries,
   parseFilesystemDiffEntries,
@@ -100,14 +101,14 @@ export function useFilesystemInspector(
       const blobs =
         tree.child_blobsConnection?.edges?.map((edge: any) => ({
           name: edge.properties.name,
-          type: 'blob',
+          type: TreeNodeType.Blob,
           hash: edge.node.hash,
           size: edge.node.size
         })) || []
       const trees =
         tree.child_treesConnection?.edges?.map((edge: any) => ({
           name: edge.properties.name,
-          type: 'tree',
+          type: TreeNodeType.Tree,
           hash: edge.node.hash
         })) || []
       return [...blobs, ...trees]
@@ -202,12 +203,22 @@ export function useFilesystemInspector(
   }
 
   // Backward compatibility function that intelligently handles file vs directory paths
-  async function navigateToPath(path: string): Promise<void> {
+  async function navigateToPath(path: string, type?: TreeNodeType): Promise<void> {
     if (path === '/') {
       return navigateToDirectory('/')
     }
 
-    // Try to detect if this is likely a file path
+    // If type is explicitly provided, use it
+    if (type === TreeNodeType.Tree) {
+      return navigateToDirectory(path)
+    }
+    if (type === TreeNodeType.Blob) {
+      const parentDir = getParentPath(path)
+      const fileName = path.split('/').pop() || ''
+      return navigateToDirectory(parentDir, fileName)
+    }
+
+    // Fallback: try to detect if this is likely a file path
     const fileName = path.split('/').pop() || ''
     const hasExtension = fileName.includes('.')
 

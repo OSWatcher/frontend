@@ -4,6 +4,7 @@ import type {
   DiffStatus,
   BreadcrumbItem
 } from '@/types/inspector'
+import { TreeNodeType } from '@/types'
 
 export function parseFilesystemEntries(
   rawEntries: Array<{ name: string; type: string; hash: string; size?: number }>,
@@ -11,7 +12,7 @@ export function parseFilesystemEntries(
 ): FilesystemEntry[] {
   return rawEntries.map((entry) => ({
     name: entry.name,
-    type: entry.type === 'blob' ? 'blob' : 'tree',
+    type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
     hash: entry.hash,
     size: entry.size,
     path: joinPath(currentPath, entry.name)
@@ -34,7 +35,7 @@ export function parseFilesystemDiffEntries(
 
     return {
       name: entry.name,
-      type: entry.type === 'blob' ? 'blob' : 'tree',
+      type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
       hash,
       size,
       path: joinPath(currentPath, entry.name),
@@ -123,14 +124,14 @@ export function getStatusTagType(status: DiffStatus): 'success' | 'warning' | 'e
   }
 }
 
-export function getEntryIcon(type: 'blob' | 'tree'): string {
-  return type === 'blob' ? 'document-outline' : 'folder-outline'
+export function getEntryIcon(type: TreeNodeType): string {
+  return type === TreeNodeType.Blob ? 'document-outline' : 'folder-outline'
 }
 
 export function sortEntries<T extends FilesystemEntry>(entries: T[]): T[] {
   return [...entries].sort((a, b) => {
-    if (a.type === 'tree' && b.type === 'blob') return -1
-    if (a.type === 'blob' && b.type === 'tree') return 1
+    if (a.type === TreeNodeType.Tree && b.type === TreeNodeType.Blob) return -1
+    if (a.type === TreeNodeType.Blob && b.type === TreeNodeType.Tree) return 1
     return a.name.localeCompare(b.name)
   })
 }
