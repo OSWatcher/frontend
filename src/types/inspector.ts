@@ -14,6 +14,8 @@
  * @module types/inspector
  */
 
+import { TreeNodeType } from '@/types'
+
 /**
  * Inspector Mode
  *
@@ -57,14 +59,14 @@ export interface CommitContext {
  * Used in both single and comparison modes.
  *
  * @property name - Entry name (e.g., "hosts", "systemd")
- * @property type - Entry type ("blob" for files, "tree" for directories)
+ * @property type - Entry type (TreeNodeType.Blob for files, TreeNodeType.Tree for directories)
  * @property hash - Content hash (for lookups and downloads)
  * @property size - Size in bytes (undefined for directories)
  * @property path - Full path from root (e.g., "/etc/systemd/system")
  */
 export interface FilesystemEntry {
   name: string
-  type: 'blob' | 'tree'
+  type: TreeNodeType
   hash: string
   size?: number
   path: string
