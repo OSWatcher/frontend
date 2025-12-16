@@ -8,7 +8,7 @@
 import gqlClient from '@/graphql-client'
 import { TRAVERSE_PATH } from '@/queries'
 import { fetchFsRootHash } from '@/utils'
-import type { PDBContext, PDBContextDiff } from '@/types/pdb'
+import type { PDBContext } from '@/types/pdb'
 
 const NTOSKRNL_PATH = '/Windows/System32/ntoskrnl.exe'
 
@@ -41,60 +41,6 @@ export async function resolvePDBContext(commitHash: string): Promise<PDBContext 
     }
   } catch (err) {
     console.error('Error resolving PDB context:', err)
-    return null
-  }
-}
-
-/**
- * Resolve ntoskrnl.exe blob hashes for comparison mode (two commits)
- * @param baseCommitHash - Base commit hash
- * @param diffeeCommitHash - Diffee commit hash
- * @returns PDBContextDiff with both blob hashes, or null if either not found
- */
-export async function resolvePDBContextDiff(
-  baseCommitHash: string,
-  diffeeCommitHash: string
-): Promise<PDBContextDiff | null> {
-  try {
-    const [baseFsRoot, diffeeFsRoot] = await Promise.all([
-      fetchFsRootHash(baseCommitHash),
-      fetchFsRootHash(diffeeCommitHash)
-    ])
-
-    const [baseResponse, diffeeResponse] = await Promise.all([
-      gqlClient.query({
-        query: TRAVERSE_PATH,
-        variables: {
-          parent_label: 'Tree',
-          tree_hash: baseFsRoot,
-          path: NTOSKRNL_PATH
-        }
-      }),
-      gqlClient.query({
-        query: TRAVERSE_PATH,
-        variables: {
-          parent_label: 'Tree',
-          tree_hash: diffeeFsRoot,
-          path: NTOSKRNL_PATH
-        }
-      })
-    ])
-
-    const baseBlobHash = baseResponse.data?.traversePath
-    const diffeeBlobHash = diffeeResponse.data?.traversePath
-
-    if (!baseBlobHash || !diffeeBlobHash) {
-      console.warn('Could not resolve ntoskrnl.exe for one or both commits')
-      return null
-    }
-
-    return {
-      baseBlobHash,
-      diffeeBlobHash,
-      blobName: 'ntoskrnl.exe'
-    }
-  } catch (err) {
-    console.error('Error resolving PDB context diff:', err)
     return null
   }
 }
