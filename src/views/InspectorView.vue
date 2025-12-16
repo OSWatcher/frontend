@@ -491,6 +491,11 @@ onMounted(() => {
               :diffee-commit="diffeeCommit"
             />
           </NTabPane>
+
+          <!-- PDB Tab (only if available, single mode only for now) -->
+          <NTabPane v-if="hasPDB && inspectorMode === 'single'" name="pdb" tab="PDB">
+            <PDBInspector v-if="singleCommit" :commit="singleCommit" />
+          </NTabPane>
         </NTabs>
       </div>
     </div>
