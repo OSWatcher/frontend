@@ -5,7 +5,8 @@
  * All functions are side-effect free and easily testable.
  */
 
-import type { SymbolEntry } from '@/types/pdb'
+import type { SymbolEntry, SymbolDiffEntry } from '@/types/pdb'
+import { DiffStatus } from '@/graphql-types'
 
 // ============================================
 // Symbol Parsing
@@ -23,6 +24,34 @@ export function parseSymbolEntries(
     name: sym.name,
     address: formatAddress(sym.address)
   }))
+}
+
+/**
+ * Parse raw diff items from DIFF_NODES query into SymbolDiffEntry objects
+ * @param rawDiffItems - Raw diff items from DIFF_NODES query
+ * @returns Array of SymbolDiffEntry objects with status and addresses
+ */
+export function parseSymbolDiffEntries(
+  rawDiffItems: Array<{
+    path: string
+    status: string
+    old_props?: { properties?: { address?: string } } | null
+    new_props?: { properties?: { address?: string } } | null
+  }>
+): SymbolDiffEntry[] {
+  return rawDiffItems.map((item) => {
+    const oldAddress = item.old_props?.properties?.address
+    const newAddress = item.new_props?.properties?.address
+    const displayAddress = newAddress || oldAddress || '0'
+
+    return {
+      name: item.path, // Symbol name is in path
+      address: formatAddress(displayAddress),
+      status: item.status as DiffStatus,
+      baseAddress: oldAddress ? formatAddress(oldAddress) : undefined,
+      diffeeAddress: newAddress ? formatAddress(newAddress) : undefined
+    }
+  })
 }
 
 // ============================================
@@ -75,4 +104,28 @@ export function formatSize(size: number): string {
  */
 export function sortSymbols<T extends SymbolEntry>(entries: T[]): T[] {
   return [...entries].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+// ============================================
+// Status Helpers
+// ============================================
+
+/**
+ * Map DiffStatus to Naive UI tag type for visual styling
+ * @param status - DiffStatus from GraphQL
+ * @returns Naive UI tag type (success, warning, error, default)
+ */
+export function getStatusTagType(
+  status: DiffStatus
+): 'success' | 'warning' | 'error' | 'default' {
+  switch (status) {
+    case DiffStatus.New:
+      return 'success' // Green
+    case DiffStatus.Mod:
+      return 'warning' // Yellow
+    case DiffStatus.Del:
+      return 'error' // Red
+    default:
+      return 'default' // Gray
+  }
 }
