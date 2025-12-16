@@ -8,13 +8,12 @@ import {
   NPagination,
   NSpin,
   NAlert,
-  NEmpty,
   type DataTableColumns
 } from 'naive-ui'
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry } from '@/types/pdb'
-import { getStatusTagType } from '@/utils/pdb'
+import { getStatusTagType, formatOffset, formatSize } from '@/utils/pdb'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -36,7 +35,15 @@ const {
   symbolPage,
   symbolPageSize,
   symbolPageCount,
-  setSymbolPage
+  setSymbolPage,
+  structs,
+  totalStructs,
+  structPage,
+  structPageSize,
+  structPageCount,
+  expandedStructHashes,
+  setStructPage,
+  toggleStructExpansion
 } = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
 
 // ============================================
@@ -93,6 +100,95 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
   }
   return {}
 }
+
+// ============================================
+// Struct Table Data
+// ============================================
+
+// Flatten structs and their expanded fields into table rows
+const structsTableData = computed(() => {
+  const rows: any[] = []
+
+  structs.value.forEach((struct) => {
+    // Add struct row
+    rows.push({
+      key: struct.name,
+      type: 'struct',
+      offset: '',
+      name: struct.name,
+      dataType: struct.kind,
+      size: formatSize(struct.size),
+      isExpanded: expandedStructHashes.value.has(struct.name),
+      struct: struct
+    })
+
+    // Add field rows if expanded
+    if (expandedStructHashes.value.has(struct.name)) {
+      struct.fields?.forEach((field) => {
+        rows.push({
+          key: `${struct.name}-${field.name}`,
+          type: 'field',
+          offset: formatOffset(field.offset),
+          name: field.name,
+          dataType: field.dataType,
+          size: '',
+          parentStruct: struct.name
+        })
+      })
+    }
+  })
+
+  return rows
+})
+
+// ============================================
+// Struct Columns
+// ============================================
+
+const structColumns = computed<DataTableColumns<any>>(() => [
+  {
+    key: 'offset',
+    title: 'Offset',
+    width: 100,
+    render: (row) => row.offset
+  },
+  {
+    key: 'name',
+    title: 'Name',
+    minWidth: 200,
+    render: (row) => {
+      if (row.type === 'struct') {
+        return h(
+          'div',
+          {
+            class: 'struct-name-row',
+            onClick: () => toggleStructExpansion(row.key)
+          },
+          [
+            h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '),
+            h('span', row.name)
+          ]
+        )
+      } else {
+        return h('div', { class: 'field-name-row' }, [
+          h('span', { class: 'field-indent' }, '└─ '),
+          h('span', row.name)
+        ])
+      }
+    }
+  },
+  {
+    key: 'dataType',
+    title: 'Type',
+    minWidth: 200,
+    ellipsis: { tooltip: true }
+  },
+  {
+    key: 'size',
+    title: 'Size',
+    width: 100
+  }
+])
 </script>
 
 <template>
@@ -151,9 +247,28 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
         </NTabPane>
 
         <NTabPane name="structs" tab="Structs">
-          <!-- Placeholder for Structs -->
-          <div class="placeholder-container">
-            <NEmpty description="Struct explorer coming soon" />
+          <!-- Structs Table -->
+          <div class="table-container">
+            <NDataTable
+              :columns="structColumns"
+              :data="structsTableData"
+              :loading="isLoading"
+              :row-key="(row: any) => row.key"
+              striped
+              :max-height="600"
+            />
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-container">
+            <NPagination
+              v-model:page="structPage"
+              :page-count="structPageCount"
+              :page-size="structPageSize"
+              show-quick-jumper
+              @update:page="setStructPage"
+            />
+            <span class="total-count">{{ totalStructs }} structs</span>
           </div>
         </NTabPane>
       </NTabs>
@@ -236,5 +351,35 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
 :deep(.n-data-table-tr.diff-row-del .n-data-table-td) {
   background-color: #fee2e2 !important; /* light red */
   opacity: 0.9 !important;
+}
+
+/* Struct tree table styling */
+.struct-name-row {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: #374151;
+}
+
+.struct-name-row:hover {
+  color: #18a058;
+}
+
+.expand-icon {
+  display: inline-block;
+  width: 20px;
+  font-family: monospace;
+  color: #6b7280;
+}
+
+.field-name-row {
+  padding-left: 20px;
+  color: #666;
+}
+
+.field-indent {
+  color: #9ca3af;
+  margin-right: 8px;
+  font-family: monospace;
 }
 </style>

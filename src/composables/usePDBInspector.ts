@@ -7,10 +7,22 @@
 
 import { ref, computed, watch } from 'vue'
 import gqlClient from '@/graphql-client'
-import { LIST_SYMBOLS, DIFF_NODES } from '@/queries'
+import { LIST_SYMBOLS, LIST_WINSTRUCT, DIFF_NODES } from '@/queries'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
-import type { SymbolEntry, SymbolDiffEntry, PDBContext, PDBContextDiff } from '@/types/pdb'
-import { parseSymbolEntries, parseSymbolDiffEntries, sortSymbols } from '@/utils/pdb'
+import type {
+  SymbolEntry,
+  SymbolDiffEntry,
+  StructEntry,
+  PDBContext,
+  PDBContextDiff
+} from '@/types/pdb'
+import {
+  parseSymbolEntries,
+  parseSymbolDiffEntries,
+  sortSymbols,
+  parseStructEntries,
+  sortStructs
+} from '@/utils/pdb'
 import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
 
 export function usePDBInspector(
@@ -40,6 +52,13 @@ export function usePDBInspector(
   const symbolPage = ref(1)
   const symbolPageSize = ref(50)
 
+  // Structs state
+  const rawStructs = ref<any[]>([])
+  const totalStructs = ref(0)
+  const structPage = ref(1)
+  const structPageSize = ref(50)
+  const expandedStructHashes = ref<Set<string>>(new Set())
+
   // ============================================
   // Computed
   // ============================================
@@ -55,6 +74,12 @@ export function usePDBInspector(
   const hasPDBData = computed(() => pdbContext.value !== null || pdbContextDiff.value !== null)
 
   const symbolPageCount = computed(() => Math.ceil(totalSymbols.value / symbolPageSize.value))
+
+  const structs = computed<StructEntry[]>(() => {
+    return sortStructs(parseStructEntries(rawStructs.value))
+  })
+
+  const structPageCount = computed(() => Math.ceil(totalStructs.value / structPageSize.value))
 
   // ============================================
   // Data Fetching - Single Mode
@@ -129,6 +154,40 @@ export function usePDBInspector(
   }
 
   // ============================================
+  // Struct Data Fetching - Single Mode
+  // ============================================
+
+  async function fetchStructsSingle(): Promise<void> {
+    if (!pdbContext.value) {
+      console.warn('Cannot fetch structs: no PDB context')
+      return
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const offset = (structPage.value - 1) * structPageSize.value
+      const response = await gqlClient.query({
+        query: LIST_WINSTRUCT,
+        variables: {
+          blobHash: pdbContext.value.blobHash,
+          options: { limit: structPageSize.value, offset },
+          where: { blob: { hash: pdbContext.value.blobHash } }
+        }
+      })
+
+      rawStructs.value = response.data?.fetchStructs || []
+      totalStructs.value = response.data?.structsAggregate?.count || 0
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      console.error('Error fetching structs:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // ============================================
   // Public Methods
   // ============================================
 
@@ -143,6 +202,27 @@ export function usePDBInspector(
   function setSymbolPage(page: number): void {
     symbolPage.value = page
     fetchSymbols()
+  }
+
+  async function fetchStructs(): Promise<void> {
+    // For now, only single mode is supported
+    if (mode === 'single') {
+      await fetchStructsSingle()
+    }
+    // TODO: Add comparison mode support later
+  }
+
+  function setStructPage(page: number): void {
+    structPage.value = page
+    fetchStructs()
+  }
+
+  function toggleStructExpansion(structHash: string): void {
+    if (expandedStructHashes.value.has(structHash)) {
+      expandedStructHashes.value.delete(structHash)
+    } else {
+      expandedStructHashes.value.add(structHash)
+    }
   }
 
   // ============================================
@@ -194,12 +274,13 @@ export function usePDBInspector(
     { immediate: true }
   )
 
-  // Watch for sub-tab changes (for future struct support)
+  // Watch for sub-tab changes
   watch(activeSubTab, async (newTab) => {
     if (newTab === 'symbols' && rawSymbols.value.length === 0) {
       await fetchSymbols()
+    } else if (newTab === 'structs' && rawStructs.value.length === 0) {
+      await fetchStructs()
     }
-    // Future: handle 'structs' tab
   })
 
   return {
@@ -219,8 +300,19 @@ export function usePDBInspector(
     symbolPageSize,
     symbolPageCount,
 
+    // Structs
+    structs,
+    totalStructs,
+    structPage,
+    structPageSize,
+    structPageCount,
+    expandedStructHashes,
+
     // Methods
     fetchSymbols,
-    setSymbolPage
+    setSymbolPage,
+    fetchStructs,
+    setStructPage,
+    toggleStructExpansion
   }
 }
