@@ -27,6 +27,7 @@ import { NSpin, NAlert, NTabs, NTabPane } from 'naive-ui'
 import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
+import PDBInspector from '@/components/PDBInspector.vue'
 import gqlClient from '@/graphql-client'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
@@ -84,6 +85,7 @@ const activeTab = ref<string>('filesystem')
  * Available capabilities (filesystem, registry, pdb)
  */
 const hasRegistry = ref<boolean>(false)
+const hasPDB = ref<boolean>(false)
 
 /**
  * Loading state for capabilities check
@@ -191,10 +193,12 @@ async function checkCapabilities(commitHash: string) {
     })
     const labels = capabilitiesResponse.data.getCommitExtractedDataLabels || []
     hasRegistry.value = labels.includes('WinRegKey') || labels.includes('WinRegValue')
+    hasPDB.value = labels.includes('Symbol') || labels.includes('WinStruct')
   } catch (err) {
     console.warn('Error checking commit capabilities:', err)
     // Capabilities check failure doesn't block the UI - just hide optional tabs
     hasRegistry.value = false
+    hasPDB.value = false
   } finally {
     isLoadingCapabilities.value = false
   }
@@ -393,6 +397,11 @@ watch(
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
             />
+          </NTabPane>
+
+          <!-- PDB Tab (only if available, single mode only for now) -->
+          <NTabPane v-if="hasPDB && inspectorMode === 'single'" name="pdb" tab="PDB">
+            <PDBInspector v-if="singleCommit" :commit="singleCommit" />
           </NTabPane>
         </NTabs>
       </div>
