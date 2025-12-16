@@ -112,7 +112,7 @@ export function usePDBInspector(
           baseNodeHash: pdbContextDiff.value.baseBlobHash,
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
-          maxDepth: null, // Flat list, no depth limit
+          maxDepth: 0, // Only immediate children (symbols are direct children of Blob)
           filter: ['Symbol'],
           options: { offset, limit: symbolPageSize.value }
         }
