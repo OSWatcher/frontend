@@ -23,6 +23,43 @@ export interface SymbolDiffEntry extends SymbolEntry {
 }
 
 // ============================================
+// Struct Types
+// ============================================
+
+/**
+ * Represents a struct entry (top-level)
+ */
+export interface StructEntry {
+  name: string
+  size: number
+  kind: string // "struct", "union", etc.
+  hash?: string
+  fields?: StructFieldEntry[] // Only populated when expanded
+}
+
+/**
+ * Represents a struct field
+ */
+export interface StructFieldEntry {
+  name: string
+  offset: number
+  dataType: string // Formatted C-style type string
+  dataTypeRaw?: any // Original JSON for debugging/tooltips
+}
+
+/**
+ * Internal representation of parsed data_type JSON
+ */
+export interface ParsedDataType {
+  type: string // "base", "pointer", "array", "struct", "union", "enumeration", etc.
+  name?: string
+  hasDataType?: ParsedDataType // Recursive for pointers/arrays
+  arrayCounter?: number
+  bitPosition?: number
+  bitLength?: number
+}
+
+// ============================================
 // PDB Context (for ntoskrnl resolution)
 // ============================================
 
