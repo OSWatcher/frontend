@@ -2,18 +2,23 @@
  * PDB Inspector Composable
  *
  * Reactive state management for Symbols and Structs exploration.
- * Currently supports symbols only in single mode.
+ * Supports both single mode and comparison mode for symbols.
  */
 
 import { ref, computed, watch } from 'vue'
 import gqlClient from '@/graphql-client'
-import { LIST_SYMBOLS } from '@/queries'
-import type { CommitContext } from '@/types/inspector'
-import type { SymbolEntry, PDBContext } from '@/types/pdb'
-import { parseSymbolEntries, sortSymbols } from '@/utils/pdb'
-import { resolvePDBContext } from '@/windows/pdb'
+import { LIST_SYMBOLS, DIFF_NODES } from '@/queries'
+import type { InspectorMode, CommitContext } from '@/types/inspector'
+import type { SymbolEntry, SymbolDiffEntry, PDBContext, PDBContextDiff } from '@/types/pdb'
+import { parseSymbolEntries, parseSymbolDiffEntries, sortSymbols } from '@/utils/pdb'
+import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
 
-export function usePDBInspector(commit?: CommitContext) {
+export function usePDBInspector(
+  mode: InspectorMode,
+  commit?: CommitContext,
+  baseCommit?: CommitContext,
+  diffeeCommit?: CommitContext
+) {
   // ============================================
   // State
   // ============================================
@@ -24,6 +29,7 @@ export function usePDBInspector(commit?: CommitContext) {
 
   // PDB Context (resolved ntoskrnl.exe)
   const pdbContext = ref<PDBContext | null>(null)
+  const pdbContextDiff = ref<PDBContextDiff | null>(null)
 
   // Active sub-tab
   const activeSubTab = ref<'symbols' | 'structs'>('symbols')
@@ -38,11 +44,15 @@ export function usePDBInspector(commit?: CommitContext) {
   // Computed
   // ============================================
 
-  const symbols = computed<SymbolEntry[]>(() => {
-    return sortSymbols(parseSymbolEntries(rawSymbols.value))
+  const symbols = computed<SymbolEntry[] | SymbolDiffEntry[]>(() => {
+    if (mode === 'single') {
+      return sortSymbols(parseSymbolEntries(rawSymbols.value))
+    } else {
+      return sortSymbols(parseSymbolDiffEntries(rawSymbols.value))
+    }
   })
 
-  const hasPDBData = computed(() => pdbContext.value !== null)
+  const hasPDBData = computed(() => pdbContext.value !== null || pdbContextDiff.value !== null)
 
   const symbolPageCount = computed(() => Math.ceil(totalSymbols.value / symbolPageSize.value))
 
@@ -50,7 +60,7 @@ export function usePDBInspector(commit?: CommitContext) {
   // Data Fetching - Single Mode
   // ============================================
 
-  async function fetchSymbols(): Promise<void> {
+  async function fetchSymbolsSingle(): Promise<void> {
     if (!pdbContext.value) {
       console.warn('Cannot fetch symbols: no PDB context')
       return
@@ -81,8 +91,54 @@ export function usePDBInspector(commit?: CommitContext) {
   }
 
   // ============================================
+  // Data Fetching - Comparison Mode
+  // ============================================
+
+  async function fetchSymbolsComparison(): Promise<void> {
+    if (!pdbContextDiff.value) {
+      console.warn('Cannot fetch symbol diff: no PDB context diff')
+      return
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const offset = (symbolPage.value - 1) * symbolPageSize.value
+      const response = await gqlClient.query({
+        query: DIFF_NODES,
+        variables: {
+          parentLabel: 'Blob',
+          baseNodeHash: pdbContextDiff.value.baseBlobHash,
+          diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
+          atPath: '/',
+          maxDepth: null, // Flat list, no depth limit
+          filter: ['Symbol'],
+          options: { offset, limit: symbolPageSize.value }
+        }
+      })
+
+      rawSymbols.value = response.data?.diffNodesAt?.items || []
+      totalSymbols.value = response.data?.diffNodesAt?.total_count || 0
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      console.error('Error fetching symbol diff:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // ============================================
   // Public Methods
   // ============================================
+
+  async function fetchSymbols(): Promise<void> {
+    if (mode === 'single') {
+      await fetchSymbolsSingle()
+    } else {
+      await fetchSymbolsComparison()
+    }
+  }
 
   function setSymbolPage(page: number): void {
     symbolPage.value = page
@@ -94,19 +150,28 @@ export function usePDBInspector(commit?: CommitContext) {
   // ============================================
 
   async function initialize(): Promise<void> {
-    if (!commit) {
-      console.warn('No commit provided to PDB inspector')
-      return
-    }
-
     isLoadingContext.value = true
     error.value = null
 
     try {
-      pdbContext.value = await resolvePDBContext(commit.hash)
+      if (mode === 'single' && commit) {
+        pdbContext.value = await resolvePDBContext(commit.hash)
+        pdbContextDiff.value = null
 
-      if (!pdbContext.value) {
-        console.warn('Could not resolve PDB context for commit:', commit.hash)
+        if (!pdbContext.value) {
+          console.warn('Could not resolve PDB context for commit:', commit.hash)
+          return
+        }
+      } else if (mode === 'comparison' && baseCommit && diffeeCommit) {
+        pdbContextDiff.value = await resolvePDBContextDiff(baseCommit.hash, diffeeCommit.hash)
+        pdbContext.value = null
+
+        if (!pdbContextDiff.value) {
+          console.warn('Could not resolve PDB context diff for commits')
+          return
+        }
+      } else {
+        console.warn('Invalid mode or missing commits')
         return
       }
 
@@ -120,9 +185,9 @@ export function usePDBInspector(commit?: CommitContext) {
     }
   }
 
-  // Watch for commit changes
+  // Watch for mode/commit changes
   watch(
-    () => commit,
+    () => [mode, commit, baseCommit, diffeeCommit],
     () => {
       initialize()
     },
@@ -144,6 +209,7 @@ export function usePDBInspector(commit?: CommitContext) {
     error,
     hasPDBData,
     pdbContext,
+    pdbContextDiff,
     activeSubTab,
 
     // Symbols

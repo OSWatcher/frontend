@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseSymbolEntries,
+  parseSymbolDiffEntries,
   formatAddress,
   formatOffset,
   formatSize,
-  sortSymbols
+  sortSymbols,
+  getStatusTagType
 } from '../pdb'
 import type { SymbolEntry } from '@/types/pdb'
+import { DiffStatus } from '@/graphql-types'
 
 describe('pdb utils', () => {
   describe('formatAddress', () => {
@@ -153,6 +156,137 @@ describe('pdb utils', () => {
       expect(sorted[0].name).toBe('Apple')
       expect(sorted[1].name).toBe('banana')
       expect(sorted[2].name).toBe('zebra')
+    })
+  })
+
+  describe('parseSymbolDiffEntries', () => {
+    it('parses empty array', () => {
+      expect(parseSymbolDiffEntries([])).toEqual([])
+    })
+
+    it('parses NEW symbol (only new_props)', () => {
+      const raw = [
+        {
+          path: 'NewSymbol',
+          status: 'NEW',
+          old_props: null,
+          new_props: { properties: { address: '4316144' } }
+        }
+      ]
+      const result = parseSymbolDiffEntries(raw)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
+        name: 'NewSymbol',
+        address: '0x000000000041DAF0',
+        status: DiffStatus.New,
+        baseAddress: undefined,
+        diffeeAddress: '0x000000000041DAF0'
+      })
+    })
+
+    it('parses DELETED symbol (only old_props)', () => {
+      const raw = [
+        {
+          path: 'DeletedSymbol',
+          status: 'DEL',
+          old_props: { properties: { address: '1234567' } },
+          new_props: null
+        }
+      ]
+      const result = parseSymbolDiffEntries(raw)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
+        name: 'DeletedSymbol',
+        address: '0x000000000012D687',
+        status: DiffStatus.Del,
+        baseAddress: '0x000000000012D687',
+        diffeeAddress: undefined
+      })
+    })
+
+    it('parses MODIFIED symbol (both old and new props)', () => {
+      const raw = [
+        {
+          path: 'ModifiedSymbol',
+          status: 'MOD',
+          old_props: { properties: { address: '1000' } },
+          new_props: { properties: { address: '2000' } }
+        }
+      ]
+      const result = parseSymbolDiffEntries(raw)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
+        name: 'ModifiedSymbol',
+        address: '0x00000000000007D0',
+        status: DiffStatus.Mod,
+        baseAddress: '0x00000000000003E8',
+        diffeeAddress: '0x00000000000007D0'
+      })
+    })
+
+    it('parses multiple diff entries', () => {
+      const raw = [
+        {
+          path: 'SymA',
+          status: 'NEW',
+          old_props: null,
+          new_props: { properties: { address: '100' } }
+        },
+        {
+          path: 'SymB',
+          status: 'DEL',
+          old_props: { properties: { address: '200' } },
+          new_props: null
+        },
+        {
+          path: 'SymC',
+          status: 'MOD',
+          old_props: { properties: { address: '300' } },
+          new_props: { properties: { address: '400' } }
+        }
+      ]
+      const result = parseSymbolDiffEntries(raw)
+
+      expect(result).toHaveLength(3)
+      expect(result[0].status).toBe(DiffStatus.New)
+      expect(result[1].status).toBe(DiffStatus.Del)
+      expect(result[2].status).toBe(DiffStatus.Mod)
+    })
+
+    it('handles missing address properties gracefully', () => {
+      const raw = [
+        {
+          path: 'SymbolNoAddress',
+          status: 'NEW',
+          old_props: null,
+          new_props: { properties: {} }
+        }
+      ]
+      const result = parseSymbolDiffEntries(raw)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].address).toBe('0x0000000000000000')
+    })
+  })
+
+  describe('getStatusTagType', () => {
+    it('maps NEW status to success', () => {
+      expect(getStatusTagType(DiffStatus.New)).toBe('success')
+    })
+
+    it('maps MOD status to warning', () => {
+      expect(getStatusTagType(DiffStatus.Mod)).toBe('warning')
+    })
+
+    it('maps DEL status to error', () => {
+      expect(getStatusTagType(DiffStatus.Del)).toBe('error')
+    })
+
+    it('returns default for unknown status', () => {
+      expect(getStatusTagType('UNKNOWN' as DiffStatus)).toBe('default')
     })
   })
 })
