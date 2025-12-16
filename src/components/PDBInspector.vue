@@ -62,7 +62,8 @@ const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() =
     key: 'status',
     title: 'Status',
     width: 100,
-    render: (row) => h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
+    render: (row) =>
+      h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
   },
   {
     key: 'name',

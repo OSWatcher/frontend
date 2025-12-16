@@ -193,7 +193,7 @@ async function checkCapabilities(commitHash: string) {
     })
     const labels = capabilitiesResponse.data.getCommitExtractedDataLabels || []
     hasRegistry.value = labels.includes('WinRegKey') || labels.includes('WinRegValue')
-    hasPDB.value = labels.includes('Symbol') || labels.includes('WinStruct')
+    hasPDB.value = labels.includes('Symbol') || labels.includes('Struct')
   } catch (err) {
     console.warn('Error checking commit capabilities:', err)
     // Capabilities check failure doesn't block the UI - just hide optional tabs

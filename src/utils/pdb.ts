@@ -115,9 +115,7 @@ export function sortSymbols<T extends SymbolEntry>(entries: T[]): T[] {
  * @param status - DiffStatus from GraphQL
  * @returns Naive UI tag type (success, warning, error, default)
  */
-export function getStatusTagType(
-  status: DiffStatus
-): 'success' | 'warning' | 'error' | 'default' {
+export function getStatusTagType(status: DiffStatus): 'success' | 'warning' | 'error' | 'default' {
   switch (status) {
     case DiffStatus.New:
       return 'success' // Green
