@@ -125,6 +125,7 @@ const splitLink = split(
 const gqlClient = new ApolloClient({
   link: from([errorLink, authLink, splitLink]), // Link chain: error handling, auth, then split link
   cache: new InMemoryCache({ typePolicies }),
+  connectToDevTools: import.meta.env.DEV, // Enable Apollo DevTools in development mode
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network'
