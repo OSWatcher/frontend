@@ -164,10 +164,7 @@ const structColumns = computed<DataTableColumns<any>>(() => [
             class: 'struct-name-row',
             onClick: () => toggleStructExpansion(row.key)
           },
-          [
-            h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '),
-            h('span', row.name)
-          ]
+          [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
         )
       } else {
         return h('div', { class: 'field-name-row' }, [
