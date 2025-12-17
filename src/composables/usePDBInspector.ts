@@ -13,6 +13,7 @@ import type {
   SymbolEntry,
   SymbolDiffEntry,
   StructEntry,
+  StructDiffEntry,
   PDBContext,
   PDBContextDiff
 } from '@/types/pdb'
@@ -21,6 +22,7 @@ import {
   parseSymbolDiffEntries,
   sortSymbols,
   parseStructEntries,
+  parseStructDiffEntries,
   sortStructs
 } from '@/utils/pdb'
 import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
@@ -75,8 +77,12 @@ export function usePDBInspector(
 
   const symbolPageCount = computed(() => Math.ceil(totalSymbols.value / symbolPageSize.value))
 
-  const structs = computed<StructEntry[]>(() => {
-    return sortStructs(parseStructEntries(rawStructs.value))
+  const structs = computed<StructEntry[] | StructDiffEntry[]>(() => {
+    if (mode === 'single') {
+      return sortStructs(parseStructEntries(rawStructs.value))
+    } else {
+      return sortStructs(parseStructDiffEntries(rawStructs.value))
+    }
   })
 
   const structPageCount = computed(() => Math.ceil(totalStructs.value / structPageSize.value))
@@ -188,6 +194,44 @@ export function usePDBInspector(
   }
 
   // ============================================
+  // Struct Data Fetching - Comparison Mode
+  // ============================================
+
+  async function fetchStructsComparison(): Promise<void> {
+    if (!pdbContextDiff.value) {
+      console.warn('Cannot fetch struct diff: no PDB context diff')
+      return
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const offset = (structPage.value - 1) * structPageSize.value
+      const response = await gqlClient.query({
+        query: DIFF_NODES,
+        variables: {
+          parentLabel: 'Blob',
+          baseNodeHash: pdbContextDiff.value.baseBlobHash,
+          diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
+          atPath: '/',
+          maxDepth: 0, // Only immediate children (structs are direct children of Blob)
+          filter: ['Struct'],
+          options: { offset, limit: structPageSize.value }
+        }
+      })
+
+      rawStructs.value = response.data?.diffNodesAt?.items || []
+      totalStructs.value = response.data?.diffNodesAt?.total_count || 0
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      console.error('Error fetching struct diff:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // ============================================
   // Public Methods
   // ============================================
 
@@ -205,11 +249,11 @@ export function usePDBInspector(
   }
 
   async function fetchStructs(): Promise<void> {
-    // For now, only single mode is supported
     if (mode === 'single') {
       await fetchStructsSingle()
+    } else {
+      await fetchStructsComparison()
     }
-    // TODO: Add comparison mode support later
   }
 
   function setStructPage(page: number): void {

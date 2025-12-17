@@ -9,6 +9,7 @@ import type {
   SymbolEntry,
   SymbolDiffEntry,
   StructEntry,
+  StructDiffEntry,
   StructFieldEntry as _StructFieldEntry,
   ParsedDataType
 } from '@/types/pdb'
@@ -193,12 +194,42 @@ export function parseStructEntries(
 }
 
 /**
+ * Parse raw diff items from DIFF_NODES query into StructDiffEntry objects
+ * @param rawDiffItems - Raw diff items from DIFF_NODES query
+ * @returns Array of StructDiffEntry objects with status and sizes
+ */
+export function parseStructDiffEntries(
+  rawDiffItems: Array<{
+    path: string
+    status: string
+    old_props?: { hash?: string; properties?: { size?: number; kind?: string } } | null
+    new_props?: { hash?: string; properties?: { size?: number; kind?: string } } | null
+  }>
+): StructDiffEntry[] {
+  return rawDiffItems.map((item) => {
+    const oldSize = item.old_props?.properties?.size
+    const newSize = item.new_props?.properties?.size
+    const kind = item.new_props?.properties?.kind || item.old_props?.properties?.kind || 'struct'
+
+    return {
+      name: item.path, // Struct name is in path
+      status: item.status as DiffStatus,
+      kind,
+      baseSize: oldSize,
+      diffeeSize: newSize,
+      baseHash: item.old_props?.hash,
+      diffeeHash: item.new_props?.hash
+    }
+  })
+}
+
+/**
  * Sort structs alphabetically by name (case-insensitive)
  * Returns a new array without mutating the original
  * @param entries - Array of struct entries
  * @returns New sorted array
  */
-export function sortStructs<T extends StructEntry>(entries: T[]): T[] {
+export function sortStructs<T extends { name: string }>(entries: T[]): T[] {
   return [...entries].sort((a, b) => a.name.localeCompare(b.name))
 }
 

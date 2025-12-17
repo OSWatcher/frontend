@@ -12,7 +12,7 @@ import {
 } from 'naive-ui'
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
-import type { SymbolEntry, SymbolDiffEntry } from '@/types/pdb'
+import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
 import { getStatusTagType, formatOffset, formatSize } from '@/utils/pdb'
 
 const props = defineProps({
@@ -101,15 +101,25 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
   return {}
 }
 
+function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
+  if (props.mode === 'comparison') {
+    const diffRow = row as StructDiffEntry
+    return { class: `diff-row-${diffRow.status.toLowerCase()}` }
+  }
+  return {}
+}
+
 // ============================================
-// Struct Table Data
+// Struct Table Data (Single Mode)
 // ============================================
 
-// Flatten structs and their expanded fields into table rows
-const structsTableData = computed(() => {
+// Flatten structs and their expanded fields into table rows (single mode only)
+const structsTableDataSingle = computed(() => {
+  if (props.mode !== 'single') return []
+
   const rows: any[] = []
 
-  structs.value.forEach((struct) => {
+  ;(structs.value as StructEntry[]).forEach((struct) => {
     // Add struct row
     rows.push({
       key: struct.name,
@@ -141,11 +151,22 @@ const structsTableData = computed(() => {
   return rows
 })
 
+// Struct table data for comparison mode (flat list, no expansion)
+const structsTableDataComparison = computed(() => {
+  if (props.mode !== 'comparison') return []
+  return structs.value as StructDiffEntry[]
+})
+
+// Combined struct table data
+const structsTableData = computed(() => {
+  return props.mode === 'single' ? structsTableDataSingle.value : structsTableDataComparison.value
+})
+
 // ============================================
 // Struct Columns
 // ============================================
 
-const structColumns = computed<DataTableColumns<any>>(() => [
+const structColumnsSingle = computed<DataTableColumns<any>>(() => [
   {
     key: 'offset',
     title: 'Offset',
@@ -186,6 +207,43 @@ const structColumns = computed<DataTableColumns<any>>(() => [
     width: 100
   }
 ])
+
+const structColumnsComparison = computed<DataTableColumns<StructDiffEntry>>(() => [
+  {
+    key: 'status',
+    title: 'Status',
+    width: 100,
+    render: (row) =>
+      h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
+  },
+  {
+    key: 'name',
+    title: 'Name',
+    ellipsis: { tooltip: true },
+    minWidth: 200
+  },
+  {
+    key: 'kind',
+    title: 'Kind',
+    width: 100
+  },
+  {
+    key: 'baseSize',
+    title: 'Base Size',
+    width: 120,
+    render: (row) => (row.baseSize !== undefined ? formatSize(row.baseSize) : '-')
+  },
+  {
+    key: 'diffeeSize',
+    title: 'New Size',
+    width: 120,
+    render: (row) => (row.diffeeSize !== undefined ? formatSize(row.diffeeSize) : '-')
+  }
+])
+
+const structColumns = computed(() => {
+  return props.mode === 'single' ? structColumnsSingle.value : structColumnsComparison.value
+})
 </script>
 
 <template>
@@ -249,8 +307,9 @@ const structColumns = computed<DataTableColumns<any>>(() => [
             <NDataTable
               :columns="structColumns"
               :data="structsTableData"
+              :row-props="getStructRowProps"
               :loading="isLoading"
-              :row-key="(row: any) => row.key"
+              :row-key="(row: any) => row.key || row.name"
               striped
               :max-height="600"
             />
