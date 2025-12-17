@@ -48,6 +48,19 @@ export interface StructFieldEntry {
 }
 
 /**
+ * Represents a struct entry in comparison/diff mode
+ */
+export interface StructDiffEntry {
+  name: string
+  status: DiffStatus
+  kind: string
+  baseSize?: number // Size in base commit (undefined if NEW)
+  diffeeSize?: number // Size in diffee commit (undefined if DELETED)
+  baseHash?: string
+  diffeeHash?: string
+}
+
+/**
  * Internal representation of parsed data_type JSON
  */
 export interface ParsedDataType {
