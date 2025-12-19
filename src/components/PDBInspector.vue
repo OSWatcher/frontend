@@ -41,7 +41,7 @@ const {
   structPage,
   structPageSize,
   structPageCount,
-  expandedStructHashes,
+  expandedStructNames,
   setStructPage,
   toggleStructExpansion
 } = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
@@ -102,9 +102,9 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
 }
 
 function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
-  if (props.mode === 'comparison') {
-    const diffRow = row as StructDiffEntry
-    return { class: `diff-row-${diffRow.status.toLowerCase()}` }
+  if (props.mode === 'comparison' && row.status) {
+    // Apply diff row styling based on status (works for both struct and field rows)
+    return { class: `diff-row-${row.status.toLowerCase()}` }
   }
   return {}
 }
@@ -128,12 +128,12 @@ const structsTableDataSingle = computed(() => {
       name: struct.name,
       dataType: struct.kind,
       size: formatSize(struct.size),
-      isExpanded: expandedStructHashes.value.has(struct.name),
+      isExpanded: expandedStructNames.value.has(struct.name),
       struct: struct
     })
 
     // Add field rows if expanded
-    if (expandedStructHashes.value.has(struct.name)) {
+    if (expandedStructNames.value.has(struct.name)) {
       struct.fields?.forEach((field) => {
         rows.push({
           key: `${struct.name}-${field.name}`,
@@ -151,10 +151,47 @@ const structsTableDataSingle = computed(() => {
   return rows
 })
 
-// Struct table data for comparison mode (flat list, no expansion)
+// Struct table data for comparison mode (with expandable fields)
 const structsTableDataComparison = computed(() => {
   if (props.mode !== 'comparison') return []
-  return structs.value as StructDiffEntry[]
+
+  const rows: any[] = []
+
+  ;(structs.value as StructDiffEntry[]).forEach((struct) => {
+    // Add struct row
+    rows.push({
+      key: struct.name,
+      type: 'struct',
+      name: struct.name,
+      status: struct.status,
+      kind: struct.kind,
+      baseSize: struct.baseSize,
+      diffeeSize: struct.diffeeSize,
+      isExpanded: expandedStructNames.value.has(struct.name),
+      struct: struct
+    })
+
+    // Add field rows if expanded
+    if (expandedStructNames.value.has(struct.name) && struct.fields) {
+      struct.fields.forEach((field) => {
+        rows.push({
+          key: `${struct.name}-${field.name}`,
+          type: 'field',
+          name: field.name,
+          status: field.status,
+          offset: field.offset,
+          dataType: field.dataType,
+          baseOffset: field.baseOffset,
+          diffeeOffset: field.diffeeOffset,
+          baseDataType: field.baseDataType,
+          diffeeDataType: field.diffeeDataType,
+          parentStruct: struct.name
+        })
+      })
+    }
+  })
+
+  return rows
 })
 
 // Combined struct table data
@@ -208,36 +245,86 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
   }
 ])
 
-const structColumnsComparison = computed<DataTableColumns<StructDiffEntry>>(() => [
+const structColumnsComparison = computed<DataTableColumns<any>>(() => [
   {
     key: 'status',
     title: 'Status',
     width: 100,
-    render: (row) =>
-      h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
+    render: (row) => {
+      if (row.status === 'UNCHANGED') {
+        return h('span', { style: { color: '#9ca3af' } }, '-')
+      }
+      return h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
+    }
+  },
+  {
+    key: 'offset',
+    title: 'Offset',
+    width: 100,
+    render: (row) => {
+      if (row.type === 'field') {
+        return formatOffset(row.offset)
+      }
+      return ''
+    }
   },
   {
     key: 'name',
     title: 'Name',
     ellipsis: { tooltip: true },
-    minWidth: 200
+    minWidth: 200,
+    render: (row) => {
+      if (row.type === 'struct') {
+        return h(
+          'div',
+          {
+            class: 'struct-name-row',
+            onClick: () => toggleStructExpansion(row.key)
+          },
+          [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
+        )
+      } else {
+        return h('div', { class: 'field-name-row' }, [
+          h('span', { class: 'field-indent' }, '└─ '),
+          h('span', row.name)
+        ])
+      }
+    }
   },
   {
-    key: 'kind',
-    title: 'Kind',
-    width: 100
+    key: 'type',
+    title: 'Type',
+    minWidth: 200,
+    ellipsis: { tooltip: true },
+    render: (row) => {
+      if (row.type === 'field') {
+        return row.dataType
+      } else {
+        return row.kind
+      }
+    }
   },
   {
     key: 'baseSize',
     title: 'Base Size',
     width: 120,
-    render: (row) => (row.baseSize !== undefined ? formatSize(row.baseSize) : '-')
+    render: (row) => {
+      if (row.type === 'struct' && row.baseSize !== undefined) {
+        return formatSize(row.baseSize)
+      }
+      return row.type === 'struct' ? '-' : ''
+    }
   },
   {
     key: 'diffeeSize',
     title: 'New Size',
     width: 120,
-    render: (row) => (row.diffeeSize !== undefined ? formatSize(row.diffeeSize) : '-')
+    render: (row) => {
+      if (row.type === 'struct' && row.diffeeSize !== undefined) {
+        return formatSize(row.diffeeSize)
+      }
+      return row.type === 'struct' ? '-' : ''
+    }
   }
 ])
 
@@ -407,6 +494,13 @@ const structColumns = computed(() => {
 :deep(.n-data-table-tr.diff-row-del .n-data-table-td) {
   background-color: #fee2e2 !important; /* light red */
   opacity: 0.9 !important;
+}
+
+:deep(.n-data-table-tr.diff-row-unchanged),
+:deep(.n-data-table-tr.diff-row-unchanged .n-data-table-td) {
+  background-color: #f9fafb !important; /* light gray */
+  opacity: 0.7 !important;
+  color: #9ca3af !important; /* muted text */
 }
 
 /* Struct tree table styling */
