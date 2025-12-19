@@ -291,13 +291,6 @@ const comparisonModeColumns = computed<DataTableColumns<RegistryDiffEntry>>(() =
         row.name
       )
   },
-  {
-    key: 'status',
-    title: 'Status',
-    width: 120,
-    render: (row) =>
-      h(NTag, { type: getRegistryStatusTagType(row.status), size: 'small' }, () => row.status)
-  },
   { key: 'type', title: 'Type', width: 140, render: (row) => row.valueType || '-' },
   {
     key: 'value',
