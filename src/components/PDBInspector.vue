@@ -66,13 +66,6 @@ const symbolColumnsSingle = computed<DataTableColumns<SymbolEntry>>(() => [
 
 const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() => [
   {
-    key: 'status',
-    title: 'Status',
-    width: 100,
-    render: (row) =>
-      h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
-  },
-  {
     key: 'name',
     title: 'Name',
     ellipsis: { tooltip: true },
@@ -246,17 +239,6 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
 ])
 
 const structColumnsComparison = computed<DataTableColumns<any>>(() => [
-  {
-    key: 'status',
-    title: 'Status',
-    width: 100,
-    render: (row) => {
-      if (row.status === 'UNCHANGED') {
-        return h('span', { style: { color: '#9ca3af' } }, '-')
-      }
-      return h(NTag, { type: getStatusTagType(row.status), size: 'small' }, () => row.status)
-    }
-  },
   {
     key: 'offset',
     title: 'Offset',
