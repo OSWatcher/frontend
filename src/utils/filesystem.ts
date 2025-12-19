@@ -12,7 +12,7 @@ export function parseFilesystemEntries(
 ): FilesystemEntry[] {
   return rawEntries.map((entry) => ({
     name: entry.name,
-    type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
+    type: entry.type === TreeNodeType.Blob ? TreeNodeType.Blob : TreeNodeType.Tree,
     hash: entry.hash,
     size: entry.size,
     path: joinPath(currentPath, entry.name)
@@ -35,7 +35,10 @@ export function parseFilesystemDiffEntries(
 
     return {
       name: entry.name,
-      type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
+      type:
+        entry.type === TreeNodeType.Blob || entry.type === 'blob'
+          ? TreeNodeType.Blob
+          : TreeNodeType.Tree,
       hash,
       size,
       path: joinPath(currentPath, entry.name),
