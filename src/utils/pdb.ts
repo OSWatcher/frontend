@@ -10,7 +10,7 @@ import type {
   SymbolDiffEntry,
   StructEntry,
   StructDiffEntry,
-  StructFieldEntry as _StructFieldEntry,
+  StructFieldDiffEntry,
   ParsedDataType
 } from '@/types/pdb'
 import { DiffStatus } from '@/graphql-types'
@@ -219,6 +219,56 @@ export function parseStructDiffEntries(
       diffeeSize: newSize,
       baseHash: item.old_props?.hash,
       diffeeHash: item.new_props?.hash
+    }
+  })
+}
+
+/**
+ * Parse field-level diff entries from DIFF_NODES response
+ * @param rawDiffItems - Raw diff items from DIFF_NODES query on Struct node
+ * @returns Array of StructFieldDiffEntry with status for each field
+ */
+export function parseFieldDiffEntries(
+  rawDiffItems: Array<{
+    path: string
+    status: string
+    old_props?: {
+      properties?: {
+        offset?: number
+        data_type?: any
+      }
+    } | null
+    new_props?: {
+      properties?: {
+        offset?: number
+        data_type?: any
+      }
+    } | null
+  }>
+): StructFieldDiffEntry[] {
+  return rawDiffItems.map((item) => {
+    const oldOffset = item.old_props?.properties?.offset
+    const newOffset = item.new_props?.properties?.offset
+    const oldDataType = item.old_props?.properties?.data_type
+    const newDataType = item.new_props?.properties?.data_type
+
+    // Parse and format data types
+    const baseDataType = oldDataType ? formatDataType(parseDataType(oldDataType)) : undefined
+    const diffeeDataType = newDataType ? formatDataType(parseDataType(newDataType)) : undefined
+
+    // Determine display offset and type (prefer diffee, fallback to base)
+    const displayOffset = newOffset !== undefined ? newOffset : oldOffset || 0
+    const displayDataType = diffeeDataType || baseDataType || 'unknown'
+
+    return {
+      name: item.path,
+      status: item.status as 'NEW' | 'MOD' | 'DEL',
+      offset: displayOffset,
+      dataType: displayDataType,
+      baseOffset: oldOffset,
+      diffeeOffset: newOffset,
+      baseDataType,
+      diffeeDataType
     }
   })
 }
