@@ -24,7 +24,7 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType } from '@/types'
-import { getDownloadUrl } from '@/utils/filesystem'
+import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
@@ -50,8 +50,8 @@ const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile,
     props.highlightFile
   )
 
-// Authentication for full export
-const { isAuthenticated } = useAuth0()
+// Authentication for full export and blob downloads
+const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 const isExporting = ref(false)
 
 // Export local diff (current directory only)
@@ -239,10 +239,17 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
           {
             size: 'small',
             type: 'primary',
-            tag: 'a',
-            href: getDownloadUrl(row.hash),
-            download: row.name,
-            onClick: (e: Event) => e.stopPropagation()
+            onClick: async (e: Event) => {
+              e.stopPropagation()
+              try {
+                // Pass getAccessTokenSilently only if user is authenticated
+                const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
+                await downloadBlob(row.hash, row.name, tokenGetter)
+              } catch (error) {
+                console.error('Download failed:', error)
+                alert(error instanceof Error ? error.message : 'Download failed')
+              }
+            }
           },
           { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
         )
