@@ -4,8 +4,6 @@ import {
   NTabs,
   NTabPane,
   NDataTable,
-  NTag,
-  NPagination,
   NSpin,
   NAlert,
   type DataTableColumns
@@ -13,7 +11,7 @@ import {
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
-import { getStatusTagType, formatOffset, formatSize } from '@/utils/pdb'
+import { formatOffset, formatSize } from '@/utils/pdb'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -38,11 +36,10 @@ const {
   setSymbolPage,
   structs,
   totalStructs,
-  structPage,
-  structPageSize,
-  structPageCount,
   expandedStructNames,
-  setStructPage,
+  hasMoreStructs,
+  isLoadingMoreStructs,
+  handleStructsScroll,
   toggleStructExpansion
 } = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
 
@@ -380,20 +377,24 @@ const structColumns = computed(() => {
               :loading="isLoading"
               :row-key="(row: any) => row.key || row.name"
               striped
+              virtual-scroll
               :max-height="600"
+              @scroll="handleStructsScroll"
             />
+
+            <!-- Loading indicator for progressive batching (single mode only) -->
+            <div v-if="mode === 'single' && isLoadingMoreStructs" class="loading-more-indicator">
+              <NSpin size="small" />
+              <span>Loading more structs...</span>
+            </div>
           </div>
 
-          <!-- Pagination -->
+          <!-- Total count display (no pagination) -->
           <div class="pagination-container">
-            <NPagination
-              v-model:page="structPage"
-              :page-count="structPageCount"
-              :page-size="structPageSize"
-              show-quick-jumper
-              @update:page="setStructPage"
-            />
-            <span class="total-count">{{ totalStructs }} structs</span>
+            <span class="total-count">
+              {{ structs.length }} / {{ totalStructs }} structs
+              <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
+            </span>
           </div>
         </NTabPane>
       </NTabs>
@@ -513,5 +514,17 @@ const structColumns = computed(() => {
   color: #9ca3af;
   margin-right: 8px;
   font-family: monospace;
+}
+
+.loading-more-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  color: #6b7280;
+  font-size: 14px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
 }
 </style>
