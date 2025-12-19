@@ -6,7 +6,6 @@ import {
   NBreadcrumbItem,
   NIcon,
   NSelect,
-  NTag,
   NButton,
   NDropdown,
   NSpin,
@@ -23,7 +22,7 @@ import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
 import { DiffStatus } from '@/graphql-types'
-import { formatRegistryValue, getRegistryStatusTagType } from '@/utils/registry'
+import { formatRegistryValue } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'

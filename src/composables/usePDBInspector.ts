@@ -59,9 +59,13 @@ export function usePDBInspector(
   // Structs state
   const rawStructs = ref<any[]>([])
   const totalStructs = ref(0)
-  const structPage = ref(1)
-  const structPageSize = ref(50)
   const expandedStructNames = ref<Set<string>>(new Set())
+
+  // Progressive loading state (single mode only)
+  const structsOffset = ref(0)
+  const structsBatchSize = ref(400) // 400 structs per batch
+  const hasMoreStructs = ref(true)
+  const isLoadingMoreStructs = ref(false)
 
   // Struct fields for comparison mode (cached for field-level diffs)
   const computedFieldDiffs = ref<Map<string, StructFieldDiffEntry[]>>(new Map()) // Cache computed field diffs
@@ -94,8 +98,6 @@ export function usePDBInspector(
       }))
     }
   })
-
-  const structPageCount = computed(() => Math.ceil(totalStructs.value / structPageSize.value))
 
   // ============================================
   // Data Fetching - Single Mode
@@ -182,19 +184,27 @@ export function usePDBInspector(
     isLoading.value = true
     error.value = null
 
+    // Reset progressive loading state
+    structsOffset.value = 0
+    hasMoreStructs.value = true
+    rawStructs.value = [] // Clear existing
+
     try {
-      const offset = (structPage.value - 1) * structPageSize.value
       const response = await gqlClient.query({
         query: LIST_WINSTRUCT,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: structPageSize.value, offset },
+          options: { limit: structsBatchSize.value, offset: 0 },
           where: { blob: { hash: pdbContext.value.blobHash } }
         }
       })
 
       rawStructs.value = response.data?.fetchStructs || []
       totalStructs.value = response.data?.structsAggregate?.count || 0
+
+      // Update state for progressive loading
+      structsOffset.value = rawStructs.value.length
+      hasMoreStructs.value = rawStructs.value.length < totalStructs.value
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error fetching structs:', err)
@@ -217,7 +227,6 @@ export function usePDBInspector(
     error.value = null
 
     try {
-      const offset = (structPage.value - 1) * structPageSize.value
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -226,8 +235,8 @@ export function usePDBInspector(
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
           maxDepth: 0, // Only immediate children (structs are direct children of Blob)
-          filter: ['Struct'],
-          options: { offset, limit: structPageSize.value }
+          filter: ['Struct']
+          // NO OPTIONS - fetch all diffs at once
         }
       })
 
@@ -238,6 +247,62 @@ export function usePDBInspector(
       console.error('Error fetching struct diff:', err)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // ============================================
+  // Progressive Loading - Single Mode
+  // ============================================
+
+  async function loadMoreStructs(): Promise<void> {
+    if (!pdbContext.value || !hasMoreStructs.value || isLoadingMoreStructs.value) {
+      return // Prevent duplicate requests
+    }
+
+    isLoadingMoreStructs.value = true
+
+    try {
+      const response = await gqlClient.query({
+        query: LIST_WINSTRUCT,
+        variables: {
+          blobHash: pdbContext.value.blobHash,
+          options: { limit: structsBatchSize.value, offset: structsOffset.value },
+          where: { blob: { hash: pdbContext.value.blobHash } }
+        }
+      })
+
+      const newStructs = response.data?.fetchStructs || []
+
+      // APPEND to existing structs
+      rawStructs.value = [...rawStructs.value, ...newStructs]
+
+      // Update state
+      structsOffset.value += newStructs.length
+      hasMoreStructs.value = rawStructs.value.length < totalStructs.value
+    } catch (err) {
+      console.error('Error loading more structs:', err)
+      // Don't set global error - just log and allow retry
+    } finally {
+      isLoadingMoreStructs.value = false
+    }
+  }
+
+  function handleStructsScroll(event: Event): void {
+    if (mode !== 'single' || !hasMoreStructs.value) {
+      return
+    }
+
+    const target = event.target as HTMLElement
+    const scrollTop = target.scrollTop
+    const scrollHeight = target.scrollHeight
+    const clientHeight = target.clientHeight
+
+    // Calculate scroll percentage
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight
+
+    // Load more when scrolled past 80%
+    if (scrollPercentage > 0.8) {
+      loadMoreStructs()
     }
   }
 
@@ -317,11 +382,6 @@ export function usePDBInspector(
     } else {
       await fetchStructsComparison()
     }
-  }
-
-  function setStructPage(page: number): void {
-    structPage.value = page
-    fetchStructs()
   }
 
   async function toggleStructExpansion(structName: string): Promise<void> {
@@ -433,16 +493,17 @@ export function usePDBInspector(
     // Structs
     structs,
     totalStructs,
-    structPage,
-    structPageSize,
-    structPageCount,
     expandedStructNames,
+
+    // Progressive loading (single mode)
+    hasMoreStructs,
+    isLoadingMoreStructs,
 
     // Methods
     fetchSymbols,
     setSymbolPage,
     fetchStructs,
-    setStructPage,
+    handleStructsScroll,
     toggleStructExpansion
   }
 }
