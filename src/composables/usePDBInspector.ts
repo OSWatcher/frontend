@@ -14,6 +14,7 @@ import type {
   SymbolDiffEntry,
   StructEntry,
   StructDiffEntry,
+  StructFieldDiffEntry,
   PDBContext,
   PDBContextDiff
 } from '@/types/pdb'
@@ -23,7 +24,8 @@ import {
   sortSymbols,
   parseStructEntries,
   parseStructDiffEntries,
-  sortStructs
+  sortStructs,
+  parseFieldDiffEntries
 } from '@/utils/pdb'
 import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
 
@@ -59,7 +61,10 @@ export function usePDBInspector(
   const totalStructs = ref(0)
   const structPage = ref(1)
   const structPageSize = ref(50)
-  const expandedStructHashes = ref<Set<string>>(new Set())
+  const expandedStructNames = ref<Set<string>>(new Set())
+
+  // Struct fields for comparison mode (cached for field-level diffs)
+  const computedFieldDiffs = ref<Map<string, StructFieldDiffEntry[]>>(new Map()) // Cache computed field diffs
 
   // ============================================
   // Computed
@@ -81,7 +86,12 @@ export function usePDBInspector(
     if (mode === 'single') {
       return sortStructs(parseStructEntries(rawStructs.value))
     } else {
-      return sortStructs(parseStructDiffEntries(rawStructs.value))
+      const parsedStructs = sortStructs(parseStructDiffEntries(rawStructs.value))
+      // Merge in computed field diffs for comparison mode
+      return parsedStructs.map((struct) => ({
+        ...struct,
+        fields: computedFieldDiffs.value.get(struct.name)
+      }))
     }
   })
 
@@ -232,6 +242,59 @@ export function usePDBInspector(
   }
 
   // ============================================
+  // Field-Level Diff (Comparison Mode)
+  // ============================================
+
+  async function fetchStructFieldDiffWithHashes(
+    baseStructHash: string,
+    diffeeStructHash: string
+  ): Promise<StructFieldDiffEntry[]> {
+    try {
+      const response = await gqlClient.query({
+        query: DIFF_NODES,
+        variables: {
+          parentLabel: 'Struct',
+          baseNodeHash: baseStructHash,
+          diffeeNodeHash: diffeeStructHash,
+          atPath: '/',
+          maxDepth: 0,
+          filter: ['StructField']
+        }
+      })
+
+      return parseFieldDiffEntries(response.data?.diffNodesAt?.items || [])
+    } catch (err) {
+      console.error('Error fetching struct field diff:', err)
+      return []
+    }
+  }
+
+  async function fetchStructFieldDiffWithPath(structName: string): Promise<StructFieldDiffEntry[]> {
+    if (!pdbContextDiff.value) {
+      return []
+    }
+
+    try {
+      const response = await gqlClient.query({
+        query: DIFF_NODES,
+        variables: {
+          parentLabel: 'Blob',
+          baseNodeHash: pdbContextDiff.value.baseBlobHash,
+          diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
+          atPath: `/${structName}`,
+          maxDepth: 0,
+          filter: ['StructField']
+        }
+      })
+
+      return parseFieldDiffEntries(response.data?.diffNodesAt?.items || [])
+    } catch (err) {
+      console.error('Error fetching struct field diff with path:', err)
+      return []
+    }
+  }
+
+  // ============================================
   // Public Methods
   // ============================================
 
@@ -261,11 +324,34 @@ export function usePDBInspector(
     fetchStructs()
   }
 
-  function toggleStructExpansion(structHash: string): void {
-    if (expandedStructHashes.value.has(structHash)) {
-      expandedStructHashes.value.delete(structHash)
+  async function toggleStructExpansion(structName: string): Promise<void> {
+    if (expandedStructNames.value.has(structName)) {
+      // Collapse
+      expandedStructNames.value.delete(structName)
     } else {
-      expandedStructHashes.value.add(structHash)
+      // Expand
+      expandedStructNames.value.add(structName)
+
+      // Fetch field-level data in comparison mode
+      if (mode === 'comparison' && !computedFieldDiffs.value.has(structName)) {
+        const structEntry = (structs.value as StructDiffEntry[]).find((s) => s.name === structName)
+        if (!structEntry) return
+
+        let fieldDiff: StructFieldDiffEntry[] = []
+
+        // For MOD structs with both hashes, use struct hashes directly
+        if (structEntry.status === 'MOD' && structEntry.baseHash && structEntry.diffeeHash) {
+          fieldDiff = await fetchStructFieldDiffWithHashes(
+            structEntry.baseHash,
+            structEntry.diffeeHash
+          )
+        } else {
+          // For NEW/DEL structs, use path navigation from Blob level
+          fieldDiff = await fetchStructFieldDiffWithPath(structName)
+        }
+
+        computedFieldDiffs.value.set(structName, fieldDiff)
+      }
     }
   }
 
@@ -350,7 +436,7 @@ export function usePDBInspector(
     structPage,
     structPageSize,
     structPageCount,
-    expandedStructHashes,
+    expandedStructNames,
 
     // Methods
     fetchSymbols,

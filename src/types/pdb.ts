@@ -48,6 +48,25 @@ export interface StructFieldEntry {
 }
 
 /**
+ * Field diff status (extends DiffStatus with UNCHANGED)
+ */
+export type FieldDiffStatus = 'NEW' | 'MOD' | 'DEL' | 'UNCHANGED'
+
+/**
+ * Represents a struct field in comparison/diff mode
+ */
+export interface StructFieldDiffEntry {
+  name: string
+  status: FieldDiffStatus // Includes UNCHANGED for grayed-out fields
+  offset: number // Display offset (diffee if exists, else base)
+  dataType: string // Display type (diffee if exists, else base)
+  baseOffset?: number // Offset in base (undefined if NEW)
+  diffeeOffset?: number // Offset in diffee (undefined if DEL)
+  baseDataType?: string // Type in base (undefined if NEW)
+  diffeeDataType?: string // Type in diffee (undefined if DEL)
+}
+
+/**
  * Represents a struct entry in comparison/diff mode
  */
 export interface StructDiffEntry {
@@ -58,6 +77,7 @@ export interface StructDiffEntry {
   diffeeSize?: number // Size in diffee commit (undefined if DELETED)
   baseHash?: string
   diffeeHash?: string
+  fields?: StructFieldDiffEntry[] // Computed field-level diffs (populated on expansion)
 }
 
 /**
