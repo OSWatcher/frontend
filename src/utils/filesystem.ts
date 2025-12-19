@@ -94,15 +94,55 @@ export function generateBreadcrumbs(path: string, includeHome = true): Breadcrum
   return breadcrumbs
 }
 
-export function getDownloadUrl(hash: string): string {
+/**
+ * Download a blob with authentication
+ * Uses fetch with Authorization header to download restricted blobs
+ */
+export async function downloadBlob(
+  hash: string,
+  filename: string,
+  getAccessToken?: () => Promise<string>
+): Promise<void> {
   const apiUri = import.meta.env.VITE_GRAPHEOS_API_URI
   if (!apiUri) {
-    console.warn('VITE_GRAPHEOS_API_URI not configured')
-    return ''
+    throw new Error('VITE_GRAPHEOS_API_URI not configured')
   }
-  // URL constructor handles path normalization automatically
+
   const url = new URL(`/blob/${hash}`, apiUri)
-  return url.toString()
+
+  // Build headers with optional auth token
+  const headers: HeadersInit = {}
+  if (getAccessToken) {
+    try {
+      const token = await getAccessToken()
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.debug('No auth token available for blob download:', error)
+    }
+  }
+
+  const response = await fetch(url.toString(), { headers })
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Access denied: This blob is restricted')
+    }
+    throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+  }
+
+  // Create blob and trigger download
+  const blob = await response.blob()
+  const downloadUrl = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = downloadUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(downloadUrl)
 }
 
 export function formatFileSize(bytes: number | undefined, decimals = 1): string {
