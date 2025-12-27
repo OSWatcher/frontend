@@ -28,6 +28,7 @@ import {
   parseFieldDiffEntries
 } from '@/utils/pdb'
 import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
+import { DiffStatus } from '@/graphql-types'
 
 export function usePDBInspector(
   mode: InspectorMode,
@@ -77,6 +78,12 @@ export function usePDBInspector(
 
   // Struct fields for comparison mode (cached for field-level diffs)
   const computedFieldDiffs = ref<Map<string, StructFieldDiffEntry[]>>(new Map()) // Cache computed field diffs
+
+  // Status filter state (comparison mode only)
+  const symbolsStatusFilter = ref<DiffStatus[]>([])
+  const structsStatusFilter = ref<DiffStatus[]>([])
+  let symbolsFilterDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  let structsFilterDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   // ============================================
   // Computed
@@ -167,6 +174,12 @@ export function usePDBInspector(
       // Calculate offset for pagination
       const offset = (symbolsCurrentPage.value - 1) * symbolsPageSize
 
+      // Build options with optional status filter
+      const options: any = { offset, limit: symbolsPageSize }
+      if (symbolsStatusFilter.value.length > 0) {
+        options.status_filter = symbolsStatusFilter.value
+      }
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -176,7 +189,7 @@ export function usePDBInspector(
           atPath: '/',
           maxDepth: 0, // Only immediate children (symbols are direct children of Blob)
           filter: ['Symbol'],
-          options: { offset, limit: symbolsPageSize }
+          options
         }
       })
 
@@ -309,6 +322,12 @@ export function usePDBInspector(
     error.value = null
 
     try {
+      // Build options with optional status filter
+      const options: any = {}
+      if (structsStatusFilter.value.length > 0) {
+        options.status_filter = structsStatusFilter.value
+      }
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -317,8 +336,8 @@ export function usePDBInspector(
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
           maxDepth: 0, // Only immediate children (structs are direct children of Blob)
-          filter: ['Struct']
-          // NO OPTIONS - fetch all diffs at once
+          filter: ['Struct'],
+          options: Object.keys(options).length > 0 ? options : undefined
         }
       })
 
@@ -457,6 +476,38 @@ export function usePDBInspector(
   }
 
   // ============================================
+  // Status Filter Handlers
+  // ============================================
+
+  function setSymbolsStatusFilter(statuses: DiffStatus[]): void {
+    symbolsStatusFilter.value = statuses
+
+    // Cancel pending debounce
+    if (symbolsFilterDebounceTimer) {
+      clearTimeout(symbolsFilterDebounceTimer)
+    }
+
+    // Debounce the refetch (1 second)
+    symbolsFilterDebounceTimer = setTimeout(() => {
+      fetchSymbols()
+    }, 1000)
+  }
+
+  function setStructsStatusFilter(statuses: DiffStatus[]): void {
+    structsStatusFilter.value = statuses
+
+    // Cancel pending debounce
+    if (structsFilterDebounceTimer) {
+      clearTimeout(structsFilterDebounceTimer)
+    }
+
+    // Debounce the refetch (1 second)
+    structsFilterDebounceTimer = setTimeout(() => {
+      fetchStructs()
+    }, 1000)
+  }
+
+  // ============================================
   // Initialization
   // ============================================
 
@@ -552,6 +603,12 @@ export function usePDBInspector(
     handleSymbolsPageChange,
     fetchStructs,
     handleStructsScroll,
-    toggleStructExpansion
+    toggleStructExpansion,
+
+    // Status filters (comparison mode)
+    symbolsStatusFilter,
+    setSymbolsStatusFilter,
+    structsStatusFilter,
+    setStructsStatusFilter
   }
 }
