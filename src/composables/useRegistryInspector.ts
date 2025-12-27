@@ -10,6 +10,7 @@ import gqlClient from '@/graphql-client'
 import { DIFF_NODES, LIST_ENTRIES_FOR_KEY, TRAVERSE_PATH } from '@/queries'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry, RegistryHive } from '@/types/registry'
+import { DiffStatus } from '@/graphql-types'
 import {
   parseRegistryEntries,
   parseRegistryDiffEntries,
@@ -34,6 +35,10 @@ export function useRegistryInspector(
   const availableHives = ref<RegistryHive[]>([])
   const selectedHive = ref<RegistryHive | null>(null)
   const isLoadingHives = ref<boolean>(false)
+
+  // Diff status filter
+  const statusFilter = ref<DiffStatus[]>([])
+  let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   /**
    * Parsed and sorted entries
@@ -189,6 +194,12 @@ export function useRegistryInspector(
     path: string
   ): Promise<any[]> {
     try {
+      // Build options with optional status filter
+      const options: any = { offset: 0, limit: 1000 }
+      if (statusFilter.value.length > 0) {
+        options.status_filter = statusFilter.value
+      }
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -198,7 +209,7 @@ export function useRegistryInspector(
           atPath: path,
           maxDepth: 0,
           filter: ['WinRegValue'],
-          options: { offset: 0, limit: 1000 }
+          options
         }
       })
       const diffResult = response.data?.diffNodesAt
@@ -271,6 +282,23 @@ export function useRegistryInspector(
   }
 
   /**
+   * Set status filter with debounce
+   */
+  function setStatusFilter(statuses: DiffStatus[]): void {
+    statusFilter.value = statuses
+
+    // Cancel pending debounce
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer)
+    }
+
+    // Debounce the refetch
+    filterDebounceTimer = setTimeout(() => {
+      navigateToPath(currentPath.value)
+    }, 1000)
+  }
+
+  /**
    * Watch for changes and initialize
    */
   watch(
@@ -295,6 +323,8 @@ export function useRegistryInspector(
     selectedHive,
     navigateToPath,
     selectHive,
-    refresh
+    refresh,
+    statusFilter,
+    setStatusFilter
   }
 }

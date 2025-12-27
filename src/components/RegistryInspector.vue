@@ -27,6 +27,7 @@ import { formatRegistryValue, getRegistryStatusTagType } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -46,7 +47,9 @@ const {
   selectedHive,
   navigateToPath,
   selectHive,
-  currentPath
+  currentPath,
+  statusFilter,
+  setStatusFilter
 } = useRegistryInspector(
   props.mode,
   props.layout,
@@ -473,8 +476,12 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           </NBreadcrumbItem>
         </NBreadcrumb>
 
-        <!-- Export button with dropdown (only in comparison mode) -->
-        <div v-if="mode === 'comparison'" class="export-buttons">
+        <!-- Filter and Export buttons (only in comparison mode) -->
+        <div v-if="mode === 'comparison'" class="header-actions">
+          <!-- Status Filter Buttons -->
+          <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
+
+          <!-- Export Dropdown -->
           <NDropdown :options="exportOptions" trigger="click">
             <NButton size="small" :loading="isExporting">
               <template #icon
@@ -582,7 +589,10 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   flex: 1;
 }
 
-.export-buttons {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 

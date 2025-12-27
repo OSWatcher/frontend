@@ -334,10 +334,15 @@ Options for diff operations.
 
 ```typescript
 export type DiffNodesOptions = {
-  include_unchanged?: InputMaybe<Scalars['Boolean']['input']>
-  recursive?: InputMaybe<Scalars['Boolean']['input']>
+  limit?: InputMaybe<Scalars['Int']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  status_filter?: InputMaybe<Array<DiffStatus>>
 }
 ```
+
+- `limit` - Maximum number of diff items to return
+- `offset` - Number of items to skip for pagination
+- `status_filter` - Filter diff results by status (NEW, MOD, DEL). When provided, only returns items matching the specified statuses.
 
 ### Where Types
 
