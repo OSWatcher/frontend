@@ -30,10 +30,9 @@ const {
   activeSubTab,
   symbols,
   totalSymbols,
-  symbolPage,
-  symbolPageSize,
-  symbolPageCount,
-  setSymbolPage,
+  hasMoreSymbols,
+  isLoadingMoreSymbols,
+  handleSymbolsScroll,
   structs,
   totalStructs,
   expandedStructNames,
@@ -351,19 +350,24 @@ const structColumns = computed(() => {
               virtual-scroll
               :max-height="600"
               :row-key="(row: SymbolEntry | SymbolDiffEntry) => row.name"
+              @scroll="handleSymbolsScroll"
             />
+
+            <!-- Loading indicator for progressive batching (single mode only) -->
+            <div v-if="mode === 'single' && isLoadingMoreSymbols" class="loading-more-indicator">
+              <NSpin size="small" />
+              <span>Loading more symbols...</span>
+            </div>
           </div>
 
-          <!-- Pagination -->
+          <!-- Total count display (no pagination) -->
           <div class="pagination-container">
-            <NPagination
-              v-model:page="symbolPage"
-              :page-count="symbolPageCount"
-              :page-size="symbolPageSize"
-              show-quick-jumper
-              @update:page="setSymbolPage"
-            />
-            <span class="total-count">{{ totalSymbols }} symbols</span>
+            <span class="total-count">
+              {{ symbols.length }} / {{ totalSymbols }} symbols
+              <template v-if="mode === 'single' && hasMoreSymbols">
+                (scroll for more)
+              </template>
+            </span>
           </div>
         </NTabPane>
 
