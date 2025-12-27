@@ -1415,7 +1415,8 @@ export type DiffNodesOptions = {
 export enum DiffStatus {
   Del = 'DEL',
   Mod = 'MOD',
-  New = 'NEW'
+  New = 'NEW',
+  Unchanged = 'UNCHANGED'
 }
 
 /**
