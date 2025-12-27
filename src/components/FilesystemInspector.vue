@@ -6,6 +6,7 @@ import {
   NBreadcrumbItem,
   NIcon,
   NButton,
+  NButtonGroup,
   NDropdown,
   NInput,
   NSpin,
@@ -33,6 +34,7 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType, treeNodeTypeToString } from '@/types'
+import { DiffStatus } from '@/graphql-types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
@@ -532,47 +534,20 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         </NBreadcrumbItem>
       </NBreadcrumb>
 
-      <div class="header-actions">
-        <!-- Filter input -->
-        <div class="filter-controls">
-          <NInput
-            ref="filterInputRef"
-            v-model:value="searchQuery"
-            placeholder="Filter by name..."
-            clearable
-            size="small"
-            style="width: 220px"
-          >
-            <template #prefix>
-              <NIcon :size="16">
-                <SearchOutline />
-              </NIcon>
-            </template>
-            <template #suffix>
-              <span v-if="!searchQuery" class="shortcut-hint">/</span>
-            </template>
-          </NInput>
-          <span v-if="searchQuery" class="filter-count">
-            {{ filteredEntries.length }} of {{ totalCount }}
-          </span>
-        </div>
+      <!-- Filter and Export buttons (only in comparison mode) -->
+      <div v-if="mode === 'comparison'" class="header-actions">
+        <!-- Status Filter Buttons -->
+        <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
 
-        <!-- DiffStatusFilter and Export (only in comparison mode) -->
-        <template v-if="mode === 'comparison'">
-          <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
-
-          <!-- Export Dropdown -->
-          <NDropdown :options="exportOptions" trigger="click">
-            <NButton size="small" :loading="isExporting">
-              <template #icon>
-                <NIcon>
-                  <DownloadOutline />
-                </NIcon>
-              </template>
-              Export
-            </NButton>
-          </NDropdown>
-        </template>
+        <!-- Export Dropdown -->
+        <NDropdown :options="exportOptions" trigger="click">
+          <NButton size="small" :loading="isExporting">
+            <template #icon
+              ><NIcon><DownloadOutline /></NIcon
+            ></template>
+            Export
+          </NButton>
+        </NDropdown>
       </div>
     </div>
 
@@ -664,51 +639,6 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
-}
-
-.filter-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Make filter input more visible */
-.filter-controls :deep(.n-input) {
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-}
-
-.filter-controls :deep(.n-input:hover) {
-  border-color: #9ca3af;
-}
-
-.filter-controls :deep(.n-input.n-input--focus) {
-  background: white;
-  border-color: #18a058;
-}
-
-.filter-count {
-  font-size: 12px;
-  color: #888;
-  white-space: nowrap;
-}
-
-/* Keyboard shortcut hint (like GitHub) */
-.shortcut-hint {
-  display: inline-block;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  color: #6b7280;
-  background: transparent;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-.export-buttons {
   flex-shrink: 0;
 }
 
