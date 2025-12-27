@@ -53,8 +53,12 @@ export function usePDBInspector(
   // Symbols state
   const rawSymbols = ref<any[]>([])
   const totalSymbols = ref(0)
-  const symbolPage = ref(1)
-  const symbolPageSize = ref(50)
+
+  // Progressive loading state for symbols (single mode only)
+  const symbolsOffset = ref(0)
+  const symbolsBatchSize = ref(1000) // 1000 symbols per batch
+  const hasMoreSymbols = ref(true)
+  const isLoadingMoreSymbols = ref(false)
 
   // Structs state
   const rawStructs = ref<any[]>([])
@@ -84,8 +88,6 @@ export function usePDBInspector(
 
   const hasPDBData = computed(() => pdbContext.value !== null || pdbContextDiff.value !== null)
 
-  const symbolPageCount = computed(() => Math.ceil(totalSymbols.value / symbolPageSize.value))
-
   const structs = computed<StructEntry[] | StructDiffEntry[]>(() => {
     if (mode === 'single') {
       return sortStructs(parseStructEntries(rawStructs.value))
@@ -112,19 +114,27 @@ export function usePDBInspector(
     isLoading.value = true
     error.value = null
 
+    // Reset progressive loading state
+    symbolsOffset.value = 0
+    hasMoreSymbols.value = true
+    rawSymbols.value = [] // Clear existing
+
     try {
-      const offset = (symbolPage.value - 1) * symbolPageSize.value
       const response = await gqlClient.query({
         query: LIST_SYMBOLS,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: symbolPageSize.value, offset },
+          options: { limit: symbolsBatchSize.value, offset: 0 },
           where: { blob: { hash: pdbContext.value.blobHash } }
         }
       })
 
       rawSymbols.value = response.data?.fetchSymbols || []
       totalSymbols.value = response.data?.symbolsAggregate?.count || 0
+
+      // Update state for progressive loading
+      symbolsOffset.value = rawSymbols.value.length
+      hasMoreSymbols.value = rawSymbols.value.length < totalSymbols.value
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error fetching symbols:', err)
@@ -147,7 +157,6 @@ export function usePDBInspector(
     error.value = null
 
     try {
-      const offset = (symbolPage.value - 1) * symbolPageSize.value
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -156,8 +165,8 @@ export function usePDBInspector(
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
           maxDepth: 0, // Only immediate children (symbols are direct children of Blob)
-          filter: ['Symbol'],
-          options: { offset, limit: symbolPageSize.value }
+          filter: ['Symbol']
+          // NO OPTIONS - fetch all diffs at once
         }
       })
 
@@ -168,6 +177,62 @@ export function usePDBInspector(
       console.error('Error fetching symbol diff:', err)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  // ============================================
+  // Progressive Loading - Symbols (Single Mode)
+  // ============================================
+
+  async function loadMoreSymbols(): Promise<void> {
+    if (!pdbContext.value || !hasMoreSymbols.value || isLoadingMoreSymbols.value) {
+      return // Prevent duplicate requests
+    }
+
+    isLoadingMoreSymbols.value = true
+
+    try {
+      const response = await gqlClient.query({
+        query: LIST_SYMBOLS,
+        variables: {
+          blobHash: pdbContext.value.blobHash,
+          options: { limit: symbolsBatchSize.value, offset: symbolsOffset.value },
+          where: { blob: { hash: pdbContext.value.blobHash } }
+        }
+      })
+
+      const newSymbols = response.data?.fetchSymbols || []
+
+      // APPEND to existing symbols
+      rawSymbols.value = [...rawSymbols.value, ...newSymbols]
+
+      // Update state
+      symbolsOffset.value += newSymbols.length
+      hasMoreSymbols.value = rawSymbols.value.length < totalSymbols.value
+    } catch (err) {
+      console.error('Error loading more symbols:', err)
+      // Don't set global error - just log and allow retry
+    } finally {
+      isLoadingMoreSymbols.value = false
+    }
+  }
+
+  function handleSymbolsScroll(event: Event): void {
+    if (mode !== 'single' || !hasMoreSymbols.value) {
+      return
+    }
+
+    const target = event.target as HTMLElement
+    const scrollTop = target.scrollTop
+    const scrollHeight = target.scrollHeight
+    const clientHeight = target.clientHeight
+
+    // Calculate scroll percentage
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight
+
+    // Load more when scrolled past 80%
+    if (scrollPercentage > 0.8) {
+      loadMoreSymbols()
     }
   }
 
@@ -371,11 +436,6 @@ export function usePDBInspector(
     }
   }
 
-  function setSymbolPage(page: number): void {
-    symbolPage.value = page
-    fetchSymbols()
-  }
-
   async function fetchStructs(): Promise<void> {
     if (mode === 'single') {
       await fetchStructsSingle()
@@ -486,22 +546,23 @@ export function usePDBInspector(
     // Symbols
     symbols,
     totalSymbols,
-    symbolPage,
-    symbolPageSize,
-    symbolPageCount,
+
+    // Symbols progressive loading (single mode)
+    hasMoreSymbols,
+    isLoadingMoreSymbols,
 
     // Structs
     structs,
     totalStructs,
     expandedStructNames,
 
-    // Progressive loading (single mode)
+    // Structs progressive loading (single mode)
     hasMoreStructs,
     isLoadingMoreStructs,
 
     // Methods
     fetchSymbols,
-    setSymbolPage,
+    handleSymbolsScroll,
     fetchStructs,
     handleStructsScroll,
     toggleStructExpansion
