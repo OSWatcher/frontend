@@ -35,6 +35,7 @@ import { formatRegistryValue, getRegistryStatusTagType } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -54,7 +55,9 @@ const {
   selectedHive,
   navigateToPath,
   selectHive,
-  currentPath
+  currentPath,
+  statusFilter,
+  setStatusFilter
 } = useRegistryInspector(
   props.mode,
   props.layout,
@@ -493,7 +496,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
         </NBreadcrumb>
 
         <div class="header-actions">
-          <!-- Filter input -->
+          <!-- Filter input (from master - always visible) -->
           <div class="filter-controls">
             <NInput
               ref="filterInputRef"
@@ -515,8 +518,10 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             </span>
           </div>
 
-          <!-- Export button with dropdown (only in comparison mode) -->
-          <div v-if="mode === 'comparison'" class="export-buttons">
+          <!-- DiffStatusFilter and Export (from dev - only in comparison mode) -->
+          <template v-if="mode === 'comparison'">
+            <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
+
             <NDropdown :options="exportOptions" trigger="click">
               <NButton size="small" :loading="isExporting">
                 <template #icon
@@ -525,7 +530,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
                 Export
               </NButton>
             </NDropdown>
-          </div>
+          </template>
         </div>
       </div>
 
@@ -633,6 +638,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   display: flex;
   align-items: center;
   gap: 12px;
+<<<<<<< HEAD
   flex-shrink: 0;
 }
 
@@ -675,10 +681,6 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-family: monospace;
-}
-
-.export-buttons {
-  flex-shrink: 0;
 }
 
 /* Breadcrumb icons (yellow) */
