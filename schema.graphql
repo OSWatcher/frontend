@@ -12,9 +12,9 @@ enum NodeType {
     WinRegValue
     WinRegKey
     Symbol
-    WinStruct
-    WinStructField
-    WinDataType
+    Struct
+    StructField
+    DataType
 }
 
 enum DiffStatus {
@@ -44,7 +44,7 @@ type Blob implements Hashable @query(read: true, aggregate: false) @mutation(ope
     hash: String! @unique
     has_winreg: WinRegKey @relationship(type: "HAS_WINREG", direction: OUT)
     has_symbol: [Symbol!]! @relationship(type: "HAS_SYMBOL", direction: OUT, properties: "HasNameRel")
-    has_struct: [WinStruct!]! @relationship(type: "HAS_STRUCT", direction: OUT, properties: "HasNameRel")
+    has_struct: [Struct!]! @relationship(type: "HAS_STRUCT", direction: OUT, properties: "HasNameRel")
 }
 
 type HasFilenameRel @relationshipProperties {
@@ -117,31 +117,31 @@ type Symbol implements Hashable @mutation(operations: []) @limit(default: 5000, 
     blob: Blob! @relationship(type: "HAS_SYMBOL", direction: IN, properties: "HasNameRel")
 }
 
-type WinStruct implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
+type Struct implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     size: Int!
     kind: String!
-    fields: [WinStructField!]!
+    fields: [StructField!]!
         @relationship(type: "HAS_FIELD", direction: OUT, properties: "HasNameRel")
     blob: Blob! @relationship(type: "HAS_STRUCT", direction: IN, properties: "HasNameRel")
 }
 
-type WinStructField implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
+type StructField implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     offset: Int!
     data_type: JSON!
-    # type: WinDataType! @relationship(type: "HAS_DATA_TYPE", direction: OUT)
-    struct: WinStruct! @relationship(type: "HAS_FIELD", direction: IN, properties: "HasNameRel")
+    # type: DataType! @relationship(type: "HAS_DATA_TYPE", direction: OUT)
+    struct: Struct! @relationship(type: "HAS_FIELD", direction: IN, properties: "HasNameRel")
 }
 
-type WinDataType implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
+type DataType implements Hashable @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
     type: String!
     name: String
     array_counter: Int
     bit_position: Int
     bit_length: Int
-    has_data_type: WinDataType @relationship(type: "HAS_DATA_TYPE", direction: OUT)
+    has_data_type: DataType @relationship(type: "HAS_DATA_TYPE", direction: OUT)
 }
 
 # custom types not part of Data model
@@ -175,22 +175,23 @@ type SymbolFetchResult @query(read: false, aggregate: false) @mutation(operation
     address: String!
 }
 
-type WinStructFieldFetchResult @query(read: false, aggregate: false) @mutation(operations: []) {
+type StructFieldFetchResult @query(read: false, aggregate: false) @mutation(operations: []) {
     name: String!
     offset: Int!
     data_type: JSON!
 }
 
-type WinStructFetchResult @query(read: false, aggregate: false) @mutation(operations: []) {
+type StructFetchResult @query(read: false, aggregate: false) @mutation(operations: []) {
     name: String!
     size: Int!
     kind: String!
-    fields: [WinStructFieldFetchResult!]!
+    fields: [StructFieldFetchResult!]!
 }
 
 input DiffNodesOptions {
     limit: Int
     offset: Int
+    status_filter: [DiffStatus!]
 }
 
 input CommitRange {
@@ -225,7 +226,7 @@ type Query {
     # fetch symbols
     fetchSymbols(blob_hash: String!, options: SymbolOptions): [SymbolFetchResult!]!
     # fetch structs
-    fetchStructs(blob_hash: String!, options: WinStructOptions): [WinStructFetchResult!]!
+    fetchStructs(blob_hash: String!, options: StructOptions): [StructFetchResult!]!
 }
 
 # custom Subscriptions
