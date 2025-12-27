@@ -379,8 +379,10 @@ const structColumns = computed(() => {
           <div class="pagination-container">
             <span class="total-count">
               <template v-if="mode === 'comparison'">
-                Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }}
-                ({{ symbols.length }} symbols, {{ totalSymbols }} total)
+                Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }} ({{
+                  symbols.length
+                }}
+                symbols, {{ totalSymbols }} total)
               </template>
               <template v-else>
                 {{ symbols.length }} / {{ totalSymbols }} symbols

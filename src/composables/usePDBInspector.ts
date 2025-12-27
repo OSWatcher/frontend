@@ -392,31 +392,7 @@ export function usePDBInspector(
   // Field-Level Diff (Comparison Mode)
   // ============================================
 
-  async function fetchStructFieldDiffWithHashes(
-    baseStructHash: string,
-    diffeeStructHash: string
-  ): Promise<StructFieldDiffEntry[]> {
-    try {
-      const response = await gqlClient.query({
-        query: DIFF_NODES,
-        variables: {
-          parentLabel: 'Struct',
-          baseNodeHash: baseStructHash,
-          diffeeNodeHash: diffeeStructHash,
-          atPath: '/',
-          maxDepth: 0,
-          filter: ['StructField']
-        }
-      })
-
-      return parseFieldDiffEntries(response.data?.diffNodesAt?.items || [])
-    } catch (err) {
-      console.error('Error fetching struct field diff:', err)
-      return []
-    }
-  }
-
-  async function fetchStructFieldDiffWithPath(structName: string): Promise<StructFieldDiffEntry[]> {
+  async function fetchStructFieldDiff(structName: string): Promise<StructFieldDiffEntry[]> {
     if (!pdbContextDiff.value) {
       return []
     }
@@ -430,13 +406,16 @@ export function usePDBInspector(
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: `/${structName}`,
           maxDepth: 0,
-          filter: ['StructField']
+          filter: ['StructField'],
+          options: {
+            status_filter: ['NEW', 'MOD', 'DEL', 'UNCHANGED']
+          }
         }
       })
 
       return parseFieldDiffEntries(response.data?.diffNodesAt?.items || [])
     } catch (err) {
-      console.error('Error fetching struct field diff with path:', err)
+      console.error('Error fetching struct field diff:', err)
       return []
     }
   }
@@ -471,22 +450,7 @@ export function usePDBInspector(
 
       // Fetch field-level data in comparison mode
       if (mode === 'comparison' && !computedFieldDiffs.value.has(structName)) {
-        const structEntry = (structs.value as StructDiffEntry[]).find((s) => s.name === structName)
-        if (!structEntry) return
-
-        let fieldDiff: StructFieldDiffEntry[] = []
-
-        // For MOD structs with both hashes, use struct hashes directly
-        if (structEntry.status === 'MOD' && structEntry.baseHash && structEntry.diffeeHash) {
-          fieldDiff = await fetchStructFieldDiffWithHashes(
-            structEntry.baseHash,
-            structEntry.diffeeHash
-          )
-        } else {
-          // For NEW/DEL structs, use path navigation from Blob level
-          fieldDiff = await fetchStructFieldDiffWithPath(structName)
-        }
-
+        const fieldDiff = await fetchStructFieldDiff(structName)
         computedFieldDiffs.value.set(structName, fieldDiff)
       }
     }
