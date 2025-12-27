@@ -6,6 +6,7 @@ import {
   NDataTable,
   NSpin,
   NAlert,
+  NPagination,
   type DataTableColumns
 } from 'naive-ui'
 import { usePDBInspector } from '@/composables/usePDBInspector'
@@ -33,6 +34,10 @@ const {
   hasMoreSymbols,
   isLoadingMoreSymbols,
   handleSymbolsScroll,
+  symbolsCurrentPage,
+  symbolsPageSize,
+  totalSymbolPages,
+  handleSymbolsPageChange,
   structs,
   totalStructs,
   expandedStructNames,
@@ -339,6 +344,16 @@ const structColumns = computed(() => {
       <!-- Sub-tabs: Symbols and Structs -->
       <NTabs v-model:value="activeSubTab" type="line" animated>
         <NTabPane name="symbols" tab="Symbols">
+          <!-- Top pagination (comparison mode only) -->
+          <div v-if="mode === 'comparison'" class="pagination-top">
+            <NPagination
+              :page="symbolsCurrentPage"
+              :page-count="totalSymbolPages"
+              :page-size="symbolsPageSize"
+              :on-update:page="handleSymbolsPageChange"
+            />
+          </div>
+
           <!-- Symbols Table -->
           <div class="table-container">
             <NDataTable
@@ -360,14 +375,28 @@ const structColumns = computed(() => {
             </div>
           </div>
 
-          <!-- Total count display (no pagination) -->
+          <!-- Summary info -->
           <div class="pagination-container">
             <span class="total-count">
-              {{ symbols.length }} / {{ totalSymbols }} symbols
-              <template v-if="mode === 'single' && hasMoreSymbols">
-                (scroll for more)
+              <template v-if="mode === 'comparison'">
+                Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }}
+                ({{ symbols.length }} symbols, {{ totalSymbols }} total)
+              </template>
+              <template v-else>
+                {{ symbols.length }} / {{ totalSymbols }} symbols
+                <template v-if="hasMoreSymbols">(scroll for more)</template>
               </template>
             </span>
+          </div>
+
+          <!-- Bottom pagination (comparison mode only) -->
+          <div v-if="mode === 'comparison'" class="pagination-bottom">
+            <NPagination
+              :page="symbolsCurrentPage"
+              :page-count="totalSymbolPages"
+              :page-size="symbolsPageSize"
+              :on-update:page="handleSymbolsPageChange"
+            />
           </div>
         </NTabPane>
 
@@ -452,6 +481,22 @@ const structColumns = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
+}
+
+.pagination-top {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.pagination-bottom {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px 0;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
 .total-count {
