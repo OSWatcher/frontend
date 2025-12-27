@@ -499,42 +499,20 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           </NBreadcrumbItem>
         </NBreadcrumb>
 
-        <div class="header-actions">
-          <!-- Filter input (from master - always visible) -->
-          <div class="filter-controls">
-            <NInput
-              ref="filterInputRef"
-              v-model:value="searchQuery"
-              placeholder="Filter by name..."
-              clearable
-              size="small"
-              style="width: 220px"
-            >
-              <template #prefix>
-                <NIcon :size="16"><SearchOutline /></NIcon>
-              </template>
-              <template #suffix>
-                <span v-if="!searchQuery" class="shortcut-hint">/</span>
-              </template>
-            </NInput>
-            <span v-if="searchQuery" class="filter-count">
-              {{ filteredEntries.length }} of {{ totalCount }}
-            </span>
-          </div>
+        <!-- Filter and Export buttons (only in comparison mode) -->
+        <div v-if="mode === 'comparison'" class="header-actions">
+          <!-- Status Filter Buttons -->
+          <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
 
-          <!-- DiffStatusFilter and Export (from dev - only in comparison mode) -->
-          <template v-if="mode === 'comparison'">
-            <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
-
-            <NDropdown :options="exportOptions" trigger="click">
-              <NButton size="small" :loading="isExporting">
-                <template #icon
-                  ><NIcon><DownloadOutline /></NIcon
-                ></template>
-                Export
-              </NButton>
-            </NDropdown>
-          </template>
+          <!-- Export Dropdown -->
+          <NDropdown :options="exportOptions" trigger="click">
+            <NButton size="small" :loading="isExporting">
+              <template #icon
+                ><NIcon><DownloadOutline /></NIcon
+              ></template>
+              Export
+            </NButton>
+          </NDropdown>
         </div>
       </div>
 
