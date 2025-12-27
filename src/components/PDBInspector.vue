@@ -78,9 +78,20 @@ const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() =
     minWidth: 200
   },
   {
-    key: 'address',
-    title: 'Address',
-    width: 180
+    key: 'baseAddress',
+    title: 'Base Address',
+    width: 180,
+    render: (row) => {
+      return row.baseAddress || '-'
+    }
+  },
+  {
+    key: 'diffeeAddress',
+    title: 'New Address',
+    width: 180,
+    render: (row) => {
+      return row.diffeeAddress || '-'
+    }
   }
 ])
 
