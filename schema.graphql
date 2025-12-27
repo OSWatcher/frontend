@@ -21,6 +21,7 @@ enum DiffStatus {
     NEW
     MOD
     DEL
+    UNCHANGED
 }
 
 enum CommitHistoryDirection {
