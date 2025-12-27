@@ -13,6 +13,7 @@ import { usePDBInspector } from '@/composables/usePDBInspector'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
 import { formatOffset, formatSize } from '@/utils/pdb'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -44,7 +45,11 @@ const {
   hasMoreStructs,
   isLoadingMoreStructs,
   handleStructsScroll,
-  toggleStructExpansion
+  toggleStructExpansion,
+  symbolsStatusFilter,
+  setSymbolsStatusFilter,
+  structsStatusFilter,
+  setStructsStatusFilter
 } = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
 
 // ============================================
@@ -344,6 +349,14 @@ const structColumns = computed(() => {
       <!-- Sub-tabs: Symbols and Structs -->
       <NTabs v-model:value="activeSubTab" type="line" animated>
         <NTabPane name="symbols" tab="Symbols">
+          <!-- Filter buttons (comparison mode only) -->
+          <div v-if="mode === 'comparison'" class="filter-container">
+            <DiffStatusFilter
+              v-model="symbolsStatusFilter"
+              @update:model-value="setSymbolsStatusFilter"
+            />
+          </div>
+
           <!-- Top pagination (comparison mode only) -->
           <div v-if="mode === 'comparison'" class="pagination-top">
             <NPagination
@@ -403,6 +416,14 @@ const structColumns = computed(() => {
         </NTabPane>
 
         <NTabPane name="structs" tab="Structs">
+          <!-- Filter buttons (comparison mode only) -->
+          <div v-if="mode === 'comparison'" class="filter-container">
+            <DiffStatusFilter
+              v-model="structsStatusFilter"
+              @update:model-value="setStructsStatusFilter"
+            />
+          </div>
+
           <!-- Structs Table -->
           <div class="table-container">
             <NDataTable
@@ -483,6 +504,14 @@ const structColumns = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
+}
+
+.filter-container {
+  display: flex;
+  justify-content: flex-start;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .pagination-top {
