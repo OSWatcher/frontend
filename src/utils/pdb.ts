@@ -246,7 +246,7 @@ export function parseFieldDiffEntries(
     } | null
   }>
 ): StructFieldDiffEntry[] {
-  return rawDiffItems.map((item) => {
+  const entries = rawDiffItems.map((item) => {
     const oldOffset = item.old_props?.properties?.offset
     const newOffset = item.new_props?.properties?.offset
     const oldDataType = item.old_props?.properties?.data_type
@@ -262,7 +262,7 @@ export function parseFieldDiffEntries(
 
     return {
       name: item.path,
-      status: item.status as 'NEW' | 'MOD' | 'DEL',
+      status: item.status as 'NEW' | 'MOD' | 'DEL' | 'UNCHANGED',
       offset: displayOffset,
       dataType: displayDataType,
       baseOffset: oldOffset,
@@ -271,6 +271,9 @@ export function parseFieldDiffEntries(
       diffeeDataType
     }
   })
+
+  // Sort by offset (smallest to highest)
+  return entries.sort((a, b) => a.offset - b.offset)
 }
 
 /**
