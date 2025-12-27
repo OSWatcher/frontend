@@ -130,7 +130,7 @@ export function useFilesystemInspector(
   ): Promise<any[]> {
     try {
       // Build options with optional status filter
-      const options: any = {}
+      const options: any = { offset: 0, limit: 1000 }
       if (statusFilter.value.length > 0) {
         options.status_filter = statusFilter.value
       }
