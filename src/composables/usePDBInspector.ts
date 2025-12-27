@@ -71,6 +71,10 @@ export function usePDBInspector(
   const hasMoreStructs = ref(true)
   const isLoadingMoreStructs = ref(false)
 
+  // Pagination state for comparison mode - Symbols only
+  const symbolsCurrentPage = ref(1)
+  const symbolsPageSize = 1000
+
   // Struct fields for comparison mode (cached for field-level diffs)
   const computedFieldDiffs = ref<Map<string, StructFieldDiffEntry[]>>(new Map()) // Cache computed field diffs
 
@@ -100,6 +104,9 @@ export function usePDBInspector(
       }))
     }
   })
+
+  // Computed page count for symbols pagination (comparison mode)
+  const totalSymbolPages = computed(() => Math.ceil(totalSymbols.value / symbolsPageSize))
 
   // ============================================
   // Data Fetching - Single Mode
@@ -157,6 +164,9 @@ export function usePDBInspector(
     error.value = null
 
     try {
+      // Calculate offset for pagination
+      const offset = (symbolsCurrentPage.value - 1) * symbolsPageSize
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -165,8 +175,8 @@ export function usePDBInspector(
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
           maxDepth: 0, // Only immediate children (symbols are direct children of Blob)
-          filter: ['Symbol']
-          // NO OPTIONS - fetch all diffs at once
+          filter: ['Symbol'],
+          options: { offset, limit: symbolsPageSize }
         }
       })
 
@@ -233,6 +243,13 @@ export function usePDBInspector(
     // Load more when scrolled past 80%
     if (scrollPercentage > 0.8) {
       loadMoreSymbols()
+    }
+  }
+
+  function handleSymbolsPageChange(page: number): void {
+    if (mode === 'comparison') {
+      symbolsCurrentPage.value = page
+      fetchSymbols()
     }
   }
 
@@ -551,6 +568,11 @@ export function usePDBInspector(
     hasMoreSymbols,
     isLoadingMoreSymbols,
 
+    // Symbols pagination (comparison mode)
+    symbolsCurrentPage,
+    symbolsPageSize,
+    totalSymbolPages,
+
     // Structs
     structs,
     totalStructs,
@@ -563,6 +585,7 @@ export function usePDBInspector(
     // Methods
     fetchSymbols,
     handleSymbolsScroll,
+    handleSymbolsPageChange,
     fetchStructs,
     handleStructsScroll,
     toggleStructExpansion
