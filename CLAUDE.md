@@ -62,9 +62,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Component Architecture
 - **Inspector Components**: Unified architecture for both single and comparison modes
-  - `FilesystemInspector` - Handles filesystem exploration with mode-aware columns
-  - `RegistryInspector` - Windows Registry data viewing
+  - `FilesystemInspector` - Handles filesystem exploration with mode-aware columns and diff status filtering
+  - `RegistryInspector` - Windows Registry data viewing with diff status filtering
   - `InspectorHeader` - Mode switching and layout controls
+  - `DiffStatusFilter` - Reusable component for filtering diff entries by status (NEW/MOD/DEL) with 1-second debounce
 - **Graph Visualization**: D3.js-based commit graph with interactive features
 - **Authentication UI**: Login/logout components integrated in App header
 - Naive UI components for consistent design (NDataTable, NButton, NModal, etc.)
