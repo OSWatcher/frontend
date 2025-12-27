@@ -56,6 +56,26 @@ const {
 // Symbol Columns
 // ============================================
 
+function calculateAddressDelta(baseAddr: string | undefined, diffeeAddr: string | undefined) {
+  if (!baseAddr || !diffeeAddr) return null
+
+  // Parse hex addresses (format: "0x...")
+  const base = parseInt(baseAddr, 16)
+  const diffee = parseInt(diffeeAddr, 16)
+  const delta = diffee - base
+
+  if (delta === 0) return { value: 0, formatted: '-', color: '#666' }
+
+  const sign = delta > 0 ? '' : '-'
+  const hexDelta = Math.abs(delta).toString(16).toUpperCase()
+
+  return {
+    value: delta,
+    formatted: `${sign}0x${hexDelta}`,
+    color: delta > 0 ? '#16a34a' : '#dc2626' // green-600 : red-600
+  }
+}
+
 const symbolColumnsSingle = computed<DataTableColumns<SymbolEntry>>(() => [
   {
     key: 'name',
@@ -91,6 +111,23 @@ const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() =
     width: 180,
     render: (row) => {
       return row.diffeeAddress || '-'
+    }
+  },
+  {
+    key: 'delta',
+    title: 'Δ Address',
+    width: 140,
+    render: (row) => {
+      const delta = calculateAddressDelta(row.baseAddress, row.diffeeAddress)
+      if (!delta) return '-'
+
+      return h(
+        'span',
+        {
+          style: { color: delta.color, fontWeight: '600' }
+        },
+        delta.formatted
+      )
     }
   }
 ])
