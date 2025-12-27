@@ -6,7 +6,6 @@ import {
   NBreadcrumbItem,
   NIcon,
   NButton,
-  NButtonGroup,
   NDropdown,
   NSpin,
   NAlert,
@@ -25,7 +24,6 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType } from '@/types'
-import { DiffStatus } from '@/graphql-types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
