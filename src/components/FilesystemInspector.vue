@@ -6,6 +6,7 @@ import {
   NBreadcrumbItem,
   NIcon,
   NButton,
+  NButtonGroup,
   NDropdown,
   NSpin,
   NAlert,
@@ -24,10 +25,12 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType } from '@/types'
+import { DiffStatus } from '@/graphql-types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -39,16 +42,25 @@ const props = defineProps({
   highlightFile: { type: String, default: '' }
 })
 
-const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile, currentPath } =
-  useFilesystemInspector(
-    props.mode,
-    props.layout,
-    props.commit,
-    props.baseCommit,
-    props.diffeeCommit,
-    props.targetDirectory,
-    props.highlightFile
-  )
+const {
+  entries,
+  breadcrumbs,
+  isLoading,
+  error,
+  navigateToPath,
+  highlightedFile,
+  currentPath,
+  statusFilter,
+  setStatusFilter
+} = useFilesystemInspector(
+  props.mode,
+  props.layout,
+  props.commit,
+  props.baseCommit,
+  props.diffeeCommit,
+  props.targetDirectory,
+  props.highlightFile
+)
 
 // Authentication for full export and blob downloads
 const { isAuthenticated, getAccessTokenSilently } = useAuth0()
@@ -404,8 +416,12 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         </NBreadcrumbItem>
       </NBreadcrumb>
 
-      <!-- Export button with dropdown (only in comparison mode) -->
-      <div v-if="mode === 'comparison'" class="export-buttons">
+      <!-- Filter and Export buttons (only in comparison mode) -->
+      <div v-if="mode === 'comparison'" class="header-actions">
+        <!-- Status Filter Buttons -->
+        <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
+
+        <!-- Export Dropdown -->
         <NDropdown :options="exportOptions" trigger="click">
           <NButton size="small" :loading="isExporting">
             <template #icon
@@ -497,7 +513,10 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   flex: 1;
 }
 
-.export-buttons {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 
