@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseSymbolEntries,
   parseSymbolDiffEntries,
+  parseFieldDiffEntries,
   formatAddress,
   formatOffset,
   formatSize,
@@ -707,6 +708,200 @@ describe('pdb utils', () => {
       expect(sorted[0].name).toBe('_Apple')
       expect(sorted[1].name).toBe('_banana')
       expect(sorted[2].name).toBe('_zebra')
+    })
+  })
+
+  describe('parseFieldDiffEntries', () => {
+    it('should parse UNCHANGED field with same offsets', () => {
+      const input = [
+        {
+          path: 'AdjustCounter',
+          status: 'UNCHANGED',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 382 }
+          },
+          new_props: {
+            hash: '...',
+            properties: { offset: 382 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('AdjustCounter')
+      expect(result[0].status).toBe('UNCHANGED')
+      expect(result[0].offset).toBe(382)
+      expect(result[0].baseOffset).toBe(382)
+      expect(result[0].diffeeOffset).toBe(382)
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should parse NEW field with only new_props', () => {
+      const input = [
+        {
+          path: 'BreakMakePte',
+          status: 'NEW',
+          type: 'StructField',
+          old_props: null,
+          new_props: {
+            hash: '...',
+            properties: { offset: 424 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('BreakMakePte')
+      expect(result[0].status).toBe('NEW')
+      expect(result[0].offset).toBe(424)
+      expect(result[0].diffeeOffset).toBe(424)
+      expect(result[0].baseOffset).toBeUndefined()
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].diffeeDataType).toBeUndefined()
+      expect(result[0].baseDataType).toBeUndefined()
+    })
+
+    it('should parse MOD field with different offsets', () => {
+      const input = [
+        {
+          path: 'NumberOfUltraMdlMaps',
+          status: 'MOD',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 488 }
+          },
+          new_props: {
+            hash: '...',
+            properties: { offset: 496 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('NumberOfUltraMdlMaps')
+      expect(result[0].status).toBe('MOD')
+      expect(result[0].offset).toBe(496) // Display offset should be diffee
+      expect(result[0].baseOffset).toBe(488)
+      expect(result[0].diffeeOffset).toBe(496)
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should parse DEL field with only old_props', () => {
+      const input = [
+        {
+          path: 'DeletedField',
+          status: 'DEL',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 100 }
+          },
+          new_props: null
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('DeletedField')
+      expect(result[0].status).toBe('DEL')
+      expect(result[0].offset).toBe(100)
+      expect(result[0].baseOffset).toBe(100)
+      expect(result[0].diffeeOffset).toBeUndefined()
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should sort fields by offset (smallest to largest)', () => {
+      const input = [
+        {
+          path: 'field3',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 200 } },
+          new_props: { properties: { offset: 200 } }
+        },
+        {
+          path: 'field1',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 0 } },
+          new_props: { properties: { offset: 0 } }
+        },
+        {
+          path: 'field2',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 100 } },
+          new_props: { properties: { offset: 100 } }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result.map((f) => f.name)).toEqual(['field1', 'field2', 'field3'])
+    })
+
+    it('should handle mixed field statuses from real GraphQL response', () => {
+      // Use the actual _MI_SYSTEM_PTE_STATE sample the user provided
+      const input = [
+        {
+          path: 'MdlTrackerLookaside',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 0 } },
+          new_props: { properties: { offset: 0 } }
+        },
+        {
+          path: 'BreakMakePte',
+          status: 'NEW',
+          old_props: null,
+          new_props: { properties: { offset: 424 } }
+        },
+        {
+          path: 'NumberOfUltraMdlMaps',
+          status: 'MOD',
+          old_props: { properties: { offset: 488 } },
+          new_props: { properties: { offset: 496 } }
+        },
+        {
+          path: 'UltraSpaceContext',
+          status: 'MOD',
+          old_props: { properties: { offset: 424 } },
+          new_props: { properties: { offset: 432 } }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      // Verify correct parsing of all statuses
+      expect(result.find((f) => f.name === 'MdlTrackerLookaside')).toMatchObject({
+        status: 'UNCHANGED',
+        baseOffset: 0,
+        diffeeOffset: 0
+      })
+
+      expect(result.find((f) => f.name === 'BreakMakePte')).toMatchObject({
+        status: 'NEW',
+        diffeeOffset: 424
+      })
+      expect(result.find((f) => f.name === 'BreakMakePte')?.baseOffset).toBeUndefined()
+
+      expect(result.find((f) => f.name === 'NumberOfUltraMdlMaps')).toMatchObject({
+        status: 'MOD',
+        baseOffset: 488,
+        diffeeOffset: 496
+      })
     })
   })
 })
