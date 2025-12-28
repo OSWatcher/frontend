@@ -28,40 +28,37 @@ This document provides a complete technical reference for the OSWatcher Frontend
 src/
 ├── views/                   # Main application views
 │   ├── HomeView.vue        # Commit history view
-│   ├── OSView.vue          # OS exploration view (multi-tab)
-│   └── DiffView.vue        # Commit comparison view
+│   ├── InspectorView.vue   # Unified inspector (single/comparison modes)
+│   └── CallbackView.vue    # Auth0 callback handler
 ├── components/             # Reusable components
-│   ├── CommitsTable.vue    # Commit history table
-│   ├── FilesystemTree.vue  # Filesystem tree explorer
-│   ├── RegistryTree.vue    # Windows Registry explorer
-│   ├── PDBExplorer.vue     # PDB symbol explorer
-│   ├── TreeExplorer.vue    # Generic tree component
-│   ├── diff/               # Diff-specific components
-│   │   ├── FilesystemTreeDiff.vue
-│   │   ├── RegistryTreeDiff.vue
-│   │   ├── PDBExplorerDiff.vue
-│   │   ├── TreeDiffExplorer.vue
-│   │   ├── PropertyDiffDisplay.vue
-│   │   └── pdb/
-│   │       └── SymbolDiffView.vue
-│   └── pdb/                # PDB-specific components
-│       ├── StructView.vue
-│       └── SymbolView.vue
+│   ├── FilesystemInspector.vue  # Filesystem inspector (single/comparison)
+│   ├── RegistryInspector.vue    # Registry inspector (single/comparison)
+│   ├── PDBInspector.vue         # PDB inspector (single/comparison)
+│   ├── InspectorHeader.vue      # Mode switcher and layout controls
+│   ├── DiffStatusFilter.vue     # Diff status filtering component
+│   ├── MonacoStructDiff.vue     # Monaco diff editor for C structs
+│   └── CommitGraph.vue          # D3.js commit visualization
+├── utils/                  # Utility functions
+│   ├── pdb.ts              # PDB data parsing and formatting
+│   ├── structFormatter.ts  # C struct text generation
+│   └── __tests__/          # Unit tests
+│       ├── pdb.test.ts
+│       ├── structFormatter.test.ts
+│       └── structDiff.integration.test.ts
+├── types/                  # TypeScript type definitions
+│   ├── inspector.ts        # Inspector mode types
+│   └── pdb.ts              # PDB-related types
 ├── router/                 # Vue Router configuration
 │   └── index.ts
-├── plugins/                # Vue plugins
-│   └── posthog.ts          # Analytics configuration
-├── windows/                # Windows-specific utilities
-│   └── registry.ts         # Registry helper functions
+├── stores/                 # Pinia state stores
+│   └── auth.ts             # Authentication state
+├── monaco-setup.ts         # Monaco Editor configuration
 ├── main.ts                 # Application entry point
 ├── App.vue                 # Root component
 ├── queries.ts              # GraphQL queries
 ├── graphql-client.ts       # Apollo Client configuration
 ├── graphql-types.ts        # Generated GraphQL types
-├── types.ts                # Custom TypeScript types
-├── utils.ts                # Utility functions
-├── download.ts             # File download utilities
-└── shims-vue.d.ts          # Vue type declarations
+└── download.ts             # File download utilities
 ```
 
 ## Core Application Architecture
@@ -71,9 +68,11 @@ src/
 - **Frontend Framework**: Vue 3 with Composition API
 - **Language**: TypeScript for type safety
 - **Build Tool**: Vite for fast development and building
-- **UI Framework**: Bootstrap Vue Next with Bootstrap 5
+- **UI Framework**: Naive UI component library
+- **Code Editor**: Monaco Editor for side-by-side diff visualization
 - **GraphQL Client**: Apollo Client for API communication
 - **Router**: Vue Router 4 for navigation
+- **Testing**: Vitest for unit and integration testing
 - **Analytics**: PostHog for user tracking (production only)
 
 ### Design Patterns
@@ -302,23 +301,57 @@ Frontend Display:
 
 ## Component Architecture
 
-### 1. Tree Components Hierarchy
+### 1. Inspector Components (Unified Architecture)
+
+The inspector architecture supports both single-commit and comparison modes:
 
 ```
-TreeExplorer (Generic)
-├── FilesystemTree (Specialized)
-├── RegistryTree (Specialized)
-└── PDBExplorer (Specialized)
+InspectorView (View)
+├── InspectorHeader (Mode switcher, layout controls)
+└── Inspector Components (Mode-aware)
+    ├── FilesystemInspector
+    ├── RegistryInspector
+    └── PDBInspector
+        ├── DiffStatusFilter (Comparison mode only)
+        └── MonacoStructDiff (Struct visualization)
 ```
 
-### 2. Diff Components Hierarchy
+**Key Features:**
+- **Mode-Aware Rendering**: Components adapt columns/UI based on mode (single/comparison)
+- **Diff Status Filtering**: Filter entries by NEW/MOD/DEL/UNCHANGED status
+- **Monaco Struct Diff**: Side-by-side C struct visualization for PDB comparisons
+
+### 2. Monaco Struct Diff Component
+
+**Component:** `MonacoStructDiff.vue`
+
+Displays side-by-side Monaco Editor diff for comparing C struct definitions:
 
 ```
-TreeDiffExplorer (Generic)
-├── FilesystemTreeDiff (Specialized)
-├── RegistryTreeDiff (Specialized)
-└── PDBExplorerDiff (Specialized)
-    └── SymbolDiffView (Specialized)
+MonacoStructDiff
+├── Inputs: StructDiffEntry (with fields loaded)
+├── Processing: generateStructText() for base and diffee versions
+├── Display: Monaco Diff Editor (side-by-side)
+└── Features:
+    ├── Dynamic height calculation based on line count
+    ├── Memoized performance optimizations
+    ├── Version-specific struct generation
+    └── Meaningful placeholders for NEW/DEL structs
+```
+
+**Data Flow:**
+```
+GraphQL DiffItem (fields: StructFieldDiffEntry[])
+    ↓
+parseFieldDiffEntries() [src/utils/pdb.ts]
+    ↓
+StructFieldDiffEntry[] (baseOffset, diffeeOffset, status)
+    ↓
+generateStructText() [src/utils/structFormatter.ts]
+    ↓ (version: 'base' | 'diffee')
+C Struct Text (typedef struct { ... })
+    ↓
+Monaco Diff Editor (originalCode vs modifiedCode)
 ```
 
 ### 3. Component Communication
@@ -327,6 +360,56 @@ TreeDiffExplorer (Generic)
 - **Events**: Child to parent communication
 - **Vue Router**: Cross-component navigation
 - **Apollo Cache**: Shared state management
+- **Computed Properties**: Reactive data transformations
+
+## Utilities Architecture
+
+### 1. Struct Formatter Utility
+
+**File:** `src/utils/structFormatter.ts`
+
+Generates formatted C struct definitions from field diff entries for Monaco display.
+
+**Core Function:** `generateStructText()`
+
+```typescript
+function generateStructText(
+  structName: string,
+  structSize: number,
+  fields: StructFieldDiffEntry[],
+  version: 'base' | 'diffee'
+): string
+```
+
+**Features:**
+- **Version-Specific Rendering**: Uses baseOffset for 'base', diffeeOffset for 'diffee'
+- **Field Filtering**: Excludes NEW fields from base, DEL fields from diffee
+- **Struct Name Handling**: Avoids double underscores in typedef
+- **Input Validation**: Validates struct size is non-negative
+- **Hex Formatting**: Properly formats offsets with leading zeros
+
+**Output Format:**
+```c
+typedef struct _STRUCT_NAME {
+    /* 0x0000 */ unsigned long field1;
+    /* 0x0008 */ void* field2;
+} STRUCT_NAME; /* size: 0x10 */
+```
+
+**Test Coverage:**
+- Unit tests: `src/utils/__tests__/structFormatter.test.ts`
+- Integration tests: `src/utils/__tests__/structDiff.integration.test.ts`
+- Edge cases: Empty fields, large offsets, undefined offsets, negative sizes
+
+### 2. PDB Utilities
+
+**File:** `src/utils/pdb.ts`
+
+Parsing and formatting utilities for PDB data:
+
+- `parseFieldDiffEntries()`: Transforms GraphQL DiffItem to StructFieldDiffEntry
+- `formatOffset()`: Formats byte offsets as hex strings
+- `formatSize()`: Formats struct sizes as hex strings
 
 ## State Management
 
