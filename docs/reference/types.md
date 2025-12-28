@@ -238,6 +238,139 @@ export enum DiffStatus {
 }
 ```
 
+## PDB Inspector Types
+
+### Symbol Types
+
+#### `SymbolEntry`
+**File:** `src/types/pdb.ts`
+
+Represents a symbol entry from PDB files.
+
+```typescript
+export interface SymbolEntry {
+  name: string
+  address: string  // Formatted as 0x... hex string
+  hash?: string    // For future diff tracking
+}
+```
+
+#### `SymbolDiffEntry`
+**File:** `src/types/pdb.ts`
+
+Extends SymbolEntry with diff comparison data.
+
+```typescript
+export interface SymbolDiffEntry extends SymbolEntry {
+  status: DiffStatus
+  baseAddress?: string    // Address in base commit (undefined if NEW)
+  diffeeAddress?: string  // Address in diffee commit (undefined if DEL)
+}
+```
+
+### Struct Types
+
+#### `StructEntry`
+**File:** `src/types/pdb.ts`
+
+Represents a top-level struct entry from PDB files.
+
+```typescript
+export interface StructEntry {
+  name: string
+  size: number
+  kind: string  // "struct", "union", etc.
+  hash?: string
+  fields?: StructFieldEntry[]  // Populated when expanded
+}
+```
+
+#### `StructFieldEntry`
+**File:** `src/types/pdb.ts`
+
+Represents a field within a struct.
+
+```typescript
+export interface StructFieldEntry {
+  name: string
+  offset: number
+  dataType: string     // Formatted C-style type string
+  dataTypeRaw?: any    // Original JSON for debugging/tooltips
+}
+```
+
+#### `StructFieldDiffEntry`
+**File:** `src/types/pdb.ts`
+
+Represents a struct field in comparison/diff mode with version-specific data.
+
+```typescript
+export interface StructFieldDiffEntry {
+  name: string
+  status: FieldDiffStatus        // NEW, MOD, DEL, or UNCHANGED
+  offset: number                 // Display offset (diffee if exists, else base)
+  dataType: string               // Display type (diffee if exists, else base)
+  baseOffset?: number            // Offset in base (undefined if NEW)
+  diffeeOffset?: number          // Offset in diffee (undefined if DEL)
+  baseDataType?: string          // Type in base (undefined if NEW)
+  diffeeDataType?: string        // Type in diffee (undefined if DEL)
+}
+```
+
+**Usage:**
+This type is central to the Monaco struct diff feature. The `baseOffset`/`diffeeOffset` and `baseDataType`/`diffeeDataType` fields allow generating version-specific C struct definitions for side-by-side comparison.
+
+**Example:**
+```typescript
+const modifiedField: StructFieldDiffEntry = {
+  name: 'NumberOfUltraMdlMaps',
+  status: 'MOD',
+  offset: 496,              // Display: diffee offset
+  dataType: 'unsigned long',
+  baseOffset: 488,          // Base version: offset 0x1E8
+  diffeeOffset: 496,        // Diffee version: offset 0x1F0
+  baseDataType: 'unsigned long',
+  diffeeDataType: 'unsigned long'
+}
+
+// Generate base version C struct
+generateStructText(structName, baseSize, fields, 'base')
+// Uses baseOffset (488) for this field
+
+// Generate diffee version C struct
+generateStructText(structName, diffeeSize, fields, 'diffee')
+// Uses diffeeOffset (496) for this field
+```
+
+#### `StructDiffEntry`
+**File:** `src/types/pdb.ts`
+
+Represents a struct entry in comparison/diff mode.
+
+```typescript
+export interface StructDiffEntry {
+  name: string
+  status: DiffStatus
+  kind: string
+  baseSize?: number              // Size in base commit (undefined if NEW)
+  diffeeSize?: number            // Size in diffee commit (undefined if DEL)
+  baseHash?: string
+  diffeeHash?: string
+  fields?: StructFieldDiffEntry[] // Field-level diffs (populated on expansion)
+}
+```
+
+#### `FieldDiffStatus`
+**File:** `src/types/pdb.ts`
+
+Extended diff status that includes UNCHANGED for struct fields.
+
+```typescript
+export type FieldDiffStatus = 'NEW' | 'MOD' | 'DEL' | 'UNCHANGED'
+```
+
+**Note:** Unlike the GraphQL `DiffStatus` enum which only includes NEW/MOD/DEL, struct field comparisons also track UNCHANGED fields to show complete struct definitions.
+
 ### Query Types
 
 All GraphQL queries have corresponding TypeScript types for variables and results:
