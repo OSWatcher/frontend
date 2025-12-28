@@ -112,6 +112,59 @@ describe('generateStructText', () => {
     expect(diffeeResult).toContain('/* 0x0008 */ unsigned long* modifiedField;')
   })
 
+  it('should handle struct names with existing underscore prefix', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'field1',
+        status: 'UNCHANGED',
+        offset: 0,
+        dataType: 'unsigned long',
+        baseOffset: 0,
+        diffeeOffset: 0,
+        baseDataType: 'unsigned long',
+        diffeeDataType: 'unsigned long'
+      }
+    ]
+
+    const result = generateStructText('_ETHREAD', 16, fields, 'base')
+
+    // Should NOT have double underscore
+    expect(result).toContain('typedef struct _ETHREAD {')
+    expect(result).not.toContain('typedef struct __ETHREAD {')
+    // Typedef name should be without underscore
+    expect(result).toContain('} ETHREAD; /* size: 0x10 */')
+  })
+
+  it('should handle struct names without underscore prefix', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'field1',
+        status: 'UNCHANGED',
+        offset: 0,
+        dataType: 'int',
+        baseOffset: 0,
+        diffeeOffset: 0,
+        baseDataType: 'int',
+        diffeeDataType: 'int'
+      }
+    ]
+
+    const result = generateStructText('MyStruct', 8, fields, 'base')
+
+    // Should add underscore to struct tag
+    expect(result).toContain('typedef struct _MyStruct {')
+    // Typedef name should be without underscore
+    expect(result).toContain('} MyStruct; /* size: 0x8 */')
+  })
+
+  it('should throw error for negative struct size', () => {
+    const fields: StructFieldDiffEntry[] = []
+
+    expect(() => generateStructText('TEST_STRUCT', -10, fields, 'base')).toThrow(
+      'Invalid struct size: -10'
+    )
+  })
+
   it('should format offsets with leading zeros', () => {
     const fields: StructFieldDiffEntry[] = [
       {
@@ -233,5 +286,127 @@ describe('generateStructText - version-specific offset handling', () => {
     // Size should be different
     expect(baseCode).toContain('size: 0x1F4') // 500
     expect(diffeeCode).toContain('size: 0x200') // 512
+  })
+})
+
+describe('generateStructText - edge cases', () => {
+  it('should handle empty fields array', () => {
+    const result = generateStructText('TEST_STRUCT', 0, [], 'base')
+
+    expect(result).toContain('typedef struct _TEST_STRUCT {')
+    expect(result).toContain('} TEST_STRUCT; /* size: 0x0 */')
+    // Should have a valid struct even with no fields
+    expect(result.split('\n')).toHaveLength(2) // Header and footer only
+  })
+
+  it('should handle zero struct size', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'field1',
+        status: 'UNCHANGED',
+        offset: 0,
+        dataType: 'void',
+        baseOffset: 0,
+        diffeeOffset: 0
+      }
+    ]
+
+    const result = generateStructText('EMPTY', 0, fields, 'base')
+
+    expect(result).toContain('size: 0x0')
+  })
+
+  it('should handle large offsets with proper hex formatting', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'largeOffsetField',
+        status: 'UNCHANGED',
+        offset: 65535, // 0xFFFF - exactly 4 hex digits
+        dataType: 'int',
+        baseOffset: 65535,
+        diffeeOffset: 65535
+      },
+      {
+        name: 'veryLargeOffsetField',
+        status: 'UNCHANGED',
+        offset: 1048576, // 0x100000 - 6 hex digits
+        dataType: 'long',
+        baseOffset: 1048576,
+        diffeeOffset: 1048576
+      }
+    ]
+
+    const result = generateStructText('LARGE', 1048580, fields, 'base')
+
+    // Should handle 4-digit hex
+    expect(result).toContain('/* 0xFFFF */ int largeOffsetField;')
+    // Should handle larger hex values (padStart only pads to minimum, doesn't truncate)
+    expect(result).toContain('/* 0x100000 */ long veryLargeOffsetField;')
+  })
+
+  it('should skip fields when offset is undefined for the requested version', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'goodField',
+        status: 'UNCHANGED',
+        offset: 0,
+        dataType: 'int',
+        baseOffset: 0,
+        diffeeOffset: 0
+      },
+      {
+        name: 'newFieldNoBaseOffset',
+        status: 'NEW',
+        offset: 4,
+        dataType: 'long',
+        diffeeOffset: 4
+        // baseOffset is undefined
+      }
+    ]
+
+    const baseResult = generateStructText('TEST', 8, fields, 'base')
+
+    // Base version should have goodField
+    expect(baseResult).toContain('goodField')
+    // Base version should skip NEW field (even though it would be skipped anyway)
+    expect(baseResult).not.toContain('newFieldNoBaseOffset')
+  })
+
+  it('should handle very large struct sizes', () => {
+    const fields: StructFieldDiffEntry[] = []
+    const hugeSize = 16777216 // 0x1000000 (16MB)
+
+    const result = generateStructText('HUGE', hugeSize, fields, 'base')
+
+    expect(result).toContain('size: 0x1000000')
+  })
+
+  it('should handle all fields being filtered out', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'newField1',
+        status: 'NEW',
+        offset: 0,
+        dataType: 'int',
+        diffeeOffset: 0
+      },
+      {
+        name: 'newField2',
+        status: 'NEW',
+        offset: 4,
+        dataType: 'long',
+        diffeeOffset: 4
+      }
+    ]
+
+    // Base version should filter out all NEW fields
+    const result = generateStructText('TEST', 8, fields, 'base')
+
+    expect(result).toContain('typedef struct _TEST {')
+    expect(result).toContain('} TEST;')
+    expect(result).not.toContain('newField1')
+    expect(result).not.toContain('newField2')
+    // Should only have header and footer
+    expect(result.split('\n')).toHaveLength(2)
   })
 })
