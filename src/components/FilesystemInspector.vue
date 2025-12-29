@@ -13,7 +13,13 @@ import {
   type DataTableColumns,
   type DropdownOption
 } from 'naive-ui'
-import { DocumentOutline, FolderOutline, DownloadOutline, HomeOutline } from '@vicons/ionicons5'
+import {
+  DocumentOutline,
+  FolderOutline,
+  DownloadOutline,
+  HomeOutline,
+  ChevronDownOutline
+} from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
 import type {
@@ -53,6 +59,18 @@ const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile,
 // Authentication for full export and blob downloads
 const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 const isExporting = ref(false)
+const downloadingHash = ref<string | null>(null)
+
+// Helper to generate download filename with commit name and hash
+function getDownloadFilename(name: string, commitName: string, hash: string): string {
+  const shortHash = hash.substring(0, 8)
+  const sanitizedCommit = commitName.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-')
+  const lastDot = name.lastIndexOf('.')
+  if (lastDot === -1) {
+    return `${name}_${sanitizedCommit}_${shortHash}`
+  }
+  return `${name.substring(0, lastDot)}_${sanitizedCommit}_${shortHash}${name.substring(lastDot)}`
+}
 
 // Export local diff (current directory only)
 async function exportLocalDiff() {
@@ -284,6 +302,92 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
         },
         row.name
       )
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 80,
+    render: (row) => {
+      if (row.type !== TreeNodeType.Blob) return null
+
+      const handleDownload = async (hash: string, commitName: string) => {
+        downloadingHash.value = hash
+        try {
+          const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
+          const filename = getDownloadFilename(row.name, commitName, hash)
+          await downloadBlob(hash, filename, tokenGetter)
+        } catch (error) {
+          console.error('Download failed:', error)
+          alert(error instanceof Error ? error.message : 'Download failed')
+        } finally {
+          downloadingHash.value = null
+        }
+      }
+
+      // For MODIFIED: show dropdown with old/new options
+      if (row.status === 'MODIFIED' && row.baseHash && row.diffeeHash) {
+        const isLoading =
+          downloadingHash.value === row.baseHash || downloadingHash.value === row.diffeeHash
+        const dropdownOptions = [
+          {
+            label: `Download old (${props.baseCommit?.name || 'base'})`,
+            key: 'old',
+            props: {
+              onClick: () => handleDownload(row.baseHash!, props.baseCommit?.name || 'old')
+            }
+          },
+          {
+            label: `Download new (${props.diffeeCommit?.name || 'new'})`,
+            key: 'new',
+            props: {
+              onClick: () => handleDownload(row.diffeeHash!, props.diffeeCommit?.name || 'new')
+            }
+          }
+        ]
+        return h(
+          NDropdown,
+          { options: dropdownOptions, trigger: 'click', disabled: isLoading },
+          {
+            default: () =>
+              h(
+                NButton,
+                { size: 'small', type: 'primary', loading: isLoading },
+                isLoading
+                  ? undefined
+                  : {
+                      default: () => [
+                        h(NIcon, { size: 18 }, () => h(DownloadOutline)),
+                        h(NIcon, { size: 14, style: { marginLeft: '2px' } }, () =>
+                          h(ChevronDownOutline)
+                        )
+                      ]
+                    }
+              )
+          }
+        )
+      }
+
+      // For NEW, DELETED, UNCHANGED: direct download
+      const hash = row.diffeeHash || row.baseHash
+      const commitName = row.diffeeHash
+        ? props.diffeeCommit?.name || 'new'
+        : props.baseCommit?.name || 'old'
+      const isLoading = downloadingHash.value === hash
+
+      return h(
+        NButton,
+        {
+          size: 'small',
+          type: 'primary',
+          loading: isLoading,
+          onClick: (e: Event) => {
+            e.stopPropagation()
+            if (!isLoading) handleDownload(hash!, commitName)
+          }
+        },
+        isLoading ? undefined : { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
+      )
+    }
   }
 ])
 
