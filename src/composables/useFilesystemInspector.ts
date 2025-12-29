@@ -132,8 +132,8 @@ export function useFilesystemInspector(
           diffeeNodeHash: diffeeTreeHash,
           atPath: path,
           maxDepth: 0,
-          filter: ['Blob'],
-          options: { offset: 0, limit: 1000 }
+          filter: ['Blob']
+          // No options - fetch all diffs at once (consistent with PDB Inspector pattern)
         }
       })
       const diffResult = response.data?.diffNodesAt

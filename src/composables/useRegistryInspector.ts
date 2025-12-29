@@ -197,8 +197,8 @@ export function useRegistryInspector(
           diffeeNodeHash: diffeeRegKeyHash,
           atPath: path,
           maxDepth: 0,
-          filter: ['WinRegValue'],
-          options: { offset: 0, limit: 1000 }
+          filter: ['WinRegValue']
+          // No options - fetch all diffs at once (consistent with PDB Inspector pattern)
         }
       })
       const diffResult = response.data?.diffNodesAt
