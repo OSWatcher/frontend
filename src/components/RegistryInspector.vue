@@ -639,6 +639,21 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   gap: 8px;
 }
 
+/* Make filter input more visible */
+.filter-controls :deep(.n-input) {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+}
+
+.filter-controls :deep(.n-input:hover) {
+  border-color: #9ca3af;
+}
+
+.filter-controls :deep(.n-input.n-input--focus) {
+  background: white;
+  border-color: #18a058;
+}
+
 .filter-count {
   font-size: 12px;
   color: #888;
