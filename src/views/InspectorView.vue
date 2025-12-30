@@ -11,13 +11,11 @@
  *
  * Query Parameters:
  * - path: Initial filesystem path to navigate to (e.g., ?path=/etc/systemd)
- * - layout: Layout mode for comparison (unified or side-by-side)
  * - branch: Branch name for breadcrumbs
  *
  * Features:
  * - Automatic mode detection from route
  * - Fetch commit details for display names
- * - Mode and layout switching
  * - Navigation between modes
  *
  * @component
@@ -30,7 +28,7 @@ import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
 import gqlClient from '@/graphql-client'
-import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
+import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
 
@@ -76,12 +74,6 @@ const diffeeCommit = ref<CommitContext | undefined>(undefined)
  * Branch name (from query params, for breadcrumbs)
  */
 const branchName = ref<string>('')
-
-/**
- * Inspector layout (unified or side-by-side)
- * Read from query params or defaults to unified
- */
-const inspectorLayout = ref<InspectorLayout>('unified')
 
 /**
  * Active tab name
@@ -223,14 +215,6 @@ async function initializeInspector() {
     // Get branch name from query params
     branchName.value = (route.query.branch as string) || ''
 
-    // Get layout from query params
-    const layoutParam = route.query.layout as string
-    if (layoutParam === 'side-by-side') {
-      inspectorLayout.value = 'side-by-side'
-    } else {
-      inspectorLayout.value = 'unified'
-    }
-
     if (inspectorMode.value === 'single') {
       // Single mode: fetch one commit
       const commitHash = route.params.commitHash as string
@@ -317,27 +301,6 @@ function handleRemoveComparison() {
   }
 }
 
-/**
- * Handle Layout Change
- *
- * User toggled between unified and side-by-side layouts.
- * Updates query params to persist layout choice.
- *
- * @param newLayout - New layout mode
- */
-function handleLayoutChange(newLayout: InspectorLayout) {
-  inspectorLayout.value = newLayout
-
-  // Update query params to persist layout
-  router.push({
-    ...route,
-    query: {
-      ...route.query,
-      layout: newLayout
-    }
-  })
-}
-
 // ===================================================================
 // LIFECYCLE
 // ===================================================================
@@ -379,7 +342,6 @@ watch(
       <!-- Header -->
       <InspectorHeader
         :mode="inspectorMode"
-        :layout="inspectorLayout"
         :commit="singleCommit"
         :base-commit="baseCommit"
         :diffee-commit="diffeeCommit"
@@ -387,7 +349,6 @@ watch(
         :active-tab="activeTab === 'filesystem' ? 'Filesystem' : 'Registry'"
         @add-comparison="handleAddComparison"
         @remove-comparison="handleRemoveComparison"
-        @layout-change="handleLayoutChange"
       />
 
       <!-- Tabs -->
@@ -405,7 +366,6 @@ watch(
             <FilesystemInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
-              :layout="inspectorLayout"
               :commit="singleCommit"
               :target-directory="targetDirectory"
               :highlight-file="highlightFile"
@@ -413,7 +373,6 @@ watch(
             <FilesystemInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
               :mode="inspectorMode"
-              :layout="inspectorLayout"
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
               :target-directory="targetDirectory"
@@ -426,13 +385,11 @@ watch(
             <RegistryInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
-              :layout="inspectorLayout"
               :commit="singleCommit"
             />
             <RegistryInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
               :mode="inspectorMode"
-              :layout="inspectorLayout"
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
             />
