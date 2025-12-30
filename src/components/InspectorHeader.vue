@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { type PropType } from 'vue'
-import { NCard, NButton, NButtonGroup, NIcon, NBreadcrumb, NBreadcrumbItem } from 'naive-ui'
+import { NCard, NButton, NIcon, NBreadcrumb, NBreadcrumbItem } from 'naive-ui'
 import {
   HomeOutline,
   GitBranchOutline,
   FileTrayFullOutline,
   FolderOutline,
   GitCompareOutline,
-  CloseOutline,
-  ReorderFourOutline,
-  GridOutline
+  CloseOutline
 } from '@vicons/ionicons5'
-import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
+import type { InspectorMode, CommitContext } from '@/types/inspector'
 
 const _props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
-  layout: { type: String as PropType<InspectorLayout>, default: 'unified' },
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
   diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
@@ -25,7 +22,6 @@ const _props = defineProps({
 
 const emit = defineEmits<{
   removeComparison: []
-  layoutChange: [layout: InspectorLayout]
 }>()
 
 function shortHash(hash: string | undefined): string {
@@ -35,10 +31,6 @@ function shortHash(hash: string | undefined): string {
 
 function handleRemoveComparison() {
   emit('removeComparison')
-}
-
-function handleLayoutChange(newLayout: InspectorLayout) {
-  emit('layoutChange', newLayout)
 }
 </script>
 
@@ -109,26 +101,6 @@ function handleLayoutChange(newLayout: InspectorLayout) {
               </NButton>
             </div>
           </NCard>
-        </div>
-        <div class="layout-toggle">
-          <NButtonGroup>
-            <NButton
-              :type="layout === 'unified' ? 'primary' : 'default'"
-              @click="handleLayoutChange('unified')"
-            >
-              <template #icon
-                ><NIcon><ReorderFourOutline /></NIcon></template
-              >Unified
-            </NButton>
-            <NButton
-              :type="layout === 'side-by-side' ? 'primary' : 'default'"
-              @click="handleLayoutChange('side-by-side')"
-            >
-              <template #icon
-                ><NIcon><GridOutline /></NIcon></template
-              >Side-by-Side
-            </NButton>
-          </NButtonGroup>
         </div>
       </div>
     </div>
@@ -208,9 +180,5 @@ function handleLayoutChange(newLayout: InspectorLayout) {
   position: absolute;
   top: -4px;
   right: -4px;
-}
-.layout-toggle {
-  display: flex;
-  justify-content: flex-end;
 }
 </style>
