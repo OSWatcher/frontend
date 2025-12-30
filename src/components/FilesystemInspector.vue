@@ -531,10 +531,13 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
             placeholder="Filter by name..."
             clearable
             size="small"
-            style="width: 200px"
+            style="width: 220px"
           >
             <template #prefix>
               <NIcon :size="16"><SearchOutline /></NIcon>
+            </template>
+            <template #suffix>
+              <span v-if="!searchQuery" class="shortcut-hint">/</span>
             </template>
           </NInput>
           <span v-if="searchQuery" class="filter-count">
@@ -672,6 +675,20 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   font-size: 12px;
   color: #888;
   white-space: nowrap;
+}
+
+/* Keyboard shortcut hint (like GitHub) */
+.shortcut-hint {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: monospace;
 }
 
 .export-buttons {
