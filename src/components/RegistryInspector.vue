@@ -9,6 +9,7 @@ import {
   NTag,
   NButton,
   NDropdown,
+  NInput,
   NSpin,
   NAlert,
   NEmpty,
@@ -17,9 +18,16 @@ import {
   type SelectOption,
   type DropdownOption
 } from 'naive-ui'
-import { DocumentOutline, HomeOutline, FolderOutline, DownloadOutline } from '@vicons/ionicons5'
+import {
+  DocumentOutline,
+  HomeOutline,
+  FolderOutline,
+  DownloadOutline,
+  SearchOutline
+} from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
+import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
 import { DiffStatus } from '@/graphql-types'
@@ -54,6 +62,13 @@ const {
   props.baseCommit,
   props.diffeeCommit
 )
+
+// Table filtering
+const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
+  entries,
+  filterKey: 'name',
+  clearOnChange: currentPath
+})
 
 // Authentication for full export
 const { isAuthenticated } = useAuth0()
@@ -356,8 +371,10 @@ const sideBySideColumns = computed<DataTableColumns<RegistryEntry>>(() => [
 // Base entries for side-by-side
 const baseEntries = computed<RegistryEntry[]>(() => {
   if (props.mode !== 'comparison') return []
+  const query = searchQuery.value.toLowerCase().trim()
   return (entries.value as RegistryDiffEntry[])
     .filter((entry) => entry.status !== DiffStatus.New)
+    .filter((entry) => !query || entry.name.toLowerCase().includes(query))
     .map((entry) => ({
       name: entry.name,
       type: entry.type,
@@ -370,8 +387,10 @@ const baseEntries = computed<RegistryEntry[]>(() => {
 // Diffee entries for side-by-side
 const diffeeEntries = computed<RegistryEntry[]>(() => {
   if (props.mode !== 'comparison') return []
+  const query = searchQuery.value.toLowerCase().trim()
   return (entries.value as RegistryDiffEntry[])
     .filter((entry) => entry.status !== DiffStatus.Del)
+    .filter((entry) => !query || entry.name.toLowerCase().includes(query))
     .map((entry) => ({
       name: entry.name,
       type: entry.type,
@@ -457,7 +476,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
 
     <!-- Main Content -->
     <template v-else-if="selectedHive">
-      <!-- Header row with breadcrumb and export buttons -->
+      <!-- Header row with breadcrumb, filter, and export buttons -->
       <div class="header-row">
         <NBreadcrumb class="breadcrumb-nav">
           <NBreadcrumbItem
@@ -473,16 +492,40 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           </NBreadcrumbItem>
         </NBreadcrumb>
 
-        <!-- Export button with dropdown (only in comparison mode) -->
-        <div v-if="mode === 'comparison'" class="export-buttons">
-          <NDropdown :options="exportOptions" trigger="click">
-            <NButton size="small" :loading="isExporting">
-              <template #icon
-                ><NIcon><DownloadOutline /></NIcon
-              ></template>
-              Export
-            </NButton>
-          </NDropdown>
+        <div class="header-actions">
+          <!-- Filter input -->
+          <div class="filter-controls">
+            <NInput
+              ref="filterInputRef"
+              v-model:value="searchQuery"
+              placeholder="Filter by name..."
+              clearable
+              size="small"
+              style="width: 220px"
+            >
+              <template #prefix>
+                <NIcon :size="16"><SearchOutline /></NIcon>
+              </template>
+              <template #suffix>
+                <span v-if="!searchQuery" class="shortcut-hint">/</span>
+              </template>
+            </NInput>
+            <span v-if="searchQuery" class="filter-count">
+              {{ filteredEntries.length }} of {{ totalCount }}
+            </span>
+          </div>
+
+          <!-- Export button with dropdown (only in comparison mode) -->
+          <div v-if="mode === 'comparison'" class="export-buttons">
+            <NDropdown :options="exportOptions" trigger="click">
+              <NButton size="small" :loading="isExporting">
+                <template #icon
+                  ><NIcon><DownloadOutline /></NIcon
+                ></template>
+                Export
+              </NButton>
+            </NDropdown>
+          </div>
         </div>
       </div>
 
@@ -501,10 +544,10 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
       <div v-else>
         <!-- Unified View -->
         <div v-if="mode === 'single' || layout === 'unified'">
-          <div v-if="entries.length > 0" class="table-container">
+          <div v-if="filteredEntries.length > 0" class="table-container">
             <NDataTable
               :columns="tableColumns"
-              :data="entries"
+              :data="filteredEntries"
               :row-props="getRowProps"
               striped
               virtual-scroll
@@ -512,7 +555,11 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             />
           </div>
           <div v-else class="empty-folder">
-            <NEmpty description="No entries found" />
+            <NEmpty
+              :description="
+                searchQuery ? `No entries matching '${searchQuery}'` : 'No entries found'
+              "
+            />
           </div>
         </div>
 
@@ -580,6 +627,54 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
 
 .breadcrumb-nav {
   flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Make filter input more visible */
+.filter-controls :deep(.n-input) {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+}
+
+.filter-controls :deep(.n-input:hover) {
+  border-color: #9ca3af;
+}
+
+.filter-controls :deep(.n-input.n-input--focus) {
+  background: white;
+  border-color: #18a058;
+}
+
+.filter-count {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* Keyboard shortcut hint (like GitHub) */
+.shortcut-hint {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: monospace;
 }
 
 .export-buttons {
