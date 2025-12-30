@@ -7,6 +7,7 @@ import {
   NIcon,
   NButton,
   NDropdown,
+  NInput,
   NSpin,
   NAlert,
   NEmpty,
@@ -18,10 +19,12 @@ import {
   FolderOutline,
   DownloadOutline,
   HomeOutline,
-  ChevronDownOutline
+  ChevronDownOutline,
+  SearchOutline
 } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
+import { useTableFilter } from '@/composables/useTableFilter'
 import type {
   InspectorMode,
   InspectorLayout,
@@ -55,6 +58,13 @@ const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile,
     props.targetDirectory,
     props.highlightFile
   )
+
+// Table filtering
+const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
+  entries,
+  filterKey: 'name',
+  clearOnChange: currentPath
+})
 
 // Authentication for full export and blob downloads
 const { isAuthenticated, getAccessTokenSilently } = useAuth0()
@@ -423,8 +433,10 @@ const sideBySideColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
 
 const baseEntries = computed<FilesystemEntry[]>(() => {
   if (props.mode !== 'comparison') return []
+  const query = searchQuery.value.toLowerCase().trim()
   return (entries.value as FilesystemDiffEntry[])
     .filter((entry) => entry.status !== 'NEW')
+    .filter((entry) => !query || entry.name.toLowerCase().includes(query))
     .map((entry) => ({
       name: entry.name,
       type: entry.type,
@@ -436,8 +448,10 @@ const baseEntries = computed<FilesystemEntry[]>(() => {
 
 const diffeeEntries = computed<FilesystemEntry[]>(() => {
   if (props.mode !== 'comparison') return []
+  const query = searchQuery.value.toLowerCase().trim()
   return (entries.value as FilesystemDiffEntry[])
     .filter((entry) => entry.status !== 'DELETED')
+    .filter((entry) => !query || entry.name.toLowerCase().includes(query))
     .map((entry) => ({
       name: entry.name,
       type: entry.type,
@@ -492,7 +506,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
 <template>
   <div class="filesystem-inspector">
-    <!-- Header row with breadcrumb and export buttons -->
+    <!-- Header row with breadcrumb, filter, and export buttons -->
     <div class="header-row">
       <NBreadcrumb class="breadcrumb-nav">
         <NBreadcrumbItem
@@ -508,16 +522,40 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         </NBreadcrumbItem>
       </NBreadcrumb>
 
-      <!-- Export button with dropdown (only in comparison mode) -->
-      <div v-if="mode === 'comparison'" class="export-buttons">
-        <NDropdown :options="exportOptions" trigger="click">
-          <NButton size="small" :loading="isExporting">
-            <template #icon
-              ><NIcon><DownloadOutline /></NIcon
-            ></template>
-            Export
-          </NButton>
-        </NDropdown>
+      <div class="header-actions">
+        <!-- Filter input -->
+        <div class="filter-controls">
+          <NInput
+            ref="filterInputRef"
+            v-model:value="searchQuery"
+            placeholder="Filter by name..."
+            clearable
+            size="small"
+            style="width: 220px"
+          >
+            <template #prefix>
+              <NIcon :size="16"><SearchOutline /></NIcon>
+            </template>
+            <template #suffix>
+              <span v-if="!searchQuery" class="shortcut-hint">/</span>
+            </template>
+          </NInput>
+          <span v-if="searchQuery" class="filter-count">
+            {{ filteredEntries.length }} of {{ totalCount }}
+          </span>
+        </div>
+
+        <!-- Export button with dropdown (only in comparison mode) -->
+        <div v-if="mode === 'comparison'" class="export-buttons">
+          <NDropdown :options="exportOptions" trigger="click">
+            <NButton size="small" :loading="isExporting">
+              <template #icon
+                ><NIcon><DownloadOutline /></NIcon
+              ></template>
+              Export
+            </NButton>
+          </NDropdown>
+        </div>
       </div>
     </div>
 
@@ -532,15 +570,19 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
     <div v-else>
       <!-- Empty State -->
-      <div v-if="entries.length === 0" class="empty-folder">
-        <NEmpty description="This folder is empty" />
+      <div v-if="filteredEntries.length === 0" class="empty-folder">
+        <NEmpty
+          :description="
+            searchQuery ? `No entries matching '${searchQuery}'` : 'This folder is empty'
+          "
+        />
       </div>
 
       <!-- Unified View (Single Mode or Unified Layout) -->
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
         <NDataTable
           :columns="tableColumns"
-          :data="entries"
+          :data="filteredEntries"
           :row-props="getRowProps"
           striped
           virtual-scroll
@@ -599,6 +641,54 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
 
 .breadcrumb-nav {
   flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Make filter input more visible */
+.filter-controls :deep(.n-input) {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+}
+
+.filter-controls :deep(.n-input:hover) {
+  border-color: #9ca3af;
+}
+
+.filter-controls :deep(.n-input.n-input--focus) {
+  background: white;
+  border-color: #18a058;
+}
+
+.filter-count {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* Keyboard shortcut hint (like GitHub) */
+.shortcut-hint {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: monospace;
 }
 
 .export-buttons {
