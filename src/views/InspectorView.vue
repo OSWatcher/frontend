@@ -32,6 +32,7 @@ import gqlClient from '@/graphql-client'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
+import { useSearchContextStore } from '@/stores/searchContext'
 
 // ===================================================================
 // ROUTING
@@ -39,6 +40,7 @@ import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/gra
 
 const route = useRoute()
 const router = useRouter()
+const searchContext = useSearchContextStore()
 
 // ===================================================================
 // STATE
@@ -326,6 +328,24 @@ watch(
     initializeInspector()
   }
 )
+
+/**
+ * Sync active tab with search context store
+ */
+watch(
+  activeTab,
+  (tab) => {
+    searchContext.setActiveTab(tab as 'filesystem' | 'registry')
+  },
+  { immediate: true }
+)
+
+/**
+ * Set inspector view flag on mount
+ */
+onMounted(() => {
+  searchContext.setInspectorView(true)
+})
 </script>
 
 <template>
