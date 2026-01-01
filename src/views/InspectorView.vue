@@ -169,15 +169,6 @@ const highlightRegistryKey = computed<string>(() => {
   return (route.query.regHighlight as string) || ''
 })
 
-/**
- * Initial Tab
- *
- * Gets initial tab from query params (e.g., ?tab=registry)
- */
-const initialTab = computed<string>(() => {
-  return (route.query.tab as string) || 'filesystem'
-})
-
 // ===================================================================
 // METHODS
 // ===================================================================
