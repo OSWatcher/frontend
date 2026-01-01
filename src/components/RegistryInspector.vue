@@ -630,7 +630,6 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   display: flex;
   align-items: center;
   gap: 12px;
-<<<<<<< HEAD
   flex-shrink: 0;
 }
 
