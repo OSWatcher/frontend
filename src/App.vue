@@ -16,6 +16,7 @@ import {
   NSpin,
   NDropdown,
   NAvatar,
+  NSwitch,
   type DataTableColumns,
   type DropdownOption
 } from 'naive-ui'
@@ -40,6 +41,7 @@ interface SearchResult {
 
 const showSearchModal = ref(false)
 const searchTerm = ref('')
+const caseSensitive = ref(false)
 const searchResults = ref<SearchResult[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -205,7 +207,8 @@ const performSearch = () => {
           startCommit,
           scope
         },
-        entity_types: ['FILESYSTEM']
+        entity_types: ['FILESYSTEM'],
+        case_sensitive: caseSensitive.value
       }
     }
 
@@ -265,6 +268,7 @@ const clearSearch = () => {
   }
   searchResults.value = []
   searchTerm.value = ''
+  caseSensitive.value = false
   isStreaming.value = false
   streamingResultCount.value = 0
   hasSearched.value = false
@@ -396,6 +400,14 @@ onUnmounted(() => {
               </NIcon>
             </template>
           </NInput>
+
+          <!-- Search options -->
+          <div class="search-options">
+            <NSwitch v-model:value="caseSensitive" size="small" />
+            <span class="search-option-label" @click="caseSensitive = !caseSensitive"
+              >Case sensitive</span
+            >
+          </div>
 
           <!-- Streaming status indicator -->
           <div v-if="isStreaming" class="streaming-status">
@@ -683,6 +695,20 @@ body {
   50% {
     opacity: 0.5;
   }
+}
+
+.search-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.search-option-label {
+  font-size: 14px;
+  color: #4b5563;
+  user-select: none;
+  cursor: pointer;
 }
 
 .search-highlight {
