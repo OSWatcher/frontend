@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, onMounted } from 'vue'
+import { ref, h, onMounted, computed, watch } from 'vue'
 import {
   NConfigProvider,
   NLayout,
@@ -20,11 +20,11 @@ import {
   type DropdownOption
 } from 'naive-ui'
 import { SearchOutline, PersonCircleOutline, LogOutOutline } from '@vicons/ionicons5'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { onUnmounted } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import gqlClient, { setAuthTokenGetter } from '@/graphql-client'
-import { SEARCH_FS_STREAM } from '@/queries'
+import { SEARCH_FS_STREAM, fetchCommitDetails } from '@/queries'
 import { CommitScope } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 
@@ -46,7 +46,41 @@ const streamingResultCount = ref(0)
 const hasSearched = ref(false)
 
 const router = useRouter()
+const route = useRoute()
 const branchSelection = useBranchSelectionStore()
+
+// Inspector context detection
+const isInspectorSingleMode = computed(() => {
+  return route.name === 'InspectorSingle' && route.params.commitHash
+})
+
+const inspectorCommitHash = computed(() => {
+  return isInspectorSingleMode.value ? (route.params.commitHash as string) : null
+})
+
+const inspectorCommitName = ref<string>('')
+
+// Fetch commit name when in inspector mode
+watch(
+  inspectorCommitHash,
+  async (hash) => {
+    if (hash) {
+      try {
+        const response = await gqlClient.query({
+          query: fetchCommitDetails,
+          variables: { where: { hash } }
+        })
+        const commit = response.data?.commits?.[0]
+        inspectorCommitName.value = commit?.name || hash.slice(0, 7)
+      } catch {
+        inspectorCommitName.value = hash.slice(0, 7)
+      }
+    } else {
+      inspectorCommitName.value = ''
+    }
+  },
+  { immediate: true }
+)
 
 // Auth0
 const {
@@ -142,22 +176,30 @@ const performSearch = () => {
 
   // Start streaming subscription
   try {
-    // Get the currently selected branch's commit hash
-    if (!branchSelection.selectedBranchHash) {
-      console.error('No branch selected for search')
-      isLoading.value = false
-      isStreaming.value = false
-      return
-    }
+    let startCommit: string
+    let scope: CommitScope
 
-    // Use HISTORY_WITH_UPDATES scope for authenticated users, HISTORY for others
-    const scope = isAuthenticated.value ? CommitScope.HistoryWithUpdates : CommitScope.History
+    if (isInspectorSingleMode.value && inspectorCommitHash.value) {
+      // Inspector mode: search within current commit only
+      startCommit = inspectorCommitHash.value
+      scope = CommitScope.Single
+    } else {
+      // Global mode: search commit history
+      if (!branchSelection.selectedBranchHash) {
+        console.error('No branch selected for search')
+        isLoading.value = false
+        isStreaming.value = false
+        return
+      }
+      startCommit = branchSelection.selectedBranchHash
+      scope = isAuthenticated.value ? CommitScope.HistoryWithUpdates : CommitScope.History
+    }
 
     const variables = {
       searchTerm: searchTerm.value,
       commitRange: {
-        startCommit: branchSelection.selectedBranchHash,
-        scope: scope
+        startCommit,
+        scope
       }
     }
 
@@ -253,7 +295,7 @@ onUnmounted(() => {
                   <SearchOutline />
                 </NIcon>
               </template>
-              Search
+              {{ isInspectorSingleMode ? `Search in ${inspectorCommitName}` : 'Search' }}
               <kbd class="kbd">⌘K</kbd>
             </NButton>
 
@@ -332,7 +374,11 @@ onUnmounted(() => {
         <NSpace vertical :size="16">
           <NInput
             v-model:value="searchTerm"
-            placeholder="Search for files and directories..."
+            :placeholder="
+              isInspectorSingleMode
+                ? `Search in ${inspectorCommitName}...`
+                : 'Search for files and directories...'
+            "
             size="large"
             clearable
             autofocus
@@ -483,6 +529,7 @@ body {
 
 .search-trigger {
   min-width: 200px;
+  max-width: 400px;
   justify-content: space-between;
   border: 1px solid #6b7280;
   background: #ffffff;
