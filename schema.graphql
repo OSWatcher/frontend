@@ -40,6 +40,12 @@ enum CommitScope {
     RANGE
 }
 
+enum SearchEntityType {
+    FILESYSTEM
+    REGISTRY
+    # Future: SYMBOL, STRUCT
+}
+
 # read: needed for HAS_WINREG
 type Blob implements Hashable @query(read: true, aggregate: false) @mutation(operations: []) @limit(default: 5000, max: 5000) {
     hash: String! @unique
@@ -165,10 +171,13 @@ type DiffItem @query(read: false, aggregate: false) @mutation(operations: []) {
 }
 
 type SearchResult @query(read: false, aggregate: false) @mutation(operations: []) {
+    type: SearchEntityType!
     commit_name: String!
     commit_hash: String!
-    hash: String!
-    path: String!
+    blob_path: String!
+    blob_hash: String!
+    entity_path: String
+    node_hash: String!
 }
 
 type SymbolFetchResult @query(read: false, aggregate: false) @mutation(operations: []) {
@@ -204,6 +213,17 @@ input CommitRange {
     endCommit: String = null
 }
 
+input SearchInput {
+    # The commit range to search within
+    commit_range: CommitRange!
+    # The search term to match
+    search_term: String!
+    # Entity types to search (null = search all types)
+    entity_types: [SearchEntityType!]
+    # Case sensitive search (default: false = case-insensitive)
+    case_sensitive: Boolean = false
+}
+
 # custom Queries
 type Query {
     diffNodesAt(
@@ -223,7 +243,7 @@ type Query {
     # get all the possibile data labels associated with an os
     getCommitExtractedDataLabels(commit_hash: String!): [String!]!
     # search
-    search(commit_range: CommitRange!, search_term: String!): [SearchResult!]!
+    search(input: SearchInput!): [SearchResult!]!
     # fetch symbols
     fetchSymbols(blob_hash: String!, options: SymbolOptions): [SymbolFetchResult!]!
     # fetch structs
@@ -233,5 +253,5 @@ type Query {
 # custom Subscriptions
 type Subscription {
     # search (streaming) - results are streamed as they are found
-    searchStream(commit_range: CommitRange!, search_term: String!): SearchResult!
+    searchStream(input: SearchInput!): SearchResult!
 }

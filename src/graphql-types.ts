@@ -1760,8 +1760,7 @@ export type QueryHashablesConnectionArgs = {
 }
 
 export type QuerySearchArgs = {
-  commit_range: CommitRange
-  search_term: Scalars['String']['input']
+  input: SearchInput
 }
 
 export type QueryStructFieldsArgs = {
@@ -1866,12 +1865,27 @@ export type QueryWinRegValuesConnectionArgs = {
   where?: InputMaybe<WinRegValueWhere>
 }
 
+export enum SearchEntityType {
+  Filesystem = 'FILESYSTEM',
+  Registry = 'REGISTRY'
+}
+
+export type SearchInput = {
+  case_sensitive?: InputMaybe<Scalars['Boolean']['input']>
+  commit_range: CommitRange
+  entity_types?: InputMaybe<Array<SearchEntityType>>
+  search_term: Scalars['String']['input']
+}
+
 export type SearchResult = {
   __typename?: 'SearchResult'
+  blob_hash: Scalars['String']['output']
+  blob_path: Scalars['String']['output']
   commit_hash: Scalars['String']['output']
   commit_name: Scalars['String']['output']
-  hash: Scalars['String']['output']
-  path: Scalars['String']['output']
+  entity_path?: Maybe<Scalars['String']['output']>
+  node_hash: Scalars['String']['output']
+  type: SearchEntityType
 }
 
 /** An enum for sorting in either ascending or descending order. */
@@ -2411,8 +2425,7 @@ export type Subscription = {
 }
 
 export type SubscriptionSearchStreamArgs = {
-  commit_range: CommitRange
-  search_term: Scalars['String']['input']
+  input: SearchInput
 }
 
 export type Symbol = Hashable & {
@@ -3422,34 +3435,38 @@ export type FetchStructsQuery = {
 }
 
 export type SearchFsQueryVariables = Exact<{
-  searchTerm: Scalars['String']['input']
-  commitRange: CommitRange
+  input: SearchInput
 }>
 
 export type SearchFsQuery = {
   __typename?: 'Query'
   search: Array<{
     __typename?: 'SearchResult'
+    type: SearchEntityType
     commit_name: string
     commit_hash: string
-    hash: string
-    path: string
+    blob_path: string
+    blob_hash: string
+    entity_path?: string | null
+    node_hash: string
   }>
 }
 
 export type SearchFsStreamSubscriptionVariables = Exact<{
-  commitRange: CommitRange
-  searchTerm: Scalars['String']['input']
+  input: SearchInput
 }>
 
 export type SearchFsStreamSubscription = {
   __typename?: 'Subscription'
   searchStream: {
     __typename?: 'SearchResult'
+    type: SearchEntityType
     commit_name: string
     commit_hash: string
-    hash: string
-    path: string
+    blob_path: string
+    blob_hash: string
+    entity_path?: string | null
+    node_hash: string
   }
 }
 
@@ -4351,12 +4368,15 @@ export type FetchStructsQueryCompositionFunctionResult = VueApolloComposable.Use
   FetchStructsQueryVariables
 >
 export const SearchFsDocument = gql`
-  query SearchFs($searchTerm: String!, $commitRange: CommitRange!) {
-    search(search_term: $searchTerm, commit_range: $commitRange) {
+  query SearchFs($input: SearchInput!) {
+    search(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
@@ -4373,8 +4393,7 @@ export const SearchFsDocument = gql`
  *
  * @example
  * const { result, loading, error } = useSearchFsQuery({
- *   searchTerm: // value for 'searchTerm'
- *   commitRange: // value for 'commitRange'
+ *   input: // value for 'input'
  * });
  */
 export function useSearchFsQuery(
@@ -4422,12 +4441,15 @@ export type SearchFsQueryCompositionFunctionResult = VueApolloComposable.UseQuer
   SearchFsQueryVariables
 >
 export const SearchFsStreamDocument = gql`
-  subscription SearchFsStream($commitRange: CommitRange!, $searchTerm: String!) {
-    searchStream(commit_range: $commitRange, search_term: $searchTerm) {
+  subscription SearchFsStream($input: SearchInput!) {
+    searchStream(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
@@ -4444,8 +4466,7 @@ export const SearchFsStreamDocument = gql`
  *
  * @example
  * const { result, loading, error } = useSearchFsStreamSubscription({
- *   commitRange: // value for 'commitRange'
- *   searchTerm: // value for 'searchTerm'
+ *   input: // value for 'input'
  * });
  */
 export function useSearchFsStreamSubscription(

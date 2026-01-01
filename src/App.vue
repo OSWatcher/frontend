@@ -29,10 +29,13 @@ import { CommitScope } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 
 interface SearchResult {
+  type: string
   commit_name: string
   commit_hash: string
-  hash: string
-  path: string
+  blob_path: string
+  blob_hash: string
+  entity_path?: string
+  node_hash: string
 }
 
 const showSearchModal = ref(false)
@@ -141,12 +144,12 @@ const searchColumns: DataTableColumns<SearchResult> = [
   },
   {
     title: 'Path',
-    key: 'path',
+    key: 'blob_path',
     sorter: 'default',
     ellipsis: {
       tooltip: true
     },
-    render: (row) => highlightSearchTerm(row.path, searchTerm.value)
+    render: (row) => highlightSearchTerm(row.blob_path, searchTerm.value)
   }
 ]
 
@@ -196,10 +199,13 @@ const performSearch = () => {
     }
 
     const variables = {
-      searchTerm: searchTerm.value,
-      commitRange: {
-        startCommit,
-        scope
+      input: {
+        search_term: searchTerm.value,
+        commit_range: {
+          startCommit,
+          scope
+        },
+        entity_types: ['FILESYSTEM']
       }
     }
 
@@ -238,7 +244,7 @@ const performSearch = () => {
 const handleRowClick = (row: SearchResult) => {
   showSearchModal.value = false
   // Search results are always files, navigate to directory and highlight the file
-  const pathParts = row.path.split('/')
+  const pathParts = row.blob_path.split('/')
   const filename = pathParts.pop() || ''
   const directory = pathParts.join('/') || '/'
 

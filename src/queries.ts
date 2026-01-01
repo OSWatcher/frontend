@@ -170,23 +170,29 @@ const LIST_WINSTRUCT = gql`
 `
 
 const SEARCH_FS = gql`
-  query SearchFs($searchTerm: String!, $commitRange: CommitRange!) {
-    search(search_term: $searchTerm, commit_range: $commitRange) {
+  query SearchFs($input: SearchInput!) {
+    search(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
 
 const SEARCH_FS_STREAM = gql`
-  subscription SearchFsStream($commitRange: CommitRange!, $searchTerm: String!) {
-    searchStream(commit_range: $commitRange, search_term: $searchTerm) {
+  subscription SearchFsStream($input: SearchInput!) {
+    searchStream(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
