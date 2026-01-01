@@ -80,8 +80,9 @@ const branchName = ref<string>('')
 
 /**
  * Active tab name
+ * Initialized from query params or defaults to filesystem
  */
-const activeTab = ref<string>('filesystem')
+const activeTab = ref<string>((route.query.tab as string) || 'filesystem')
 
 /**
  * Available capabilities (filesystem, registry, pdb)
@@ -139,6 +140,42 @@ const targetDirectory = computed<string>(() => {
  */
 const highlightFile = computed<string>(() => {
   return (route.query.highlight as string) || ''
+})
+
+/**
+ * Target Registry Hive
+ *
+ * Gets target registry hive from query params (e.g., ?regHive=SOFTWARE)
+ */
+const targetRegistryHive = computed<string>(() => {
+  return (route.query.regHive as string) || ''
+})
+
+/**
+ * Target Registry Path
+ *
+ * Gets target registry path from query params (e.g., ?regPath=/Microsoft/Windows)
+ */
+const targetRegistryPath = computed<string>(() => {
+  return (route.query.regPath as string) || '/'
+})
+
+/**
+ * Highlight Registry Key
+ *
+ * Gets registry key to highlight from query params (e.g., ?regHighlight=ProductName)
+ */
+const highlightRegistryKey = computed<string>(() => {
+  return (route.query.regHighlight as string) || ''
+})
+
+/**
+ * Initial Tab
+ *
+ * Gets initial tab from query params (e.g., ?tab=registry)
+ */
+const initialTab = computed<string>(() => {
+  return (route.query.tab as string) || 'filesystem'
 })
 
 // ===================================================================
@@ -341,6 +378,30 @@ watch(
 )
 
 /**
+ * Watch for tab changes in query params
+ */
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && typeof newTab === 'string') {
+      activeTab.value = newTab
+    }
+  }
+)
+
+/**
+ * Auto-switch to registry tab when it becomes available (for deep-linking)
+ */
+watch(
+  () => hasRegistry.value,
+  (isAvailable) => {
+    if (isAvailable && targetRegistryHive.value) {
+      activeTab.value = 'registry'
+    }
+  }
+)
+
+/**
  * Set inspector view flag on mount
  */
 onMounted(() => {
@@ -410,12 +471,18 @@ onMounted(() => {
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
               :commit="singleCommit"
+              :target-hive="targetRegistryHive"
+              :target-path="targetRegistryPath"
+              :highlight-key="highlightRegistryKey"
             />
             <RegistryInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
               :mode="inspectorMode"
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
+              :target-hive="targetRegistryHive"
+              :target-path="targetRegistryPath"
+              :highlight-key="highlightRegistryKey"
             />
           </NTabPane>
 
