@@ -194,10 +194,12 @@ export function normalizeHiveName(hiveName: string): string {
 
 /**
  * Match hive by mount path (handles /config/SOFTWARE vs SOFTWARE)
- * Returns true if the mount path contains the hive name
+ * Returns true if the hive name matches any path segment in the mount path
  */
 export function matchesHive(mountPath: string, hiveName: string): boolean {
-  const normalizedMount = normalizeHiveName(mountPath)
   const normalizedHive = normalizeHiveName(hiveName)
-  return normalizedMount.includes(normalizedHive) || normalizedHive.includes(normalizedMount)
+  const mountSegments = splitRegistryPath(mountPath).map((s) => s.toUpperCase())
+
+  // Check if any segment exactly matches the hive name
+  return mountSegments.some((segment) => segment === normalizedHive)
 }
