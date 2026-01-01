@@ -399,8 +399,8 @@ watch(
             />
           </NTabPane>
 
-          <!-- PDB Tab (only if available) -->
-          <NTabPane v-if="hasPDB" name="pdb" tab="PDB">
+          <!-- PDB Tab (disabled) -->
+          <NTabPane v-if="false" name="pdb" tab="PDB">
             <PDBInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
