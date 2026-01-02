@@ -41,7 +41,10 @@ const props = defineProps({
   layout: { type: String as PropType<InspectorLayout>, default: 'unified' },
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined }
+  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
+  targetHive: { type: String, default: '' },
+  targetPath: { type: String, default: '/' },
+  highlightKey: { type: String, default: '' }
 })
 
 const {
@@ -56,13 +59,17 @@ const {
   selectHive,
   currentPath,
   statusFilter,
-  setStatusFilter
+  setStatusFilter,
+  highlightedKey
 } = useRegistryInspector(
   props.mode,
   props.layout,
   props.commit,
   props.baseCommit,
-  props.diffeeCommit
+  props.diffeeCommit,
+  props.targetHive,
+  props.targetPath,
+  props.highlightKey
 )
 
 // Table filtering
@@ -431,6 +438,11 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
     classes.push(`diff-row-${diffEntry.status.toLowerCase()}`)
   }
 
+  // Add highlighting for deep-linked rows
+  if (highlightedKey.value && row.name === highlightedKey.value) {
+    classes.push('highlighted-row')
+  }
+
   if (classes.length > 0) {
     baseProps.class = classes.join(' ')
   }
@@ -792,5 +804,16 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   padding: 8px 12px;
   border-bottom: 1px solid #e5e7eb;
   margin: 0 0 12px 0;
+}
+
+/* Highlighted row for deep-linking */
+:deep(.n-data-table-tr.highlighted-row),
+:deep(.n-data-table-tr.highlighted-row .n-data-table-td) {
+  background-color: #fef08a !important; /* yellow-200 */
+  border-left: 3px solid #eab308; /* yellow-500 */
+}
+:deep(.n-data-table-tr.highlighted-row:hover),
+:deep(.n-data-table-tr.highlighted-row:hover .n-data-table-td) {
+  background-color: #fde047 !important; /* yellow-300 */
 }
 </style>

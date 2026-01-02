@@ -32,6 +32,7 @@ import { SEARCH_FS_STREAM, fetchCommitDetails } from '@/queries'
 import { CommitScope, SearchEntityType } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 import { useSearchContextStore } from '@/stores/searchContext'
+import { parseRegistryEntityPath } from '@/utils/registry'
 
 interface SearchResult {
   type: string
@@ -335,13 +336,28 @@ const handleRowClick = (row: SearchResult) => {
       }
     })
   } else if (row.type === SearchEntityType.Registry) {
-    // Navigate to registry tab (no deep-link support for now)
-    router.push({
-      path: `/inspect/${row.commit_hash}`,
-      query: {
-        tab: 'registry'
-      }
-    })
+    // Navigate to registry with deep-linking
+    const parsed = parseRegistryEntityPath(row.entity_path || '')
+
+    if (parsed) {
+      router.push({
+        path: `/inspect/${row.commit_hash}`,
+        query: {
+          tab: 'registry',
+          regHive: parsed.hiveName,
+          regPath: parsed.parentPath,
+          regHighlight: parsed.targetName
+        }
+      })
+    } else {
+      // Fallback: navigate to registry tab at root
+      router.push({
+        path: `/inspect/${row.commit_hash}`,
+        query: {
+          tab: 'registry'
+        }
+      })
+    }
   }
 }
 
