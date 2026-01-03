@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import * as d3 from 'd3'
-import type { BranchWithCommits } from '@/composables/useFetchHomeData'
+import type { BranchWithCommits, CommitWithExpandable } from '@/composables/useFetchHomeData'
 import { useCommitSelectionStore } from '@/stores/commitSelection'
 import { useFetchCommitHistoryQuery, CommitHistoryDirection } from '@/graphql-types'
 
@@ -548,7 +548,7 @@ function buildCommitNodes(): CommitNode[] {
 
   if (!currentBranch) return []
 
-  const commits = currentBranch.commits
+  const commits = currentBranch.commits as unknown as CommitWithExpandable[]
   if (!commits || commits.length === 0) return []
 
   return commits.map((commit) => ({
@@ -841,7 +841,7 @@ watch(
     const currentBranch = props.branchesWithCommits.find(
       (b) => b.branch.name === props.selectedBranch
     )
-    return currentBranch?.commits || []
+    return (currentBranch?.commits as unknown as CommitWithExpandable[]) || []
   },
   (commits) => {
     if (commits.length > 0) {
