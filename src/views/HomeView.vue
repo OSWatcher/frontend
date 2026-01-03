@@ -125,7 +125,7 @@ function handleCompare() {
       <!-- Commit graph visualization -->
       <div v-else-if="branchesWithCommits.length > 0">
         <CommitGraph
-          :branches-with-commits="(branchesWithCommits as any)"
+          :branches-with-commits="branchesWithCommits as any"
           :selected-branch="selectedBranch"
         />
       </div>
