@@ -556,7 +556,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           <div v-if="filteredEntries.length > 0" class="table-container">
             <NDataTable
               :columns="tableColumns"
-              :data="(filteredEntries as any)"
+              :data="filteredEntries as any"
               :row-props="getRowProps"
               striped
               virtual-scroll

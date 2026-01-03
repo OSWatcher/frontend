@@ -599,7 +599,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
         <NDataTable
           :columns="tableColumns"
-          :data="(filteredEntries as any)"
+          :data="filteredEntries as any"
           :row-props="getRowProps"
           striped
           virtual-scroll
