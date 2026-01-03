@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
     "format-check": "prettier --check src/",
-    "ccode": "npm run format && npm run lint",
+    "ccode": "npm run format && npm run lint && npm run type-check",
     "generate": "graphql-codegen --config codegen.yml",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
