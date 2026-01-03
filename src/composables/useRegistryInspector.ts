@@ -10,11 +10,13 @@ import gqlClient from '@/graphql-client'
 import { DIFF_NODES, LIST_ENTRIES_FOR_KEY, TRAVERSE_PATH } from '@/queries'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry, RegistryHive } from '@/types/registry'
+import { DiffStatus } from '@/graphql-types'
 import {
   parseRegistryEntries,
   parseRegistryDiffEntries,
   generateRegistryBreadcrumbs,
-  sortRegistryEntries
+  sortRegistryEntries,
+  matchesHive
 } from '@/utils/registry'
 import { GetSystemHives } from '@/windows/registry'
 
@@ -23,17 +25,28 @@ export function useRegistryInspector(
   layout: InspectorLayout,
   commit?: CommitContext,
   baseCommit?: CommitContext,
-  diffeeCommit?: CommitContext
+  diffeeCommit?: CommitContext,
+  targetHive = '',
+  targetPath = '/',
+  highlightKey = ''
 ) {
-  const currentPath = ref<string>('/')
+  const currentPath = ref<string>(targetPath)
   const rawEntries = ref<any[]>([])
   const isLoading = ref<boolean>(false)
   const error = ref<Error | null>(null)
+  const highlightedKey = ref<string>(highlightKey)
+  const pendingNavigation = ref<{ hiveName: string; path: string; highlight: string } | null>(
+    targetHive ? { hiveName: targetHive, path: targetPath, highlight: highlightKey } : null
+  )
 
   // Available hives
   const availableHives = ref<RegistryHive[]>([])
   const selectedHive = ref<RegistryHive | null>(null)
   const isLoadingHives = ref<boolean>(false)
+
+  // Diff status filter
+  const statusFilter = ref<DiffStatus[]>([])
+  let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   /**
    * Parsed and sorted entries
@@ -95,13 +108,34 @@ export function useRegistryInspector(
 
       // Select a useful default hive (prefer SOFTWARE > SYSTEM > first available)
       if (availableHives.value.length > 0) {
-        const softwareHive = availableHives.value.find((h) =>
-          h.mountPath.toUpperCase().includes('SOFTWARE')
-        )
-        const systemHive = availableHives.value.find((h) =>
-          h.mountPath.toUpperCase().includes('SYSTEM')
-        )
-        selectedHive.value = softwareHive || systemHive || availableHives.value[0]
+        // Check if we have a pending navigation (deep-link from search)
+        if (pendingNavigation.value) {
+          const targetHiveName = pendingNavigation.value.hiveName
+          const matchingHive = availableHives.value.find((h) =>
+            matchesHive(h.mountPath, targetHiveName)
+          )
+
+          if (matchingHive) {
+            selectedHive.value = matchingHive
+          } else {
+            // Fallback to default if target hive not found
+            const softwareHive = availableHives.value.find((h) =>
+              h.mountPath.toUpperCase().includes('SOFTWARE')
+            )
+            const systemHive = availableHives.value.find((h) =>
+              h.mountPath.toUpperCase().includes('SYSTEM')
+            )
+            selectedHive.value = softwareHive || systemHive || availableHives.value[0]
+          }
+        } else {
+          const softwareHive = availableHives.value.find((h) =>
+            h.mountPath.toUpperCase().includes('SOFTWARE')
+          )
+          const systemHive = availableHives.value.find((h) =>
+            h.mountPath.toUpperCase().includes('SYSTEM')
+          )
+          selectedHive.value = softwareHive || systemHive || availableHives.value[0]
+        }
       }
     } catch (err) {
       console.error('Error fetching registry hives:', err)
@@ -189,6 +223,12 @@ export function useRegistryInspector(
     path: string
   ): Promise<any[]> {
     try {
+      // Build options with optional status filter
+      const options: any = {}
+      if (statusFilter.value.length > 0) {
+        options.status_filter = statusFilter.value
+      }
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -197,8 +237,8 @@ export function useRegistryInspector(
           diffeeNodeHash: diffeeRegKeyHash,
           atPath: path,
           maxDepth: 0,
-          filter: ['WinRegValue']
-          // No options - fetch all diffs at once (consistent with PDB Inspector pattern)
+          filter: ['WinRegValue'],
+          options
         }
       })
       const diffResult = response.data?.diffNodesAt
@@ -223,7 +263,7 @@ export function useRegistryInspector(
   /**
    * Navigate to a new registry path
    */
-  async function navigateToPath(path: string): Promise<void> {
+  async function navigateToPath(path: string, keyToHighlight = ''): Promise<void> {
     if (!selectedHive.value) {
       error.value = new Error('No hive selected')
       return
@@ -246,6 +286,9 @@ export function useRegistryInspector(
         rawEntries.value = entries
         currentPath.value = path
       }
+
+      // Set the highlighted key
+      highlightedKey.value = keyToHighlight
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       rawEntries.value = []
@@ -271,6 +314,23 @@ export function useRegistryInspector(
   }
 
   /**
+   * Set status filter with debounce
+   */
+  function setStatusFilter(statuses: DiffStatus[]): void {
+    statusFilter.value = statuses
+
+    // Cancel pending debounce
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer)
+    }
+
+    // Debounce the refetch
+    filterDebounceTimer = setTimeout(() => {
+      navigateToPath(currentPath.value)
+    }, 1000)
+  }
+
+  /**
    * Watch for changes and initialize
    */
   watch(
@@ -278,7 +338,13 @@ export function useRegistryInspector(
     async () => {
       await fetchAvailableHives()
       if (selectedHive.value) {
-        await navigateToPath('/')
+        // Execute pending navigation if present (deep-link from search)
+        if (pendingNavigation.value) {
+          await navigateToPath(pendingNavigation.value.path, pendingNavigation.value.highlight)
+          pendingNavigation.value = null
+        } else {
+          await navigateToPath('/')
+        }
       }
     },
     { immediate: true }
@@ -295,6 +361,9 @@ export function useRegistryInspector(
     selectedHive,
     navigateToPath,
     selectHive,
-    refresh
+    refresh,
+    statusFilter,
+    setStatusFilter,
+    highlightedKey
   }
 }

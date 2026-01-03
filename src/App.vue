@@ -16,6 +16,10 @@ import {
   NSpin,
   NDropdown,
   NAvatar,
+  NSwitch,
+  NTabs,
+  NTabPane,
+  NCheckbox,
   type DataTableColumns,
   type DropdownOption
 } from 'naive-ui'
@@ -25,18 +29,26 @@ import { onUnmounted } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import gqlClient, { setAuthTokenGetter } from '@/graphql-client'
 import { SEARCH_FS_STREAM, fetchCommitDetails } from '@/queries'
-import { CommitScope } from '@/graphql-types'
+import { CommitScope, SearchEntityType } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
+import { useSearchContextStore } from '@/stores/searchContext'
+import { parseRegistryEntityPath } from '@/utils/registry'
 
 interface SearchResult {
+  type: string
   commit_name: string
   commit_hash: string
-  hash: string
-  path: string
+  blob_path: string
+  blob_hash: string
+  entity_path?: string
+  node_hash: string
 }
 
 const showSearchModal = ref(false)
 const searchTerm = ref('')
+const caseSensitive = ref(false)
+const selectedEntityTypes = ref<SearchEntityType[]>([SearchEntityType.Filesystem])
+const activeResultTab = ref<'filesystem' | 'registry'>('filesystem')
 const searchResults = ref<SearchResult[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -48,6 +60,7 @@ const hasSearched = ref(false)
 const router = useRouter()
 const route = useRoute()
 const branchSelection = useBranchSelectionStore()
+const searchContext = useSearchContextStore()
 
 // Inspector context detection
 const isInspectorSingleMode = computed(() => {
@@ -81,6 +94,51 @@ watch(
   },
   { immediate: true }
 )
+
+// Computed results by entity type
+const filesystemResults = computed(() =>
+  searchResults.value.filter((r) => r.type === SearchEntityType.Filesystem)
+)
+
+const registryResults = computed(() =>
+  searchResults.value.filter((r) => r.type === SearchEntityType.Registry)
+)
+
+// Helper to toggle entity type
+const toggleEntityType = (type: SearchEntityType, checked: boolean) => {
+  if (checked) {
+    // Add if not already included
+    if (!selectedEntityTypes.value.includes(type)) {
+      selectedEntityTypes.value = [...selectedEntityTypes.value, type]
+    }
+  } else {
+    // Remove if exists (but keep at least one selected)
+    if (selectedEntityTypes.value.length > 1) {
+      selectedEntityTypes.value = selectedEntityTypes.value.filter((t) => t !== type)
+    }
+  }
+}
+
+// Set entity types based on context when modal opens
+watch(showSearchModal, (show) => {
+  if (show) {
+    if (searchContext.isInspectorMode) {
+      // Inspector mode: search current tab only
+      const tab = searchContext.activeInspectorTab
+      if (tab === 'filesystem') {
+        selectedEntityTypes.value = [SearchEntityType.Filesystem]
+        activeResultTab.value = 'filesystem'
+      } else if (tab === 'registry') {
+        selectedEntityTypes.value = [SearchEntityType.Registry]
+        activeResultTab.value = 'registry'
+      }
+    } else {
+      // HomeView: omnisearch all entities
+      selectedEntityTypes.value = [SearchEntityType.Filesystem, SearchEntityType.Registry]
+      activeResultTab.value = 'filesystem'
+    }
+  }
+})
 
 // Auth0
 const {
@@ -131,8 +189,8 @@ const highlightSearchTerm = (text: string, searchTerm: string) => {
   )
 }
 
-// Search columns for data table
-const searchColumns: DataTableColumns<SearchResult> = [
+// Search columns for filesystem data table
+const filesystemColumns: DataTableColumns<SearchResult> = [
   {
     title: 'Commit',
     key: 'commit_name',
@@ -141,12 +199,31 @@ const searchColumns: DataTableColumns<SearchResult> = [
   },
   {
     title: 'Path',
-    key: 'path',
+    key: 'blob_path',
     sorter: 'default',
     ellipsis: {
       tooltip: true
     },
-    render: (row) => highlightSearchTerm(row.path, searchTerm.value)
+    render: (row) => highlightSearchTerm(row.blob_path, searchTerm.value)
+  }
+]
+
+// Search columns for registry data table
+const registryColumns: DataTableColumns<SearchResult> = [
+  {
+    title: 'Commit',
+    key: 'commit_name',
+    sorter: 'default',
+    width: 200
+  },
+  {
+    title: 'Registry Path',
+    key: 'entity_path',
+    sorter: 'default',
+    ellipsis: {
+      tooltip: true
+    },
+    render: (row) => highlightSearchTerm(row.entity_path || '', searchTerm.value)
   }
 ]
 
@@ -196,10 +273,14 @@ const performSearch = () => {
     }
 
     const variables = {
-      searchTerm: searchTerm.value,
-      commitRange: {
-        startCommit,
-        scope
+      input: {
+        search_term: searchTerm.value,
+        commit_range: {
+          startCommit,
+          scope
+        },
+        entity_types: selectedEntityTypes.value,
+        case_sensitive: caseSensitive.value
       }
     }
 
@@ -237,18 +318,44 @@ const performSearch = () => {
 
 const handleRowClick = (row: SearchResult) => {
   showSearchModal.value = false
-  // Search results are always files, navigate to directory and highlight the file
-  const pathParts = row.path.split('/')
-  const filename = pathParts.pop() || ''
-  const directory = pathParts.join('/') || '/'
 
-  router.push({
-    path: `/inspect/${row.commit_hash}`,
-    query: {
-      directory: directory,
-      highlight: filename
+  if (row.type === SearchEntityType.Filesystem) {
+    // Navigate to filesystem with directory and highlight
+    const pathParts = row.blob_path.split('/')
+    const filename = pathParts.pop() || ''
+    const directory = pathParts.join('/') || '/'
+
+    router.push({
+      path: `/inspect/${row.commit_hash}`,
+      query: {
+        directory: directory,
+        highlight: filename
+      }
+    })
+  } else if (row.type === SearchEntityType.Registry) {
+    // Navigate to registry with deep-linking
+    const parsed = parseRegistryEntityPath(row.entity_path || '')
+
+    if (parsed) {
+      router.push({
+        path: `/inspect/${row.commit_hash}`,
+        query: {
+          tab: 'registry',
+          regHive: parsed.hiveName,
+          regPath: parsed.parentPath,
+          regHighlight: parsed.targetName
+        }
+      })
+    } else {
+      // Fallback: navigate to registry tab at root
+      router.push({
+        path: `/inspect/${row.commit_hash}`,
+        query: {
+          tab: 'registry'
+        }
+      })
     }
-  })
+  }
 }
 
 const clearSearch = () => {
@@ -259,6 +366,7 @@ const clearSearch = () => {
   }
   searchResults.value = []
   searchTerm.value = ''
+  caseSensitive.value = false
   isStreaming.value = false
   streamingResultCount.value = 0
   hasSearched.value = false
@@ -305,7 +413,7 @@ onUnmounted(() => {
               <NButton
                 v-if="!isAuthenticated"
                 type="info"
-                @click="loginWithRedirect"
+                @click="() => loginWithRedirect()"
                 class="login-button"
               >
                 <template #icon>
@@ -391,6 +499,33 @@ onUnmounted(() => {
             </template>
           </NInput>
 
+          <!-- Search options -->
+          <div class="search-options">
+            <div class="entity-type-selectors">
+              <span class="search-section-label">Search in:</span>
+              <NCheckbox
+                :checked="selectedEntityTypes.includes(SearchEntityType.Filesystem)"
+                @update:checked="
+                  (checked) => toggleEntityType(SearchEntityType.Filesystem, checked)
+                "
+              >
+                Filesystem
+              </NCheckbox>
+              <NCheckbox
+                :checked="selectedEntityTypes.includes(SearchEntityType.Registry)"
+                @update:checked="(checked) => toggleEntityType(SearchEntityType.Registry, checked)"
+              >
+                Registry
+              </NCheckbox>
+            </div>
+            <div class="case-sensitive-option">
+              <NSwitch v-model:value="caseSensitive" size="small" />
+              <span class="search-option-label" @click="caseSensitive = !caseSensitive"
+                >Case sensitive</span
+              >
+            </div>
+          </div>
+
           <!-- Streaming status indicator -->
           <div v-if="isStreaming" class="streaming-status">
             <NSpin size="small" />
@@ -398,32 +533,68 @@ onUnmounted(() => {
             <span>Streaming results... ({{ streamingResultCount }} found)</span>
           </div>
 
-          <NDataTable
+          <!-- Results Tabs -->
+          <NTabs
             v-if="searchResults.length > 0 || isLoading"
-            :columns="searchColumns"
-            :data="searchResults"
-            :loading="isLoading && searchResults.length === 0"
-            :max-height="500"
-            :pagination="{
-              page: currentPage,
-              pageSize: pageSize,
-              showSizePicker: true,
-              pageSizes: [10, 20, 50, 100],
-              onChange: (page: number) => {
-                currentPage = page
-              },
-              onUpdatePageSize: (size: number) => {
-                pageSize = size
-              }
-            }"
-            :row-props="
-              (row: SearchResult) => ({
-                style: 'cursor: pointer;',
-                onClick: () => handleRowClick(row)
-              })
-            "
-            striped
-          />
+            v-model:value="activeResultTab"
+            type="line"
+            animated
+          >
+            <NTabPane name="filesystem" :tab="`Filesystem (${filesystemResults.length})`">
+              <NDataTable
+                :columns="filesystemColumns"
+                :data="filesystemResults"
+                :loading="isLoading && filesystemResults.length === 0"
+                :max-height="500"
+                :pagination="{
+                  page: currentPage,
+                  pageSize: pageSize,
+                  showSizePicker: true,
+                  pageSizes: [10, 20, 50, 100],
+                  onChange: (page: number) => {
+                    currentPage = page
+                  },
+                  onUpdatePageSize: (size: number) => {
+                    pageSize = size
+                  }
+                }"
+                :row-props="
+                  (row: SearchResult) => ({
+                    style: 'cursor: pointer;',
+                    onClick: () => handleRowClick(row)
+                  })
+                "
+                striped
+              />
+            </NTabPane>
+            <NTabPane name="registry" :tab="`Registry (${registryResults.length})`">
+              <NDataTable
+                :columns="registryColumns"
+                :data="registryResults"
+                :loading="isLoading && registryResults.length === 0"
+                :max-height="500"
+                :pagination="{
+                  page: currentPage,
+                  pageSize: pageSize,
+                  showSizePicker: true,
+                  pageSizes: [10, 20, 50, 100],
+                  onChange: (page: number) => {
+                    currentPage = page
+                  },
+                  onUpdatePageSize: (size: number) => {
+                    pageSize = size
+                  }
+                }"
+                :row-props="
+                  (row: SearchResult) => ({
+                    style: 'cursor: pointer;',
+                    onClick: () => handleRowClick(row)
+                  })
+                "
+                striped
+              />
+            </NTabPane>
+          </NTabs>
 
           <div
             v-else-if="
@@ -677,6 +848,39 @@ body {
   50% {
     opacity: 0.5;
   }
+}
+
+.search-options {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.entity-type-selectors {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.case-sensitive-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.search-option-label {
+  font-size: 14px;
+  color: #4b5563;
+  user-select: none;
+  cursor: pointer;
 }
 
 .search-highlight {

@@ -144,3 +144,62 @@ export function sortRegistryEntries<T extends RegistryEntry>(entries: T[]): T[] 
     return a.name.localeCompare(b.name)
   })
 }
+
+/**
+ * Parse entity_path from search results into hive, parent path, and target name
+ * Format: /SOFTWARE/Microsoft/PolicyManager/... (first component is hive name)
+ *
+ * Example: "/SOFTWARE/Microsoft/Windows/CurrentVersion/ProductName"
+ * Returns: { hiveName: "SOFTWARE", parentPath: "/Microsoft/Windows/CurrentVersion", targetName: "ProductName" }
+ */
+export function parseRegistryEntityPath(entityPath: string): {
+  hiveName: string
+  parentPath: string
+  targetName: string
+} | null {
+  if (!entityPath || entityPath === '/') return null
+
+  const segments = splitRegistryPath(entityPath)
+  if (segments.length === 0) return null
+
+  const hiveName = segments[0]
+  const targetName = segments[segments.length - 1]
+
+  // If only one segment, it's the hive itself
+  if (segments.length === 1) {
+    return {
+      hiveName,
+      parentPath: '/',
+      targetName: ''
+    }
+  }
+
+  // Parent path is everything between hive and target
+  const parentSegments = segments.slice(1, -1)
+  const parentPath = parentSegments.length > 0 ? '/' + parentSegments.join('/') : '/'
+
+  return {
+    hiveName,
+    parentPath,
+    targetName
+  }
+}
+
+/**
+ * Normalize hive names for comparison (handles /SOFTWARE, SOFTWARE/, etc.)
+ */
+export function normalizeHiveName(hiveName: string): string {
+  return hiveName.replace(/^\/+|\/+$/g, '').toUpperCase()
+}
+
+/**
+ * Match hive by mount path (handles /config/SOFTWARE vs SOFTWARE)
+ * Returns true if the hive name matches any path segment in the mount path
+ */
+export function matchesHive(mountPath: string, hiveName: string): boolean {
+  const normalizedHive = normalizeHiveName(hiveName)
+  const mountSegments = splitRegistryPath(mountPath).map((s) => s.toUpperCase())
+
+  // Check if any segment exactly matches the hive name
+  return mountSegments.some((segment) => segment === normalizedHive)
+}
