@@ -32,7 +32,7 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
-import { TreeNodeType } from '@/types'
+import { TreeNodeType, treeNodeTypeToString } from '@/types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
@@ -71,7 +71,7 @@ const {
 
 // Table filtering
 const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
-  entries,
+  entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
 })
@@ -108,7 +108,7 @@ async function exportLocalDiff() {
     entries: diffEntries.map((e) => ({
       path: e.path,
       name: e.name,
-      type: e.type,
+      type: treeNodeTypeToString(e.type),
       status: e.status,
       baseHash: e.baseHash,
       diffeeHash: e.diffeeHash,
@@ -599,7 +599,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
         <NDataTable
           :columns="tableColumns"
-          :data="filteredEntries"
+          :data="(filteredEntries as any)"
           :row-props="getRowProps"
           striped
           virtual-scroll

@@ -388,9 +388,12 @@ function attachHoverEffects(hoverBg: D3Rect, circle: D3Circle, onClick: (event: 
     .on('mouseleave', function (event) {
       // Don't hide if moving to the view button
       const relatedTarget = event.relatedTarget
+      const buttonNode = d3.select(parentNode).select('.view-button').node()
       if (
         relatedTarget &&
-        d3.select(parentNode).select('.view-button').node()?.contains(relatedTarget)
+        buttonNode &&
+        'contains' in buttonNode &&
+        buttonNode.contains(relatedTarget)
       ) {
         return
       }

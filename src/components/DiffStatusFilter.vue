@@ -13,7 +13,8 @@ const emit = defineEmits<{
 const statusColors = {
   [DiffStatus.New]: { bg: '#dcfce7', text: '#166534' },
   [DiffStatus.Mod]: { bg: '#fef3c7', text: '#92400e' },
-  [DiffStatus.Del]: { bg: '#fee2e2', text: '#991b1b' }
+  [DiffStatus.Del]: { bg: '#fee2e2', text: '#991b1b' },
+  [DiffStatus.Unchanged]: { bg: '#f3f4f6', text: '#6b7280' }
 }
 
 function isStatusSelected(status: DiffStatus): boolean {

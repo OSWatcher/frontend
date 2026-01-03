@@ -413,7 +413,7 @@ onUnmounted(() => {
               <NButton
                 v-if="!isAuthenticated"
                 type="info"
-                @click="loginWithRedirect"
+                @click="() => loginWithRedirect()"
                 class="login-button"
               >
                 <template #icon>

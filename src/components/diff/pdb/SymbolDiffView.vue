@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { defineProps, PropType } from 'vue'
+import { defineProps } from 'vue'
+import type { PropType } from 'vue'
 import TreeDiffExplorer from '@/components/diff/TreeDiffExplorer.vue'
 import type { HashDiff } from '@/types'
 
