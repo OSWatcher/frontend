@@ -6,7 +6,6 @@ import {
   NBreadcrumbItem,
   NIcon,
   NSelect,
-  NTag,
   NButton,
   NDropdown,
   NInput,
@@ -31,17 +30,21 @@ import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
 import { DiffStatus } from '@/graphql-types'
-import { formatRegistryValue, getRegistryStatusTagType } from '@/utils/registry'
+import { formatRegistryValue } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
   layout: { type: String as PropType<InspectorLayout>, default: 'unified' },
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined }
+  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
+  targetHive: { type: String, default: '' },
+  targetPath: { type: String, default: '/' },
+  highlightKey: { type: String, default: '' }
 })
 
 const {
@@ -54,18 +57,24 @@ const {
   selectedHive,
   navigateToPath,
   selectHive,
-  currentPath
+  currentPath,
+  statusFilter,
+  setStatusFilter,
+  highlightedKey
 } = useRegistryInspector(
   props.mode,
   props.layout,
   props.commit,
   props.baseCommit,
-  props.diffeeCommit
+  props.diffeeCommit,
+  props.targetHive,
+  props.targetPath,
+  props.highlightKey
 )
 
 // Table filtering
 const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
-  entries,
+  entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
 })
@@ -108,7 +117,7 @@ async function exportLocalDiff() {
     props.diffeeCommit?.name || 'diffee',
     'local'
   )
-  downloadJsonFile(exportData, filename)
+  downloadJsonFile(exportData as any, filename)
 }
 
 // Export full diff (recursive)
@@ -303,13 +312,6 @@ const comparisonModeColumns = computed<DataTableColumns<RegistryDiffEntry>>(() =
         row.name
       )
   },
-  {
-    key: 'status',
-    title: 'Status',
-    width: 120,
-    render: (row) =>
-      h(NTag, { type: getRegistryStatusTagType(row.status), size: 'small' }, () => row.status)
-  },
   { key: 'type', title: 'Type', width: 140, render: (row) => row.valueType || '-' },
   {
     key: 'value',
@@ -436,6 +438,11 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
     classes.push(`diff-row-${diffEntry.status.toLowerCase()}`)
   }
 
+  // Add highlighting for deep-linked rows
+  if (highlightedKey.value && row.name === highlightedKey.value) {
+    classes.push('highlighted-row')
+  }
+
   if (classes.length > 0) {
     baseProps.class = classes.join(' ')
   }
@@ -493,7 +500,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
         </NBreadcrumb>
 
         <div class="header-actions">
-          <!-- Filter input -->
+          <!-- Filter input (from master - always visible) -->
           <div class="filter-controls">
             <NInput
               ref="filterInputRef"
@@ -515,8 +522,10 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
             </span>
           </div>
 
-          <!-- Export button with dropdown (only in comparison mode) -->
-          <div v-if="mode === 'comparison'" class="export-buttons">
+          <!-- DiffStatusFilter and Export (from dev - only in comparison mode) -->
+          <template v-if="mode === 'comparison'">
+            <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
+
             <NDropdown :options="exportOptions" trigger="click">
               <NButton size="small" :loading="isExporting">
                 <template #icon
@@ -525,7 +534,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
                 Export
               </NButton>
             </NDropdown>
-          </div>
+          </template>
         </div>
       </div>
 
@@ -547,7 +556,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           <div v-if="filteredEntries.length > 0" class="table-container">
             <NDataTable
               :columns="tableColumns"
-              :data="filteredEntries"
+              :data="filteredEntries as any"
               :row-props="getRowProps"
               striped
               virtual-scroll
@@ -677,10 +686,6 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   font-family: monospace;
 }
 
-.export-buttons {
-  flex-shrink: 0;
-}
-
 /* Breadcrumb icons (yellow) */
 :deep(.breadcrumb-nav .n-icon) {
   color: #f59e0b !important; /* amber-500 */
@@ -799,5 +804,16 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   padding: 8px 12px;
   border-bottom: 1px solid #e5e7eb;
   margin: 0 0 12px 0;
+}
+
+/* Highlighted row for deep-linking */
+:deep(.n-data-table-tr.highlighted-row),
+:deep(.n-data-table-tr.highlighted-row .n-data-table-td) {
+  background-color: #fef08a !important; /* yellow-200 */
+  border-left: 3px solid #eab308; /* yellow-500 */
+}
+:deep(.n-data-table-tr.highlighted-row:hover),
+:deep(.n-data-table-tr.highlighted-row:hover .n-data-table-td) {
+  background-color: #fde047 !important; /* yellow-300 */
 }
 </style>

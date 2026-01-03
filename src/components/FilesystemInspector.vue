@@ -32,11 +32,12 @@ import type {
   FilesystemEntry,
   FilesystemDiffEntry
 } from '@/types/inspector'
-import { TreeNodeType } from '@/types'
+import { TreeNodeType, treeNodeTypeToString } from '@/types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
+import DiffStatusFilter from './DiffStatusFilter.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -48,20 +49,29 @@ const props = defineProps({
   highlightFile: { type: String, default: '' }
 })
 
-const { entries, breadcrumbs, isLoading, error, navigateToPath, highlightedFile, currentPath } =
-  useFilesystemInspector(
-    props.mode,
-    props.layout,
-    props.commit,
-    props.baseCommit,
-    props.diffeeCommit,
-    props.targetDirectory,
-    props.highlightFile
-  )
+const {
+  entries,
+  breadcrumbs,
+  isLoading,
+  error,
+  navigateToPath,
+  highlightedFile,
+  currentPath,
+  statusFilter,
+  setStatusFilter
+} = useFilesystemInspector(
+  props.mode,
+  props.layout,
+  props.commit,
+  props.baseCommit,
+  props.diffeeCommit,
+  props.targetDirectory,
+  props.highlightFile
+)
 
 // Table filtering
 const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
-  entries,
+  entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
 })
@@ -98,7 +108,7 @@ async function exportLocalDiff() {
     entries: diffEntries.map((e) => ({
       path: e.path,
       name: e.name,
-      type: e.type,
+      type: treeNodeTypeToString(e.type),
       status: e.status,
       baseHash: e.baseHash,
       diffeeHash: e.diffeeHash,
@@ -534,7 +544,9 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
             style="width: 220px"
           >
             <template #prefix>
-              <NIcon :size="16"><SearchOutline /></NIcon>
+              <NIcon :size="16">
+                <SearchOutline />
+              </NIcon>
             </template>
             <template #suffix>
               <span v-if="!searchQuery" class="shortcut-hint">/</span>
@@ -545,17 +557,22 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
           </span>
         </div>
 
-        <!-- Export button with dropdown (only in comparison mode) -->
-        <div v-if="mode === 'comparison'" class="export-buttons">
+        <!-- DiffStatusFilter and Export (only in comparison mode) -->
+        <template v-if="mode === 'comparison'">
+          <DiffStatusFilter v-model="statusFilter" @update:model-value="setStatusFilter" />
+
+          <!-- Export Dropdown -->
           <NDropdown :options="exportOptions" trigger="click">
             <NButton size="small" :loading="isExporting">
-              <template #icon
-                ><NIcon><DownloadOutline /></NIcon
-              ></template>
+              <template #icon>
+                <NIcon>
+                  <DownloadOutline />
+                </NIcon>
+              </template>
               Export
             </NButton>
           </NDropdown>
-        </div>
+        </template>
       </div>
     </div>
 
@@ -582,7 +599,7 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
       <div v-else-if="mode === 'single' || layout === 'unified'" class="table-container">
         <NDataTable
           :columns="tableColumns"
-          :data="filteredEntries"
+          :data="filteredEntries as any"
           :row-props="getRowProps"
           striped
           virtual-scroll

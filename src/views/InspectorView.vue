@@ -27,10 +27,12 @@ import { NSpin, NAlert, NTabs, NTabPane } from 'naive-ui'
 import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
+import PDBInspector from '@/components/PDBInspector.vue'
 import gqlClient from '@/graphql-client'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
+import { useSearchContextStore } from '@/stores/searchContext'
 
 // ===================================================================
 // ROUTING
@@ -38,6 +40,7 @@ import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/gra
 
 const route = useRoute()
 const router = useRouter()
+const searchContext = useSearchContextStore()
 
 // ===================================================================
 // STATE
@@ -77,13 +80,15 @@ const branchName = ref<string>('')
 
 /**
  * Active tab name
+ * Initialized from query params or defaults to filesystem
  */
-const activeTab = ref<string>('filesystem')
+const activeTab = ref<string>((route.query.tab as string) || 'filesystem')
 
 /**
  * Available capabilities (filesystem, registry, pdb)
  */
 const hasRegistry = ref<boolean>(false)
+const hasPDB = ref<boolean>(false)
 
 /**
  * Loading state for capabilities check
@@ -135,6 +140,33 @@ const targetDirectory = computed<string>(() => {
  */
 const highlightFile = computed<string>(() => {
   return (route.query.highlight as string) || ''
+})
+
+/**
+ * Target Registry Hive
+ *
+ * Gets target registry hive from query params (e.g., ?regHive=SOFTWARE)
+ */
+const targetRegistryHive = computed<string>(() => {
+  return (route.query.regHive as string) || ''
+})
+
+/**
+ * Target Registry Path
+ *
+ * Gets target registry path from query params (e.g., ?regPath=/Microsoft/Windows)
+ */
+const targetRegistryPath = computed<string>(() => {
+  return (route.query.regPath as string) || '/'
+})
+
+/**
+ * Highlight Registry Key
+ *
+ * Gets registry key to highlight from query params (e.g., ?regHighlight=ProductName)
+ */
+const highlightRegistryKey = computed<string>(() => {
+  return (route.query.regHighlight as string) || ''
 })
 
 // ===================================================================
@@ -191,10 +223,12 @@ async function checkCapabilities(commitHash: string) {
     })
     const labels = capabilitiesResponse.data.getCommitExtractedDataLabels || []
     hasRegistry.value = labels.includes('WinRegKey') || labels.includes('WinRegValue')
+    hasPDB.value = labels.includes('Symbol') || labels.includes('Struct')
   } catch (err) {
     console.warn('Error checking commit capabilities:', err)
     // Capabilities check failure doesn't block the UI - just hide optional tabs
     hasRegistry.value = false
+    hasPDB.value = false
   } finally {
     isLoadingCapabilities.value = false
   }
@@ -322,6 +356,48 @@ watch(
     initializeInspector()
   }
 )
+
+/**
+ * Sync active tab with search context store
+ */
+watch(
+  activeTab,
+  (tab) => {
+    searchContext.setActiveTab(tab as 'filesystem' | 'registry')
+  },
+  { immediate: true }
+)
+
+/**
+ * Watch for tab changes in query params
+ */
+watch(
+  () => route.query.tab,
+  (newTab) => {
+    if (newTab && typeof newTab === 'string') {
+      activeTab.value = newTab
+    }
+  }
+)
+
+/**
+ * Auto-switch to registry tab when it becomes available (for deep-linking)
+ */
+watch(
+  () => hasRegistry.value,
+  (isAvailable) => {
+    if (isAvailable && targetRegistryHive.value) {
+      activeTab.value = 'registry'
+    }
+  }
+)
+
+/**
+ * Set inspector view flag on mount
+ */
+onMounted(() => {
+  searchContext.setInspectorView(true)
+})
 </script>
 
 <template>
@@ -386,8 +462,29 @@ watch(
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
               :commit="singleCommit"
+              :target-hive="targetRegistryHive"
+              :target-path="targetRegistryPath"
+              :highlight-key="highlightRegistryKey"
             />
             <RegistryInspector
+              v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
+              :mode="inspectorMode"
+              :base-commit="baseCommit"
+              :diffee-commit="diffeeCommit"
+              :target-hive="targetRegistryHive"
+              :target-path="targetRegistryPath"
+              :highlight-key="highlightRegistryKey"
+            />
+          </NTabPane>
+
+          <!-- PDB Tab (disabled) -->
+          <NTabPane v-if="false" name="pdb" tab="PDB">
+            <PDBInspector
+              v-if="inspectorMode === 'single' && singleCommit"
+              :mode="inspectorMode"
+              :commit="singleCommit"
+            />
+            <PDBInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
               :mode="inspectorMode"
               :base-commit="baseCommit"

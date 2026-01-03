@@ -26,8 +26,8 @@ export type Scalars = {
 
 export type Blob = Hashable & {
   __typename?: 'Blob'
-  has_struct: Array<WinStruct>
-  has_structAggregate?: Maybe<BlobWinStructHas_StructAggregationSelection>
+  has_struct: Array<Struct>
+  has_structAggregate?: Maybe<BlobStructHas_StructAggregationSelection>
   has_structConnection: BlobHas_StructConnection
   has_symbol: Array<Symbol>
   has_symbolAggregate?: Maybe<BlobSymbolHas_SymbolAggregationSelection>
@@ -40,13 +40,13 @@ export type Blob = Hashable & {
 
 export type BlobHas_StructArgs = {
   directed?: InputMaybe<Scalars['Boolean']['input']>
-  options?: InputMaybe<WinStructOptions>
-  where?: InputMaybe<WinStructWhere>
+  options?: InputMaybe<StructOptions>
+  where?: InputMaybe<StructWhere>
 }
 
 export type BlobHas_StructAggregateArgs = {
   directed?: InputMaybe<Scalars['Boolean']['input']>
-  where?: InputMaybe<WinStructWhere>
+  where?: InputMaybe<StructWhere>
 }
 
 export type BlobHas_StructConnectionArgs = {
@@ -123,7 +123,7 @@ export type BlobHas_StructConnection = {
 
 export type BlobHas_StructConnectionSort = {
   edge?: InputMaybe<HasNameRelSort>
-  node?: InputMaybe<WinStructSort>
+  node?: InputMaybe<StructSort>
 }
 
 export type BlobHas_StructConnectionWhere = {
@@ -131,7 +131,7 @@ export type BlobHas_StructConnectionWhere = {
   NOT?: InputMaybe<BlobHas_StructConnectionWhere>
   OR?: InputMaybe<Array<BlobHas_StructConnectionWhere>>
   edge?: InputMaybe<HasNameRelWhere>
-  node?: InputMaybe<WinStructWhere>
+  node?: InputMaybe<StructWhere>
 }
 
 export type BlobHas_StructNodeAggregationWhereInput = {
@@ -193,7 +193,7 @@ export type BlobHas_StructNodeAggregationWhereInput = {
 export type BlobHas_StructRelationship = {
   __typename?: 'BlobHas_structRelationship'
   cursor: Scalars['String']['output']
-  node: WinStruct
+  node: Struct
   properties: HasNameRel
 }
 
@@ -342,6 +342,25 @@ export type BlobSort = {
   hash?: InputMaybe<SortDirection>
 }
 
+export type BlobStructHas_StructAggregationSelection = {
+  __typename?: 'BlobStructHas_structAggregationSelection'
+  count: Scalars['Int']['output']
+  edge?: Maybe<BlobStructHas_StructEdgeAggregateSelection>
+  node?: Maybe<BlobStructHas_StructNodeAggregateSelection>
+}
+
+export type BlobStructHas_StructEdgeAggregateSelection = {
+  __typename?: 'BlobStructHas_structEdgeAggregateSelection'
+  name: StringAggregateSelection
+}
+
+export type BlobStructHas_StructNodeAggregateSelection = {
+  __typename?: 'BlobStructHas_structNodeAggregateSelection'
+  hash: StringAggregateSelection
+  kind: StringAggregateSelection
+  size: IntAggregateSelection
+}
+
 export type BlobSymbolHas_SymbolAggregationSelection = {
   __typename?: 'BlobSymbolHas_symbolAggregationSelection'
   count: Scalars['Int']['output']
@@ -373,14 +392,14 @@ export type BlobWhere = {
   has_structConnection_SINGLE?: InputMaybe<BlobHas_StructConnectionWhere>
   /** Return Blobs where some of the related BlobHas_structConnections match this filter */
   has_structConnection_SOME?: InputMaybe<BlobHas_StructConnectionWhere>
-  /** Return Blobs where all of the related WinStructs match this filter */
-  has_struct_ALL?: InputMaybe<WinStructWhere>
-  /** Return Blobs where none of the related WinStructs match this filter */
-  has_struct_NONE?: InputMaybe<WinStructWhere>
-  /** Return Blobs where one of the related WinStructs match this filter */
-  has_struct_SINGLE?: InputMaybe<WinStructWhere>
-  /** Return Blobs where some of the related WinStructs match this filter */
-  has_struct_SOME?: InputMaybe<WinStructWhere>
+  /** Return Blobs where all of the related Structs match this filter */
+  has_struct_ALL?: InputMaybe<StructWhere>
+  /** Return Blobs where none of the related Structs match this filter */
+  has_struct_NONE?: InputMaybe<StructWhere>
+  /** Return Blobs where one of the related Structs match this filter */
+  has_struct_SINGLE?: InputMaybe<StructWhere>
+  /** Return Blobs where some of the related Structs match this filter */
+  has_struct_SOME?: InputMaybe<StructWhere>
   has_symbolAggregate?: InputMaybe<BlobHas_SymbolAggregateInput>
   /** Return Blobs where all of the related BlobHas_symbolConnections match this filter */
   has_symbolConnection_ALL?: InputMaybe<BlobHas_SymbolConnectionWhere>
@@ -419,25 +438,6 @@ export type BlobWinRegKeyHas_WinregAggregationSelection = {
 export type BlobWinRegKeyHas_WinregNodeAggregateSelection = {
   __typename?: 'BlobWinRegKeyHas_winregNodeAggregateSelection'
   hash: StringAggregateSelection
-}
-
-export type BlobWinStructHas_StructAggregationSelection = {
-  __typename?: 'BlobWinStructHas_structAggregationSelection'
-  count: Scalars['Int']['output']
-  edge?: Maybe<BlobWinStructHas_StructEdgeAggregateSelection>
-  node?: Maybe<BlobWinStructHas_StructNodeAggregateSelection>
-}
-
-export type BlobWinStructHas_StructEdgeAggregateSelection = {
-  __typename?: 'BlobWinStructHas_structEdgeAggregateSelection'
-  name: StringAggregateSelection
-}
-
-export type BlobWinStructHas_StructNodeAggregateSelection = {
-  __typename?: 'BlobWinStructHas_structNodeAggregateSelection'
-  hash: StringAggregateSelection
-  kind: StringAggregateSelection
-  size: IntAggregateSelection
 }
 
 export type BlobsConnection = {
@@ -1105,6 +1105,286 @@ export type CommitsConnection = {
   totalCount: Scalars['Int']['output']
 }
 
+export type DataType = Hashable & {
+  __typename?: 'DataType'
+  array_counter?: Maybe<Scalars['Int']['output']>
+  bit_length?: Maybe<Scalars['Int']['output']>
+  bit_position?: Maybe<Scalars['Int']['output']>
+  has_data_type?: Maybe<DataType>
+  has_data_typeAggregate?: Maybe<DataTypeDataTypeHas_Data_TypeAggregationSelection>
+  has_data_typeConnection: DataTypeHas_Data_TypeConnection
+  hash: Scalars['String']['output']
+  name?: Maybe<Scalars['String']['output']>
+  type: Scalars['String']['output']
+}
+
+export type DataTypeHas_Data_TypeArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  options?: InputMaybe<DataTypeOptions>
+  where?: InputMaybe<DataTypeWhere>
+}
+
+export type DataTypeHas_Data_TypeAggregateArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  where?: InputMaybe<DataTypeWhere>
+}
+
+export type DataTypeHas_Data_TypeConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<DataTypeHas_Data_TypeConnectionSort>>
+  where?: InputMaybe<DataTypeHas_Data_TypeConnectionWhere>
+}
+
+export type DataTypeAggregateSelection = {
+  __typename?: 'DataTypeAggregateSelection'
+  array_counter: IntAggregateSelection
+  bit_length: IntAggregateSelection
+  bit_position: IntAggregateSelection
+  count: Scalars['Int']['output']
+  hash: StringAggregateSelection
+  name: StringAggregateSelection
+  type: StringAggregateSelection
+}
+
+export type DataTypeDataTypeHas_Data_TypeAggregationSelection = {
+  __typename?: 'DataTypeDataTypeHas_data_typeAggregationSelection'
+  count: Scalars['Int']['output']
+  node?: Maybe<DataTypeDataTypeHas_Data_TypeNodeAggregateSelection>
+}
+
+export type DataTypeDataTypeHas_Data_TypeNodeAggregateSelection = {
+  __typename?: 'DataTypeDataTypeHas_data_typeNodeAggregateSelection'
+  array_counter: IntAggregateSelection
+  bit_length: IntAggregateSelection
+  bit_position: IntAggregateSelection
+  hash: StringAggregateSelection
+  name: StringAggregateSelection
+  type: StringAggregateSelection
+}
+
+export type DataTypeEdge = {
+  __typename?: 'DataTypeEdge'
+  cursor: Scalars['String']['output']
+  node: DataType
+}
+
+export type DataTypeHas_Data_TypeAggregateInput = {
+  AND?: InputMaybe<Array<DataTypeHas_Data_TypeAggregateInput>>
+  NOT?: InputMaybe<DataTypeHas_Data_TypeAggregateInput>
+  OR?: InputMaybe<Array<DataTypeHas_Data_TypeAggregateInput>>
+  count?: InputMaybe<Scalars['Int']['input']>
+  count_GT?: InputMaybe<Scalars['Int']['input']>
+  count_GTE?: InputMaybe<Scalars['Int']['input']>
+  count_LT?: InputMaybe<Scalars['Int']['input']>
+  count_LTE?: InputMaybe<Scalars['Int']['input']>
+  node?: InputMaybe<DataTypeHas_Data_TypeNodeAggregationWhereInput>
+}
+
+export type DataTypeHas_Data_TypeConnection = {
+  __typename?: 'DataTypeHas_data_typeConnection'
+  edges: Array<DataTypeHas_Data_TypeRelationship>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
+export type DataTypeHas_Data_TypeConnectionSort = {
+  node?: InputMaybe<DataTypeSort>
+}
+
+export type DataTypeHas_Data_TypeConnectionWhere = {
+  AND?: InputMaybe<Array<DataTypeHas_Data_TypeConnectionWhere>>
+  NOT?: InputMaybe<DataTypeHas_Data_TypeConnectionWhere>
+  OR?: InputMaybe<Array<DataTypeHas_Data_TypeConnectionWhere>>
+  node?: InputMaybe<DataTypeWhere>
+}
+
+export type DataTypeHas_Data_TypeNodeAggregationWhereInput = {
+  AND?: InputMaybe<Array<DataTypeHas_Data_TypeNodeAggregationWhereInput>>
+  NOT?: InputMaybe<DataTypeHas_Data_TypeNodeAggregationWhereInput>
+  OR?: InputMaybe<Array<DataTypeHas_Data_TypeNodeAggregationWhereInput>>
+  array_counter_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  array_counter_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
+  array_counter_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
+  array_counter_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
+  array_counter_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
+  array_counter_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MAX_GT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MAX_LT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MIN_GT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MIN_LT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  array_counter_SUM_GT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_SUM_LT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  bit_length_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
+  bit_length_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
+  bit_length_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
+  bit_length_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
+  bit_length_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MAX_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MAX_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MIN_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MIN_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_length_SUM_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_SUM_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  bit_position_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
+  bit_position_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
+  bit_position_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
+  bit_position_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
+  bit_position_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MAX_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MAX_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MIN_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MIN_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  bit_position_SUM_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_SUM_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  name_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  name_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  name_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  name_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  name_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  type_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  type_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  type_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  type_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  type_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  type_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  type_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  type_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  type_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  type_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  type_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  type_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  type_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  type_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  type_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type DataTypeHas_Data_TypeRelationship = {
+  __typename?: 'DataTypeHas_data_typeRelationship'
+  cursor: Scalars['String']['output']
+  node: DataType
+}
+
+export type DataTypeOptions = {
+  limit?: InputMaybe<Scalars['Int']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  /** Specify one or more DataTypeSort objects to sort DataTypes by. The sorts will be applied in the order in which they are arranged in the array. */
+  sort?: InputMaybe<Array<DataTypeSort>>
+}
+
+/** Fields to sort DataTypes by. The order in which sorts are applied is not guaranteed when specifying many fields in one DataTypeSort object. */
+export type DataTypeSort = {
+  array_counter?: InputMaybe<SortDirection>
+  bit_length?: InputMaybe<SortDirection>
+  bit_position?: InputMaybe<SortDirection>
+  hash?: InputMaybe<SortDirection>
+  name?: InputMaybe<SortDirection>
+  type?: InputMaybe<SortDirection>
+}
+
+export type DataTypeWhere = {
+  AND?: InputMaybe<Array<DataTypeWhere>>
+  NOT?: InputMaybe<DataTypeWhere>
+  OR?: InputMaybe<Array<DataTypeWhere>>
+  array_counter?: InputMaybe<Scalars['Int']['input']>
+  array_counter_GT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_GTE?: InputMaybe<Scalars['Int']['input']>
+  array_counter_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
+  array_counter_LT?: InputMaybe<Scalars['Int']['input']>
+  array_counter_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length?: InputMaybe<Scalars['Int']['input']>
+  bit_length_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_length_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
+  bit_length_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_length_LTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position?: InputMaybe<Scalars['Int']['input']>
+  bit_position_GT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_GTE?: InputMaybe<Scalars['Int']['input']>
+  bit_position_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
+  bit_position_LT?: InputMaybe<Scalars['Int']['input']>
+  bit_position_LTE?: InputMaybe<Scalars['Int']['input']>
+  has_data_type?: InputMaybe<DataTypeWhere>
+  has_data_typeAggregate?: InputMaybe<DataTypeHas_Data_TypeAggregateInput>
+  has_data_typeConnection?: InputMaybe<DataTypeHas_Data_TypeConnectionWhere>
+  has_data_typeConnection_NOT?: InputMaybe<DataTypeHas_Data_TypeConnectionWhere>
+  has_data_type_NOT?: InputMaybe<DataTypeWhere>
+  hash?: InputMaybe<Scalars['String']['input']>
+  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
+  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  name?: InputMaybe<Scalars['String']['input']>
+  name_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  name_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  name_IN?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>
+  name_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  type?: InputMaybe<Scalars['String']['input']>
+  type_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  type_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  type_IN?: InputMaybe<Array<Scalars['String']['input']>>
+  type_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+}
+
+export type DataTypesConnection = {
+  __typename?: 'DataTypesConnection'
+  edges: Array<DataTypeEdge>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
 export type DateTimeAggregateSelection = {
   __typename?: 'DateTimeAggregateSelection'
   max?: Maybe<Scalars['DateTime']['output']>
@@ -1129,12 +1409,14 @@ export type DiffNodesAtResult = {
 export type DiffNodesOptions = {
   limit?: InputMaybe<Scalars['Int']['input']>
   offset?: InputMaybe<Scalars['Int']['input']>
+  status_filter?: InputMaybe<Array<DiffStatus>>
 }
 
 export enum DiffStatus {
   Del = 'DEL',
   Mod = 'MOD',
-  New = 'NEW'
+  New = 'NEW',
+  Unchanged = 'UNCHANGED'
 }
 
 /**
@@ -1190,9 +1472,9 @@ export type HasFilenameRelWhere = {
  * * Blob.has_symbol
  * * Blob.has_struct
  * * Symbol.blob
- * * WinStruct.fields
- * * WinStruct.blob
- * * WinStructField.struct
+ * * Struct.fields
+ * * Struct.blob
+ * * StructField.struct
  */
 export type HasNameRel = {
   __typename?: 'HasNameRel'
@@ -1254,13 +1536,13 @@ export type HashableEdge = {
 export enum HashableImplementation {
   Blob = 'Blob',
   Commit = 'Commit',
+  DataType = 'DataType',
+  Struct = 'Struct',
+  StructField = 'StructField',
   Symbol = 'Symbol',
   Tree = 'Tree',
-  WinDataType = 'WinDataType',
   WinRegKey = 'WinRegKey',
-  WinRegValue = 'WinRegValue',
-  WinStruct = 'WinStruct',
-  WinStructField = 'WinStructField'
+  WinRegValue = 'WinRegValue'
 }
 
 export type HashableNodeProps = {
@@ -1310,13 +1592,13 @@ export type IntAggregateSelection = {
 
 export enum NodeType {
   Blob = 'Blob',
+  DataType = 'DataType',
+  Struct = 'Struct',
+  StructField = 'StructField',
   Symbol = 'Symbol',
   Tree = 'Tree',
-  WinDataType = 'WinDataType',
   WinRegKey = 'WinRegKey',
-  WinRegValue = 'WinRegValue',
-  WinStruct = 'WinStruct',
-  WinStructField = 'WinStructField'
+  WinRegValue = 'WinRegValue'
 }
 
 /** Pagination information (Relay) */
@@ -1338,15 +1620,24 @@ export type Query = {
   commits: Array<Commit>
   commitsAggregate: CommitAggregateSelection
   commitsConnection: CommitsConnection
+  dataTypes: Array<DataType>
+  dataTypesAggregate: DataTypeAggregateSelection
+  dataTypesConnection: DataTypesConnection
   diffNodesAt: DiffNodesAtResult
   fetchCommitHistory: Array<Commit>
-  fetchStructs: Array<WinStructFetchResult>
+  fetchStructs: Array<StructFetchResult>
   fetchSymbols: Array<SymbolFetchResult>
   getCommitExtractedDataLabels: Array<Scalars['String']['output']>
   hashables: Array<Hashable>
   hashablesAggregate: HashableAggregateSelection
   hashablesConnection: HashablesConnection
   search: Array<SearchResult>
+  structFields: Array<StructField>
+  structFieldsAggregate: StructFieldAggregateSelection
+  structFieldsConnection: StructFieldsConnection
+  structs: Array<Struct>
+  structsAggregate: StructAggregateSelection
+  structsConnection: StructsConnection
   symbols: Array<Symbol>
   symbolsAggregate: SymbolAggregateSelection
   symbolsConnection: SymbolsConnection
@@ -1354,21 +1645,12 @@ export type Query = {
   trees: Array<Tree>
   treesAggregate: TreeAggregateSelection
   treesConnection: TreesConnection
-  winDataTypes: Array<WinDataType>
-  winDataTypesAggregate: WinDataTypeAggregateSelection
-  winDataTypesConnection: WinDataTypesConnection
   winRegKeys: Array<WinRegKey>
   winRegKeysAggregate: WinRegKeyAggregateSelection
   winRegKeysConnection: WinRegKeysConnection
   winRegValues: Array<WinRegValue>
   winRegValuesAggregate: WinRegValueAggregateSelection
   winRegValuesConnection: WinRegValuesConnection
-  winStructFields: Array<WinStructField>
-  winStructFieldsAggregate: WinStructFieldAggregateSelection
-  winStructFieldsConnection: WinStructFieldsConnection
-  winStructs: Array<WinStruct>
-  winStructsAggregate: WinStructAggregateSelection
-  winStructsConnection: WinStructsConnection
 }
 
 export type QueryBlobsArgs = {
@@ -1415,6 +1697,22 @@ export type QueryCommitsConnectionArgs = {
   where?: InputMaybe<CommitWhere>
 }
 
+export type QueryDataTypesArgs = {
+  options?: InputMaybe<DataTypeOptions>
+  where?: InputMaybe<DataTypeWhere>
+}
+
+export type QueryDataTypesAggregateArgs = {
+  where?: InputMaybe<DataTypeWhere>
+}
+
+export type QueryDataTypesConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<InputMaybe<DataTypeSort>>>
+  where?: InputMaybe<DataTypeWhere>
+}
+
 export type QueryDiffNodesAtArgs = {
   at_path: Scalars['String']['input']
   base_node_hash: Scalars['String']['input']
@@ -1433,7 +1731,7 @@ export type QueryFetchCommitHistoryArgs = {
 
 export type QueryFetchStructsArgs = {
   blob_hash: Scalars['String']['input']
-  options?: InputMaybe<WinStructOptions>
+  options?: InputMaybe<StructOptions>
 }
 
 export type QueryFetchSymbolsArgs = {
@@ -1462,8 +1760,39 @@ export type QueryHashablesConnectionArgs = {
 }
 
 export type QuerySearchArgs = {
-  commit_range: CommitRange
-  search_term: Scalars['String']['input']
+  input: SearchInput
+}
+
+export type QueryStructFieldsArgs = {
+  options?: InputMaybe<StructFieldOptions>
+  where?: InputMaybe<StructFieldWhere>
+}
+
+export type QueryStructFieldsAggregateArgs = {
+  where?: InputMaybe<StructFieldWhere>
+}
+
+export type QueryStructFieldsConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<InputMaybe<StructFieldSort>>>
+  where?: InputMaybe<StructFieldWhere>
+}
+
+export type QueryStructsArgs = {
+  options?: InputMaybe<StructOptions>
+  where?: InputMaybe<StructWhere>
+}
+
+export type QueryStructsAggregateArgs = {
+  where?: InputMaybe<StructWhere>
+}
+
+export type QueryStructsConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<InputMaybe<StructSort>>>
+  where?: InputMaybe<StructWhere>
 }
 
 export type QuerySymbolsArgs = {
@@ -1504,22 +1833,6 @@ export type QueryTreesConnectionArgs = {
   where?: InputMaybe<TreeWhere>
 }
 
-export type QueryWinDataTypesArgs = {
-  options?: InputMaybe<WinDataTypeOptions>
-  where?: InputMaybe<WinDataTypeWhere>
-}
-
-export type QueryWinDataTypesAggregateArgs = {
-  where?: InputMaybe<WinDataTypeWhere>
-}
-
-export type QueryWinDataTypesConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<InputMaybe<WinDataTypeSort>>>
-  where?: InputMaybe<WinDataTypeWhere>
-}
-
 export type QueryWinRegKeysArgs = {
   options?: InputMaybe<WinRegKeyOptions>
   where?: InputMaybe<WinRegKeyWhere>
@@ -1552,44 +1865,27 @@ export type QueryWinRegValuesConnectionArgs = {
   where?: InputMaybe<WinRegValueWhere>
 }
 
-export type QueryWinStructFieldsArgs = {
-  options?: InputMaybe<WinStructFieldOptions>
-  where?: InputMaybe<WinStructFieldWhere>
+export enum SearchEntityType {
+  Filesystem = 'FILESYSTEM',
+  Registry = 'REGISTRY'
 }
 
-export type QueryWinStructFieldsAggregateArgs = {
-  where?: InputMaybe<WinStructFieldWhere>
-}
-
-export type QueryWinStructFieldsConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<InputMaybe<WinStructFieldSort>>>
-  where?: InputMaybe<WinStructFieldWhere>
-}
-
-export type QueryWinStructsArgs = {
-  options?: InputMaybe<WinStructOptions>
-  where?: InputMaybe<WinStructWhere>
-}
-
-export type QueryWinStructsAggregateArgs = {
-  where?: InputMaybe<WinStructWhere>
-}
-
-export type QueryWinStructsConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<InputMaybe<WinStructSort>>>
-  where?: InputMaybe<WinStructWhere>
+export type SearchInput = {
+  case_sensitive?: InputMaybe<Scalars['Boolean']['input']>
+  commit_range: CommitRange
+  entity_types?: InputMaybe<Array<SearchEntityType>>
+  search_term: Scalars['String']['input']
 }
 
 export type SearchResult = {
   __typename?: 'SearchResult'
+  blob_hash: Scalars['String']['output']
+  blob_path: Scalars['String']['output']
   commit_hash: Scalars['String']['output']
   commit_name: Scalars['String']['output']
-  hash: Scalars['String']['output']
-  path: Scalars['String']['output']
+  entity_path?: Maybe<Scalars['String']['output']>
+  node_hash: Scalars['String']['output']
+  type: SearchEntityType
 }
 
 /** An enum for sorting in either ascending or descending order. */
@@ -1606,14 +1902,530 @@ export type StringAggregateSelection = {
   shortest?: Maybe<Scalars['String']['output']>
 }
 
+export type Struct = Hashable & {
+  __typename?: 'Struct'
+  blob: Blob
+  blobAggregate?: Maybe<StructBlobBlobAggregationSelection>
+  blobConnection: StructBlobConnection
+  fields: Array<StructField>
+  fieldsAggregate?: Maybe<StructStructFieldFieldsAggregationSelection>
+  fieldsConnection: StructFieldsConnection
+  hash: Scalars['String']['output']
+  kind: Scalars['String']['output']
+  size: Scalars['Int']['output']
+}
+
+export type StructBlobArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  options?: InputMaybe<BlobOptions>
+  where?: InputMaybe<BlobWhere>
+}
+
+export type StructBlobAggregateArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  where?: InputMaybe<BlobWhere>
+}
+
+export type StructBlobConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<StructBlobConnectionSort>>
+  where?: InputMaybe<StructBlobConnectionWhere>
+}
+
+export type StructFieldsArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  options?: InputMaybe<StructFieldOptions>
+  where?: InputMaybe<StructFieldWhere>
+}
+
+export type StructFieldsAggregateArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  where?: InputMaybe<StructFieldWhere>
+}
+
+export type StructFieldsConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<StructFieldsConnectionSort>>
+  where?: InputMaybe<StructFieldsConnectionWhere>
+}
+
+export type StructAggregateSelection = {
+  __typename?: 'StructAggregateSelection'
+  count: Scalars['Int']['output']
+  hash: StringAggregateSelection
+  kind: StringAggregateSelection
+  size: IntAggregateSelection
+}
+
+export type StructBlobAggregateInput = {
+  AND?: InputMaybe<Array<StructBlobAggregateInput>>
+  NOT?: InputMaybe<StructBlobAggregateInput>
+  OR?: InputMaybe<Array<StructBlobAggregateInput>>
+  count?: InputMaybe<Scalars['Int']['input']>
+  count_GT?: InputMaybe<Scalars['Int']['input']>
+  count_GTE?: InputMaybe<Scalars['Int']['input']>
+  count_LT?: InputMaybe<Scalars['Int']['input']>
+  count_LTE?: InputMaybe<Scalars['Int']['input']>
+  edge?: InputMaybe<HasNameRelAggregationWhereInput>
+  node?: InputMaybe<StructBlobNodeAggregationWhereInput>
+}
+
+export type StructBlobBlobAggregationSelection = {
+  __typename?: 'StructBlobBlobAggregationSelection'
+  count: Scalars['Int']['output']
+  edge?: Maybe<StructBlobBlobEdgeAggregateSelection>
+  node?: Maybe<StructBlobBlobNodeAggregateSelection>
+}
+
+export type StructBlobBlobEdgeAggregateSelection = {
+  __typename?: 'StructBlobBlobEdgeAggregateSelection'
+  name: StringAggregateSelection
+}
+
+export type StructBlobBlobNodeAggregateSelection = {
+  __typename?: 'StructBlobBlobNodeAggregateSelection'
+  hash: StringAggregateSelection
+}
+
+export type StructBlobConnection = {
+  __typename?: 'StructBlobConnection'
+  edges: Array<StructBlobRelationship>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
+export type StructBlobConnectionSort = {
+  edge?: InputMaybe<HasNameRelSort>
+  node?: InputMaybe<BlobSort>
+}
+
+export type StructBlobConnectionWhere = {
+  AND?: InputMaybe<Array<StructBlobConnectionWhere>>
+  NOT?: InputMaybe<StructBlobConnectionWhere>
+  OR?: InputMaybe<Array<StructBlobConnectionWhere>>
+  edge?: InputMaybe<HasNameRelWhere>
+  node?: InputMaybe<BlobWhere>
+}
+
+export type StructBlobNodeAggregationWhereInput = {
+  AND?: InputMaybe<Array<StructBlobNodeAggregationWhereInput>>
+  NOT?: InputMaybe<StructBlobNodeAggregationWhereInput>
+  OR?: InputMaybe<Array<StructBlobNodeAggregationWhereInput>>
+  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type StructBlobRelationship = {
+  __typename?: 'StructBlobRelationship'
+  cursor: Scalars['String']['output']
+  node: Blob
+  properties: HasNameRel
+}
+
+export type StructEdge = {
+  __typename?: 'StructEdge'
+  cursor: Scalars['String']['output']
+  node: Struct
+}
+
+export type StructFetchResult = {
+  __typename?: 'StructFetchResult'
+  fields: Array<StructFieldFetchResult>
+  kind: Scalars['String']['output']
+  name: Scalars['String']['output']
+  size: Scalars['Int']['output']
+}
+
+export type StructField = Hashable & {
+  __typename?: 'StructField'
+  data_type: Scalars['JSON']['output']
+  hash: Scalars['String']['output']
+  offset: Scalars['Int']['output']
+  struct: Struct
+  structAggregate?: Maybe<StructFieldStructStructAggregationSelection>
+  structConnection: StructFieldStructConnection
+}
+
+export type StructFieldStructArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  options?: InputMaybe<StructOptions>
+  where?: InputMaybe<StructWhere>
+}
+
+export type StructFieldStructAggregateArgs = {
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  where?: InputMaybe<StructWhere>
+}
+
+export type StructFieldStructConnectionArgs = {
+  after?: InputMaybe<Scalars['String']['input']>
+  directed?: InputMaybe<Scalars['Boolean']['input']>
+  first?: InputMaybe<Scalars['Int']['input']>
+  sort?: InputMaybe<Array<StructFieldStructConnectionSort>>
+  where?: InputMaybe<StructFieldStructConnectionWhere>
+}
+
+export type StructFieldAggregateSelection = {
+  __typename?: 'StructFieldAggregateSelection'
+  count: Scalars['Int']['output']
+  hash: StringAggregateSelection
+  offset: IntAggregateSelection
+}
+
+export type StructFieldEdge = {
+  __typename?: 'StructFieldEdge'
+  cursor: Scalars['String']['output']
+  node: StructField
+}
+
+export type StructFieldFetchResult = {
+  __typename?: 'StructFieldFetchResult'
+  data_type: Scalars['JSON']['output']
+  name: Scalars['String']['output']
+  offset: Scalars['Int']['output']
+}
+
+export type StructFieldOptions = {
+  limit?: InputMaybe<Scalars['Int']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  /** Specify one or more StructFieldSort objects to sort StructFields by. The sorts will be applied in the order in which they are arranged in the array. */
+  sort?: InputMaybe<Array<StructFieldSort>>
+}
+
+/** Fields to sort StructFields by. The order in which sorts are applied is not guaranteed when specifying many fields in one StructFieldSort object. */
+export type StructFieldSort = {
+  data_type?: InputMaybe<SortDirection>
+  hash?: InputMaybe<SortDirection>
+  offset?: InputMaybe<SortDirection>
+}
+
+export type StructFieldStructAggregateInput = {
+  AND?: InputMaybe<Array<StructFieldStructAggregateInput>>
+  NOT?: InputMaybe<StructFieldStructAggregateInput>
+  OR?: InputMaybe<Array<StructFieldStructAggregateInput>>
+  count?: InputMaybe<Scalars['Int']['input']>
+  count_GT?: InputMaybe<Scalars['Int']['input']>
+  count_GTE?: InputMaybe<Scalars['Int']['input']>
+  count_LT?: InputMaybe<Scalars['Int']['input']>
+  count_LTE?: InputMaybe<Scalars['Int']['input']>
+  edge?: InputMaybe<HasNameRelAggregationWhereInput>
+  node?: InputMaybe<StructFieldStructNodeAggregationWhereInput>
+}
+
+export type StructFieldStructConnection = {
+  __typename?: 'StructFieldStructConnection'
+  edges: Array<StructFieldStructRelationship>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
+export type StructFieldStructConnectionSort = {
+  edge?: InputMaybe<HasNameRelSort>
+  node?: InputMaybe<StructSort>
+}
+
+export type StructFieldStructConnectionWhere = {
+  AND?: InputMaybe<Array<StructFieldStructConnectionWhere>>
+  NOT?: InputMaybe<StructFieldStructConnectionWhere>
+  OR?: InputMaybe<Array<StructFieldStructConnectionWhere>>
+  edge?: InputMaybe<HasNameRelWhere>
+  node?: InputMaybe<StructWhere>
+}
+
+export type StructFieldStructNodeAggregationWhereInput = {
+  AND?: InputMaybe<Array<StructFieldStructNodeAggregationWhereInput>>
+  NOT?: InputMaybe<StructFieldStructNodeAggregationWhereInput>
+  OR?: InputMaybe<Array<StructFieldStructNodeAggregationWhereInput>>
+  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  kind_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  kind_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  kind_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  kind_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  kind_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  kind_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  kind_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  kind_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  kind_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  kind_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  kind_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  kind_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  kind_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  kind_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  kind_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  size_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  size_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
+  size_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
+  size_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
+  size_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
+  size_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  size_MAX_GT?: InputMaybe<Scalars['Int']['input']>
+  size_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
+  size_MAX_LT?: InputMaybe<Scalars['Int']['input']>
+  size_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
+  size_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  size_MIN_GT?: InputMaybe<Scalars['Int']['input']>
+  size_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
+  size_MIN_LT?: InputMaybe<Scalars['Int']['input']>
+  size_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
+  size_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  size_SUM_GT?: InputMaybe<Scalars['Int']['input']>
+  size_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
+  size_SUM_LT?: InputMaybe<Scalars['Int']['input']>
+  size_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type StructFieldStructRelationship = {
+  __typename?: 'StructFieldStructRelationship'
+  cursor: Scalars['String']['output']
+  node: Struct
+  properties: HasNameRel
+}
+
+export type StructFieldStructStructAggregationSelection = {
+  __typename?: 'StructFieldStructStructAggregationSelection'
+  count: Scalars['Int']['output']
+  edge?: Maybe<StructFieldStructStructEdgeAggregateSelection>
+  node?: Maybe<StructFieldStructStructNodeAggregateSelection>
+}
+
+export type StructFieldStructStructEdgeAggregateSelection = {
+  __typename?: 'StructFieldStructStructEdgeAggregateSelection'
+  name: StringAggregateSelection
+}
+
+export type StructFieldStructStructNodeAggregateSelection = {
+  __typename?: 'StructFieldStructStructNodeAggregateSelection'
+  hash: StringAggregateSelection
+  kind: StringAggregateSelection
+  size: IntAggregateSelection
+}
+
+export type StructFieldWhere = {
+  AND?: InputMaybe<Array<StructFieldWhere>>
+  NOT?: InputMaybe<StructFieldWhere>
+  OR?: InputMaybe<Array<StructFieldWhere>>
+  data_type?: InputMaybe<Scalars['JSON']['input']>
+  data_type_IN?: InputMaybe<Array<Scalars['JSON']['input']>>
+  hash?: InputMaybe<Scalars['String']['input']>
+  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
+  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  offset_GT?: InputMaybe<Scalars['Int']['input']>
+  offset_GTE?: InputMaybe<Scalars['Int']['input']>
+  offset_IN?: InputMaybe<Array<Scalars['Int']['input']>>
+  offset_LT?: InputMaybe<Scalars['Int']['input']>
+  offset_LTE?: InputMaybe<Scalars['Int']['input']>
+  struct?: InputMaybe<StructWhere>
+  structAggregate?: InputMaybe<StructFieldStructAggregateInput>
+  structConnection?: InputMaybe<StructFieldStructConnectionWhere>
+  structConnection_NOT?: InputMaybe<StructFieldStructConnectionWhere>
+  struct_NOT?: InputMaybe<StructWhere>
+}
+
+export type StructFieldsAggregateInput = {
+  AND?: InputMaybe<Array<StructFieldsAggregateInput>>
+  NOT?: InputMaybe<StructFieldsAggregateInput>
+  OR?: InputMaybe<Array<StructFieldsAggregateInput>>
+  count?: InputMaybe<Scalars['Int']['input']>
+  count_GT?: InputMaybe<Scalars['Int']['input']>
+  count_GTE?: InputMaybe<Scalars['Int']['input']>
+  count_LT?: InputMaybe<Scalars['Int']['input']>
+  count_LTE?: InputMaybe<Scalars['Int']['input']>
+  edge?: InputMaybe<HasNameRelAggregationWhereInput>
+  node?: InputMaybe<StructFieldsNodeAggregationWhereInput>
+}
+
+export type StructFieldsConnection = {
+  __typename?: 'StructFieldsConnection'
+  edges: Array<StructFieldsRelationship>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
+export type StructFieldsConnectionSort = {
+  edge?: InputMaybe<HasNameRelSort>
+  node?: InputMaybe<StructFieldSort>
+}
+
+export type StructFieldsConnectionWhere = {
+  AND?: InputMaybe<Array<StructFieldsConnectionWhere>>
+  NOT?: InputMaybe<StructFieldsConnectionWhere>
+  OR?: InputMaybe<Array<StructFieldsConnectionWhere>>
+  edge?: InputMaybe<HasNameRelWhere>
+  node?: InputMaybe<StructFieldWhere>
+}
+
+export type StructFieldsNodeAggregationWhereInput = {
+  AND?: InputMaybe<Array<StructFieldsNodeAggregationWhereInput>>
+  NOT?: InputMaybe<StructFieldsNodeAggregationWhereInput>
+  OR?: InputMaybe<Array<StructFieldsNodeAggregationWhereInput>>
+  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
+  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
+  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
+  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
+  offset_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
+  offset_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
+  offset_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
+  offset_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
+  offset_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
+  offset_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  offset_MAX_GT?: InputMaybe<Scalars['Int']['input']>
+  offset_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
+  offset_MAX_LT?: InputMaybe<Scalars['Int']['input']>
+  offset_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
+  offset_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  offset_MIN_GT?: InputMaybe<Scalars['Int']['input']>
+  offset_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
+  offset_MIN_LT?: InputMaybe<Scalars['Int']['input']>
+  offset_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
+  offset_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
+  offset_SUM_GT?: InputMaybe<Scalars['Int']['input']>
+  offset_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
+  offset_SUM_LT?: InputMaybe<Scalars['Int']['input']>
+  offset_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type StructFieldsRelationship = {
+  __typename?: 'StructFieldsRelationship'
+  cursor: Scalars['String']['output']
+  node: StructField
+  properties: HasNameRel
+}
+
+export type StructOptions = {
+  limit?: InputMaybe<Scalars['Int']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  /** Specify one or more StructSort objects to sort Structs by. The sorts will be applied in the order in which they are arranged in the array. */
+  sort?: InputMaybe<Array<StructSort>>
+}
+
+/** Fields to sort Structs by. The order in which sorts are applied is not guaranteed when specifying many fields in one StructSort object. */
+export type StructSort = {
+  hash?: InputMaybe<SortDirection>
+  kind?: InputMaybe<SortDirection>
+  size?: InputMaybe<SortDirection>
+}
+
+export type StructStructFieldFieldsAggregationSelection = {
+  __typename?: 'StructStructFieldFieldsAggregationSelection'
+  count: Scalars['Int']['output']
+  edge?: Maybe<StructStructFieldFieldsEdgeAggregateSelection>
+  node?: Maybe<StructStructFieldFieldsNodeAggregateSelection>
+}
+
+export type StructStructFieldFieldsEdgeAggregateSelection = {
+  __typename?: 'StructStructFieldFieldsEdgeAggregateSelection'
+  name: StringAggregateSelection
+}
+
+export type StructStructFieldFieldsNodeAggregateSelection = {
+  __typename?: 'StructStructFieldFieldsNodeAggregateSelection'
+  hash: StringAggregateSelection
+  offset: IntAggregateSelection
+}
+
+export type StructWhere = {
+  AND?: InputMaybe<Array<StructWhere>>
+  NOT?: InputMaybe<StructWhere>
+  OR?: InputMaybe<Array<StructWhere>>
+  blob?: InputMaybe<BlobWhere>
+  blobAggregate?: InputMaybe<StructBlobAggregateInput>
+  blobConnection?: InputMaybe<StructBlobConnectionWhere>
+  blobConnection_NOT?: InputMaybe<StructBlobConnectionWhere>
+  blob_NOT?: InputMaybe<BlobWhere>
+  fieldsAggregate?: InputMaybe<StructFieldsAggregateInput>
+  /** Return Structs where all of the related StructFieldsConnections match this filter */
+  fieldsConnection_ALL?: InputMaybe<StructFieldsConnectionWhere>
+  /** Return Structs where none of the related StructFieldsConnections match this filter */
+  fieldsConnection_NONE?: InputMaybe<StructFieldsConnectionWhere>
+  /** Return Structs where one of the related StructFieldsConnections match this filter */
+  fieldsConnection_SINGLE?: InputMaybe<StructFieldsConnectionWhere>
+  /** Return Structs where some of the related StructFieldsConnections match this filter */
+  fieldsConnection_SOME?: InputMaybe<StructFieldsConnectionWhere>
+  /** Return Structs where all of the related StructFields match this filter */
+  fields_ALL?: InputMaybe<StructFieldWhere>
+  /** Return Structs where none of the related StructFields match this filter */
+  fields_NONE?: InputMaybe<StructFieldWhere>
+  /** Return Structs where one of the related StructFields match this filter */
+  fields_SINGLE?: InputMaybe<StructFieldWhere>
+  /** Return Structs where some of the related StructFields match this filter */
+  fields_SOME?: InputMaybe<StructFieldWhere>
+  hash?: InputMaybe<Scalars['String']['input']>
+  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
+  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  kind?: InputMaybe<Scalars['String']['input']>
+  kind_CONTAINS?: InputMaybe<Scalars['String']['input']>
+  kind_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
+  kind_IN?: InputMaybe<Array<Scalars['String']['input']>>
+  kind_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
+  size?: InputMaybe<Scalars['Int']['input']>
+  size_GT?: InputMaybe<Scalars['Int']['input']>
+  size_GTE?: InputMaybe<Scalars['Int']['input']>
+  size_IN?: InputMaybe<Array<Scalars['Int']['input']>>
+  size_LT?: InputMaybe<Scalars['Int']['input']>
+  size_LTE?: InputMaybe<Scalars['Int']['input']>
+}
+
+export type StructsConnection = {
+  __typename?: 'StructsConnection'
+  edges: Array<StructEdge>
+  pageInfo: PageInfo
+  totalCount: Scalars['Int']['output']
+}
+
 export type Subscription = {
   __typename?: 'Subscription'
   searchStream: SearchResult
 }
 
 export type SubscriptionSearchStreamArgs = {
-  commit_range: CommitRange
-  search_term: Scalars['String']['input']
+  input: SearchInput
 }
 
 export type Symbol = Hashable & {
@@ -2063,286 +2875,6 @@ export type TreesConnection = {
   totalCount: Scalars['Int']['output']
 }
 
-export type WinDataType = Hashable & {
-  __typename?: 'WinDataType'
-  array_counter?: Maybe<Scalars['Int']['output']>
-  bit_length?: Maybe<Scalars['Int']['output']>
-  bit_position?: Maybe<Scalars['Int']['output']>
-  has_data_type?: Maybe<WinDataType>
-  has_data_typeAggregate?: Maybe<WinDataTypeWinDataTypeHas_Data_TypeAggregationSelection>
-  has_data_typeConnection: WinDataTypeHas_Data_TypeConnection
-  hash: Scalars['String']['output']
-  name?: Maybe<Scalars['String']['output']>
-  type: Scalars['String']['output']
-}
-
-export type WinDataTypeHas_Data_TypeArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  options?: InputMaybe<WinDataTypeOptions>
-  where?: InputMaybe<WinDataTypeWhere>
-}
-
-export type WinDataTypeHas_Data_TypeAggregateArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  where?: InputMaybe<WinDataTypeWhere>
-}
-
-export type WinDataTypeHas_Data_TypeConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<WinDataTypeHas_Data_TypeConnectionSort>>
-  where?: InputMaybe<WinDataTypeHas_Data_TypeConnectionWhere>
-}
-
-export type WinDataTypeAggregateSelection = {
-  __typename?: 'WinDataTypeAggregateSelection'
-  array_counter: IntAggregateSelection
-  bit_length: IntAggregateSelection
-  bit_position: IntAggregateSelection
-  count: Scalars['Int']['output']
-  hash: StringAggregateSelection
-  name: StringAggregateSelection
-  type: StringAggregateSelection
-}
-
-export type WinDataTypeEdge = {
-  __typename?: 'WinDataTypeEdge'
-  cursor: Scalars['String']['output']
-  node: WinDataType
-}
-
-export type WinDataTypeHas_Data_TypeAggregateInput = {
-  AND?: InputMaybe<Array<WinDataTypeHas_Data_TypeAggregateInput>>
-  NOT?: InputMaybe<WinDataTypeHas_Data_TypeAggregateInput>
-  OR?: InputMaybe<Array<WinDataTypeHas_Data_TypeAggregateInput>>
-  count?: InputMaybe<Scalars['Int']['input']>
-  count_GT?: InputMaybe<Scalars['Int']['input']>
-  count_GTE?: InputMaybe<Scalars['Int']['input']>
-  count_LT?: InputMaybe<Scalars['Int']['input']>
-  count_LTE?: InputMaybe<Scalars['Int']['input']>
-  node?: InputMaybe<WinDataTypeHas_Data_TypeNodeAggregationWhereInput>
-}
-
-export type WinDataTypeHas_Data_TypeConnection = {
-  __typename?: 'WinDataTypeHas_data_typeConnection'
-  edges: Array<WinDataTypeHas_Data_TypeRelationship>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
-export type WinDataTypeHas_Data_TypeConnectionSort = {
-  node?: InputMaybe<WinDataTypeSort>
-}
-
-export type WinDataTypeHas_Data_TypeConnectionWhere = {
-  AND?: InputMaybe<Array<WinDataTypeHas_Data_TypeConnectionWhere>>
-  NOT?: InputMaybe<WinDataTypeHas_Data_TypeConnectionWhere>
-  OR?: InputMaybe<Array<WinDataTypeHas_Data_TypeConnectionWhere>>
-  node?: InputMaybe<WinDataTypeWhere>
-}
-
-export type WinDataTypeHas_Data_TypeNodeAggregationWhereInput = {
-  AND?: InputMaybe<Array<WinDataTypeHas_Data_TypeNodeAggregationWhereInput>>
-  NOT?: InputMaybe<WinDataTypeHas_Data_TypeNodeAggregationWhereInput>
-  OR?: InputMaybe<Array<WinDataTypeHas_Data_TypeNodeAggregationWhereInput>>
-  array_counter_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  array_counter_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
-  array_counter_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
-  array_counter_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
-  array_counter_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
-  array_counter_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MAX_GT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MAX_LT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MIN_GT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MIN_LT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  array_counter_SUM_GT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_SUM_LT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  bit_length_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
-  bit_length_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
-  bit_length_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
-  bit_length_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
-  bit_length_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MAX_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MAX_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MIN_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MIN_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_length_SUM_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_SUM_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  bit_position_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
-  bit_position_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
-  bit_position_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
-  bit_position_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
-  bit_position_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MAX_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MAX_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MIN_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MIN_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  bit_position_SUM_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_SUM_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
-  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  name_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  name_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  name_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  name_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  name_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  name_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  name_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  name_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  name_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  name_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  name_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  name_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  name_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  name_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  name_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  type_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  type_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  type_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  type_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  type_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  type_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  type_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  type_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  type_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  type_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  type_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  type_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  type_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  type_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  type_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-}
-
-export type WinDataTypeHas_Data_TypeRelationship = {
-  __typename?: 'WinDataTypeHas_data_typeRelationship'
-  cursor: Scalars['String']['output']
-  node: WinDataType
-}
-
-export type WinDataTypeOptions = {
-  limit?: InputMaybe<Scalars['Int']['input']>
-  offset?: InputMaybe<Scalars['Int']['input']>
-  /** Specify one or more WinDataTypeSort objects to sort WinDataTypes by. The sorts will be applied in the order in which they are arranged in the array. */
-  sort?: InputMaybe<Array<WinDataTypeSort>>
-}
-
-/** Fields to sort WinDataTypes by. The order in which sorts are applied is not guaranteed when specifying many fields in one WinDataTypeSort object. */
-export type WinDataTypeSort = {
-  array_counter?: InputMaybe<SortDirection>
-  bit_length?: InputMaybe<SortDirection>
-  bit_position?: InputMaybe<SortDirection>
-  hash?: InputMaybe<SortDirection>
-  name?: InputMaybe<SortDirection>
-  type?: InputMaybe<SortDirection>
-}
-
-export type WinDataTypeWhere = {
-  AND?: InputMaybe<Array<WinDataTypeWhere>>
-  NOT?: InputMaybe<WinDataTypeWhere>
-  OR?: InputMaybe<Array<WinDataTypeWhere>>
-  array_counter?: InputMaybe<Scalars['Int']['input']>
-  array_counter_GT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_GTE?: InputMaybe<Scalars['Int']['input']>
-  array_counter_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
-  array_counter_LT?: InputMaybe<Scalars['Int']['input']>
-  array_counter_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length?: InputMaybe<Scalars['Int']['input']>
-  bit_length_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_length_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
-  bit_length_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_length_LTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position?: InputMaybe<Scalars['Int']['input']>
-  bit_position_GT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_GTE?: InputMaybe<Scalars['Int']['input']>
-  bit_position_IN?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>
-  bit_position_LT?: InputMaybe<Scalars['Int']['input']>
-  bit_position_LTE?: InputMaybe<Scalars['Int']['input']>
-  has_data_type?: InputMaybe<WinDataTypeWhere>
-  has_data_typeAggregate?: InputMaybe<WinDataTypeHas_Data_TypeAggregateInput>
-  has_data_typeConnection?: InputMaybe<WinDataTypeHas_Data_TypeConnectionWhere>
-  has_data_typeConnection_NOT?: InputMaybe<WinDataTypeHas_Data_TypeConnectionWhere>
-  has_data_type_NOT?: InputMaybe<WinDataTypeWhere>
-  hash?: InputMaybe<Scalars['String']['input']>
-  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-  name?: InputMaybe<Scalars['String']['input']>
-  name_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  name_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  name_IN?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>
-  name_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-  type?: InputMaybe<Scalars['String']['input']>
-  type_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  type_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  type_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  type_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-}
-
-export type WinDataTypeWinDataTypeHas_Data_TypeAggregationSelection = {
-  __typename?: 'WinDataTypeWinDataTypeHas_data_typeAggregationSelection'
-  count: Scalars['Int']['output']
-  node?: Maybe<WinDataTypeWinDataTypeHas_Data_TypeNodeAggregateSelection>
-}
-
-export type WinDataTypeWinDataTypeHas_Data_TypeNodeAggregateSelection = {
-  __typename?: 'WinDataTypeWinDataTypeHas_data_typeNodeAggregateSelection'
-  array_counter: IntAggregateSelection
-  bit_length: IntAggregateSelection
-  bit_position: IntAggregateSelection
-  hash: StringAggregateSelection
-  name: StringAggregateSelection
-  type: StringAggregateSelection
-}
-
-export type WinDataTypesConnection = {
-  __typename?: 'WinDataTypesConnection'
-  edges: Array<WinDataTypeEdge>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
 export type WinRegKey = Hashable & {
   __typename?: 'WinRegKey'
   child_keys: Array<WinRegKey>
@@ -2719,523 +3251,6 @@ export type WinRegValuesConnection = {
   totalCount: Scalars['Int']['output']
 }
 
-export type WinStruct = Hashable & {
-  __typename?: 'WinStruct'
-  blob: Blob
-  blobAggregate?: Maybe<WinStructBlobBlobAggregationSelection>
-  blobConnection: WinStructBlobConnection
-  fields: Array<WinStructField>
-  fieldsAggregate?: Maybe<WinStructWinStructFieldFieldsAggregationSelection>
-  fieldsConnection: WinStructFieldsConnection
-  hash: Scalars['String']['output']
-  kind: Scalars['String']['output']
-  size: Scalars['Int']['output']
-}
-
-export type WinStructBlobArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  options?: InputMaybe<BlobOptions>
-  where?: InputMaybe<BlobWhere>
-}
-
-export type WinStructBlobAggregateArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  where?: InputMaybe<BlobWhere>
-}
-
-export type WinStructBlobConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<WinStructBlobConnectionSort>>
-  where?: InputMaybe<WinStructBlobConnectionWhere>
-}
-
-export type WinStructFieldsArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  options?: InputMaybe<WinStructFieldOptions>
-  where?: InputMaybe<WinStructFieldWhere>
-}
-
-export type WinStructFieldsAggregateArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  where?: InputMaybe<WinStructFieldWhere>
-}
-
-export type WinStructFieldsConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<WinStructFieldsConnectionSort>>
-  where?: InputMaybe<WinStructFieldsConnectionWhere>
-}
-
-export type WinStructAggregateSelection = {
-  __typename?: 'WinStructAggregateSelection'
-  count: Scalars['Int']['output']
-  hash: StringAggregateSelection
-  kind: StringAggregateSelection
-  size: IntAggregateSelection
-}
-
-export type WinStructBlobAggregateInput = {
-  AND?: InputMaybe<Array<WinStructBlobAggregateInput>>
-  NOT?: InputMaybe<WinStructBlobAggregateInput>
-  OR?: InputMaybe<Array<WinStructBlobAggregateInput>>
-  count?: InputMaybe<Scalars['Int']['input']>
-  count_GT?: InputMaybe<Scalars['Int']['input']>
-  count_GTE?: InputMaybe<Scalars['Int']['input']>
-  count_LT?: InputMaybe<Scalars['Int']['input']>
-  count_LTE?: InputMaybe<Scalars['Int']['input']>
-  edge?: InputMaybe<HasNameRelAggregationWhereInput>
-  node?: InputMaybe<WinStructBlobNodeAggregationWhereInput>
-}
-
-export type WinStructBlobBlobAggregationSelection = {
-  __typename?: 'WinStructBlobBlobAggregationSelection'
-  count: Scalars['Int']['output']
-  edge?: Maybe<WinStructBlobBlobEdgeAggregateSelection>
-  node?: Maybe<WinStructBlobBlobNodeAggregateSelection>
-}
-
-export type WinStructBlobBlobEdgeAggregateSelection = {
-  __typename?: 'WinStructBlobBlobEdgeAggregateSelection'
-  name: StringAggregateSelection
-}
-
-export type WinStructBlobBlobNodeAggregateSelection = {
-  __typename?: 'WinStructBlobBlobNodeAggregateSelection'
-  hash: StringAggregateSelection
-}
-
-export type WinStructBlobConnection = {
-  __typename?: 'WinStructBlobConnection'
-  edges: Array<WinStructBlobRelationship>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
-export type WinStructBlobConnectionSort = {
-  edge?: InputMaybe<HasNameRelSort>
-  node?: InputMaybe<BlobSort>
-}
-
-export type WinStructBlobConnectionWhere = {
-  AND?: InputMaybe<Array<WinStructBlobConnectionWhere>>
-  NOT?: InputMaybe<WinStructBlobConnectionWhere>
-  OR?: InputMaybe<Array<WinStructBlobConnectionWhere>>
-  edge?: InputMaybe<HasNameRelWhere>
-  node?: InputMaybe<BlobWhere>
-}
-
-export type WinStructBlobNodeAggregationWhereInput = {
-  AND?: InputMaybe<Array<WinStructBlobNodeAggregationWhereInput>>
-  NOT?: InputMaybe<WinStructBlobNodeAggregationWhereInput>
-  OR?: InputMaybe<Array<WinStructBlobNodeAggregationWhereInput>>
-  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-}
-
-export type WinStructBlobRelationship = {
-  __typename?: 'WinStructBlobRelationship'
-  cursor: Scalars['String']['output']
-  node: Blob
-  properties: HasNameRel
-}
-
-export type WinStructEdge = {
-  __typename?: 'WinStructEdge'
-  cursor: Scalars['String']['output']
-  node: WinStruct
-}
-
-export type WinStructFetchResult = {
-  __typename?: 'WinStructFetchResult'
-  fields: Array<WinStructFieldFetchResult>
-  kind: Scalars['String']['output']
-  name: Scalars['String']['output']
-  size: Scalars['Int']['output']
-}
-
-export type WinStructField = Hashable & {
-  __typename?: 'WinStructField'
-  data_type: Scalars['JSON']['output']
-  hash: Scalars['String']['output']
-  offset: Scalars['Int']['output']
-  struct: WinStruct
-  structAggregate?: Maybe<WinStructFieldWinStructStructAggregationSelection>
-  structConnection: WinStructFieldStructConnection
-}
-
-export type WinStructFieldStructArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  options?: InputMaybe<WinStructOptions>
-  where?: InputMaybe<WinStructWhere>
-}
-
-export type WinStructFieldStructAggregateArgs = {
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  where?: InputMaybe<WinStructWhere>
-}
-
-export type WinStructFieldStructConnectionArgs = {
-  after?: InputMaybe<Scalars['String']['input']>
-  directed?: InputMaybe<Scalars['Boolean']['input']>
-  first?: InputMaybe<Scalars['Int']['input']>
-  sort?: InputMaybe<Array<WinStructFieldStructConnectionSort>>
-  where?: InputMaybe<WinStructFieldStructConnectionWhere>
-}
-
-export type WinStructFieldAggregateSelection = {
-  __typename?: 'WinStructFieldAggregateSelection'
-  count: Scalars['Int']['output']
-  hash: StringAggregateSelection
-  offset: IntAggregateSelection
-}
-
-export type WinStructFieldEdge = {
-  __typename?: 'WinStructFieldEdge'
-  cursor: Scalars['String']['output']
-  node: WinStructField
-}
-
-export type WinStructFieldFetchResult = {
-  __typename?: 'WinStructFieldFetchResult'
-  data_type: Scalars['JSON']['output']
-  name: Scalars['String']['output']
-  offset: Scalars['Int']['output']
-}
-
-export type WinStructFieldOptions = {
-  limit?: InputMaybe<Scalars['Int']['input']>
-  offset?: InputMaybe<Scalars['Int']['input']>
-  /** Specify one or more WinStructFieldSort objects to sort WinStructFields by. The sorts will be applied in the order in which they are arranged in the array. */
-  sort?: InputMaybe<Array<WinStructFieldSort>>
-}
-
-/** Fields to sort WinStructFields by. The order in which sorts are applied is not guaranteed when specifying many fields in one WinStructFieldSort object. */
-export type WinStructFieldSort = {
-  data_type?: InputMaybe<SortDirection>
-  hash?: InputMaybe<SortDirection>
-  offset?: InputMaybe<SortDirection>
-}
-
-export type WinStructFieldStructAggregateInput = {
-  AND?: InputMaybe<Array<WinStructFieldStructAggregateInput>>
-  NOT?: InputMaybe<WinStructFieldStructAggregateInput>
-  OR?: InputMaybe<Array<WinStructFieldStructAggregateInput>>
-  count?: InputMaybe<Scalars['Int']['input']>
-  count_GT?: InputMaybe<Scalars['Int']['input']>
-  count_GTE?: InputMaybe<Scalars['Int']['input']>
-  count_LT?: InputMaybe<Scalars['Int']['input']>
-  count_LTE?: InputMaybe<Scalars['Int']['input']>
-  edge?: InputMaybe<HasNameRelAggregationWhereInput>
-  node?: InputMaybe<WinStructFieldStructNodeAggregationWhereInput>
-}
-
-export type WinStructFieldStructConnection = {
-  __typename?: 'WinStructFieldStructConnection'
-  edges: Array<WinStructFieldStructRelationship>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
-export type WinStructFieldStructConnectionSort = {
-  edge?: InputMaybe<HasNameRelSort>
-  node?: InputMaybe<WinStructSort>
-}
-
-export type WinStructFieldStructConnectionWhere = {
-  AND?: InputMaybe<Array<WinStructFieldStructConnectionWhere>>
-  NOT?: InputMaybe<WinStructFieldStructConnectionWhere>
-  OR?: InputMaybe<Array<WinStructFieldStructConnectionWhere>>
-  edge?: InputMaybe<HasNameRelWhere>
-  node?: InputMaybe<WinStructWhere>
-}
-
-export type WinStructFieldStructNodeAggregationWhereInput = {
-  AND?: InputMaybe<Array<WinStructFieldStructNodeAggregationWhereInput>>
-  NOT?: InputMaybe<WinStructFieldStructNodeAggregationWhereInput>
-  OR?: InputMaybe<Array<WinStructFieldStructNodeAggregationWhereInput>>
-  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  kind_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  kind_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  kind_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  kind_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  kind_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  kind_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  kind_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  kind_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  kind_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  kind_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  kind_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  kind_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  kind_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  kind_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  kind_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  size_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  size_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
-  size_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
-  size_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
-  size_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
-  size_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  size_MAX_GT?: InputMaybe<Scalars['Int']['input']>
-  size_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
-  size_MAX_LT?: InputMaybe<Scalars['Int']['input']>
-  size_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
-  size_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  size_MIN_GT?: InputMaybe<Scalars['Int']['input']>
-  size_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
-  size_MIN_LT?: InputMaybe<Scalars['Int']['input']>
-  size_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
-  size_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  size_SUM_GT?: InputMaybe<Scalars['Int']['input']>
-  size_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
-  size_SUM_LT?: InputMaybe<Scalars['Int']['input']>
-  size_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
-}
-
-export type WinStructFieldStructRelationship = {
-  __typename?: 'WinStructFieldStructRelationship'
-  cursor: Scalars['String']['output']
-  node: WinStruct
-  properties: HasNameRel
-}
-
-export type WinStructFieldWhere = {
-  AND?: InputMaybe<Array<WinStructFieldWhere>>
-  NOT?: InputMaybe<WinStructFieldWhere>
-  OR?: InputMaybe<Array<WinStructFieldWhere>>
-  data_type?: InputMaybe<Scalars['JSON']['input']>
-  data_type_IN?: InputMaybe<Array<Scalars['JSON']['input']>>
-  hash?: InputMaybe<Scalars['String']['input']>
-  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-  offset?: InputMaybe<Scalars['Int']['input']>
-  offset_GT?: InputMaybe<Scalars['Int']['input']>
-  offset_GTE?: InputMaybe<Scalars['Int']['input']>
-  offset_IN?: InputMaybe<Array<Scalars['Int']['input']>>
-  offset_LT?: InputMaybe<Scalars['Int']['input']>
-  offset_LTE?: InputMaybe<Scalars['Int']['input']>
-  struct?: InputMaybe<WinStructWhere>
-  structAggregate?: InputMaybe<WinStructFieldStructAggregateInput>
-  structConnection?: InputMaybe<WinStructFieldStructConnectionWhere>
-  structConnection_NOT?: InputMaybe<WinStructFieldStructConnectionWhere>
-  struct_NOT?: InputMaybe<WinStructWhere>
-}
-
-export type WinStructFieldWinStructStructAggregationSelection = {
-  __typename?: 'WinStructFieldWinStructStructAggregationSelection'
-  count: Scalars['Int']['output']
-  edge?: Maybe<WinStructFieldWinStructStructEdgeAggregateSelection>
-  node?: Maybe<WinStructFieldWinStructStructNodeAggregateSelection>
-}
-
-export type WinStructFieldWinStructStructEdgeAggregateSelection = {
-  __typename?: 'WinStructFieldWinStructStructEdgeAggregateSelection'
-  name: StringAggregateSelection
-}
-
-export type WinStructFieldWinStructStructNodeAggregateSelection = {
-  __typename?: 'WinStructFieldWinStructStructNodeAggregateSelection'
-  hash: StringAggregateSelection
-  kind: StringAggregateSelection
-  size: IntAggregateSelection
-}
-
-export type WinStructFieldsAggregateInput = {
-  AND?: InputMaybe<Array<WinStructFieldsAggregateInput>>
-  NOT?: InputMaybe<WinStructFieldsAggregateInput>
-  OR?: InputMaybe<Array<WinStructFieldsAggregateInput>>
-  count?: InputMaybe<Scalars['Int']['input']>
-  count_GT?: InputMaybe<Scalars['Int']['input']>
-  count_GTE?: InputMaybe<Scalars['Int']['input']>
-  count_LT?: InputMaybe<Scalars['Int']['input']>
-  count_LTE?: InputMaybe<Scalars['Int']['input']>
-  edge?: InputMaybe<HasNameRelAggregationWhereInput>
-  node?: InputMaybe<WinStructFieldsNodeAggregationWhereInput>
-}
-
-export type WinStructFieldsConnection = {
-  __typename?: 'WinStructFieldsConnection'
-  edges: Array<WinStructFieldsRelationship>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
-export type WinStructFieldsConnectionSort = {
-  edge?: InputMaybe<HasNameRelSort>
-  node?: InputMaybe<WinStructFieldSort>
-}
-
-export type WinStructFieldsConnectionWhere = {
-  AND?: InputMaybe<Array<WinStructFieldsConnectionWhere>>
-  NOT?: InputMaybe<WinStructFieldsConnectionWhere>
-  OR?: InputMaybe<Array<WinStructFieldsConnectionWhere>>
-  edge?: InputMaybe<HasNameRelWhere>
-  node?: InputMaybe<WinStructFieldWhere>
-}
-
-export type WinStructFieldsNodeAggregationWhereInput = {
-  AND?: InputMaybe<Array<WinStructFieldsNodeAggregationWhereInput>>
-  NOT?: InputMaybe<WinStructFieldsNodeAggregationWhereInput>
-  OR?: InputMaybe<Array<WinStructFieldsNodeAggregationWhereInput>>
-  hash_AVERAGE_LENGTH_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_GTE?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LT?: InputMaybe<Scalars['Float']['input']>
-  hash_AVERAGE_LENGTH_LTE?: InputMaybe<Scalars['Float']['input']>
-  hash_LONGEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_LONGEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_GTE?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LT?: InputMaybe<Scalars['Int']['input']>
-  hash_SHORTEST_LENGTH_LTE?: InputMaybe<Scalars['Int']['input']>
-  offset_AVERAGE_EQUAL?: InputMaybe<Scalars['Float']['input']>
-  offset_AVERAGE_GT?: InputMaybe<Scalars['Float']['input']>
-  offset_AVERAGE_GTE?: InputMaybe<Scalars['Float']['input']>
-  offset_AVERAGE_LT?: InputMaybe<Scalars['Float']['input']>
-  offset_AVERAGE_LTE?: InputMaybe<Scalars['Float']['input']>
-  offset_MAX_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  offset_MAX_GT?: InputMaybe<Scalars['Int']['input']>
-  offset_MAX_GTE?: InputMaybe<Scalars['Int']['input']>
-  offset_MAX_LT?: InputMaybe<Scalars['Int']['input']>
-  offset_MAX_LTE?: InputMaybe<Scalars['Int']['input']>
-  offset_MIN_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  offset_MIN_GT?: InputMaybe<Scalars['Int']['input']>
-  offset_MIN_GTE?: InputMaybe<Scalars['Int']['input']>
-  offset_MIN_LT?: InputMaybe<Scalars['Int']['input']>
-  offset_MIN_LTE?: InputMaybe<Scalars['Int']['input']>
-  offset_SUM_EQUAL?: InputMaybe<Scalars['Int']['input']>
-  offset_SUM_GT?: InputMaybe<Scalars['Int']['input']>
-  offset_SUM_GTE?: InputMaybe<Scalars['Int']['input']>
-  offset_SUM_LT?: InputMaybe<Scalars['Int']['input']>
-  offset_SUM_LTE?: InputMaybe<Scalars['Int']['input']>
-}
-
-export type WinStructFieldsRelationship = {
-  __typename?: 'WinStructFieldsRelationship'
-  cursor: Scalars['String']['output']
-  node: WinStructField
-  properties: HasNameRel
-}
-
-export type WinStructOptions = {
-  limit?: InputMaybe<Scalars['Int']['input']>
-  offset?: InputMaybe<Scalars['Int']['input']>
-  /** Specify one or more WinStructSort objects to sort WinStructs by. The sorts will be applied in the order in which they are arranged in the array. */
-  sort?: InputMaybe<Array<WinStructSort>>
-}
-
-/** Fields to sort WinStructs by. The order in which sorts are applied is not guaranteed when specifying many fields in one WinStructSort object. */
-export type WinStructSort = {
-  hash?: InputMaybe<SortDirection>
-  kind?: InputMaybe<SortDirection>
-  size?: InputMaybe<SortDirection>
-}
-
-export type WinStructWhere = {
-  AND?: InputMaybe<Array<WinStructWhere>>
-  NOT?: InputMaybe<WinStructWhere>
-  OR?: InputMaybe<Array<WinStructWhere>>
-  blob?: InputMaybe<BlobWhere>
-  blobAggregate?: InputMaybe<WinStructBlobAggregateInput>
-  blobConnection?: InputMaybe<WinStructBlobConnectionWhere>
-  blobConnection_NOT?: InputMaybe<WinStructBlobConnectionWhere>
-  blob_NOT?: InputMaybe<BlobWhere>
-  fieldsAggregate?: InputMaybe<WinStructFieldsAggregateInput>
-  /** Return WinStructs where all of the related WinStructFieldsConnections match this filter */
-  fieldsConnection_ALL?: InputMaybe<WinStructFieldsConnectionWhere>
-  /** Return WinStructs where none of the related WinStructFieldsConnections match this filter */
-  fieldsConnection_NONE?: InputMaybe<WinStructFieldsConnectionWhere>
-  /** Return WinStructs where one of the related WinStructFieldsConnections match this filter */
-  fieldsConnection_SINGLE?: InputMaybe<WinStructFieldsConnectionWhere>
-  /** Return WinStructs where some of the related WinStructFieldsConnections match this filter */
-  fieldsConnection_SOME?: InputMaybe<WinStructFieldsConnectionWhere>
-  /** Return WinStructs where all of the related WinStructFields match this filter */
-  fields_ALL?: InputMaybe<WinStructFieldWhere>
-  /** Return WinStructs where none of the related WinStructFields match this filter */
-  fields_NONE?: InputMaybe<WinStructFieldWhere>
-  /** Return WinStructs where one of the related WinStructFields match this filter */
-  fields_SINGLE?: InputMaybe<WinStructFieldWhere>
-  /** Return WinStructs where some of the related WinStructFields match this filter */
-  fields_SOME?: InputMaybe<WinStructFieldWhere>
-  hash?: InputMaybe<Scalars['String']['input']>
-  hash_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  hash_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  hash_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  hash_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-  kind?: InputMaybe<Scalars['String']['input']>
-  kind_CONTAINS?: InputMaybe<Scalars['String']['input']>
-  kind_ENDS_WITH?: InputMaybe<Scalars['String']['input']>
-  kind_IN?: InputMaybe<Array<Scalars['String']['input']>>
-  kind_STARTS_WITH?: InputMaybe<Scalars['String']['input']>
-  size?: InputMaybe<Scalars['Int']['input']>
-  size_GT?: InputMaybe<Scalars['Int']['input']>
-  size_GTE?: InputMaybe<Scalars['Int']['input']>
-  size_IN?: InputMaybe<Array<Scalars['Int']['input']>>
-  size_LT?: InputMaybe<Scalars['Int']['input']>
-  size_LTE?: InputMaybe<Scalars['Int']['input']>
-}
-
-export type WinStructWinStructFieldFieldsAggregationSelection = {
-  __typename?: 'WinStructWinStructFieldFieldsAggregationSelection'
-  count: Scalars['Int']['output']
-  edge?: Maybe<WinStructWinStructFieldFieldsEdgeAggregateSelection>
-  node?: Maybe<WinStructWinStructFieldFieldsNodeAggregateSelection>
-}
-
-export type WinStructWinStructFieldFieldsEdgeAggregateSelection = {
-  __typename?: 'WinStructWinStructFieldFieldsEdgeAggregateSelection'
-  name: StringAggregateSelection
-}
-
-export type WinStructWinStructFieldFieldsNodeAggregateSelection = {
-  __typename?: 'WinStructWinStructFieldFieldsNodeAggregateSelection'
-  hash: StringAggregateSelection
-  offset: IntAggregateSelection
-}
-
-export type WinStructsConnection = {
-  __typename?: 'WinStructsConnection'
-  edges: Array<WinStructEdge>
-  pageInfo: PageInfo
-  totalCount: Scalars['Int']['output']
-}
-
 export type FetchBranchesQueryVariables = Exact<{
   where?: InputMaybe<BranchWhere>
 }>
@@ -3398,20 +3413,20 @@ export type FetchSymbolsQuery = {
 
 export type FetchStructsQueryVariables = Exact<{
   blobHash: Scalars['String']['input']
-  options?: InputMaybe<WinStructOptions>
-  where?: InputMaybe<WinStructWhere>
+  options?: InputMaybe<StructOptions>
+  where?: InputMaybe<StructWhere>
 }>
 
 export type FetchStructsQuery = {
   __typename?: 'Query'
-  winStructsAggregate: { __typename?: 'WinStructAggregateSelection'; count: number }
+  structsAggregate: { __typename?: 'StructAggregateSelection'; count: number }
   fetchStructs: Array<{
-    __typename?: 'WinStructFetchResult'
+    __typename?: 'StructFetchResult'
     name: string
     size: number
     kind: string
     fields: Array<{
-      __typename?: 'WinStructFieldFetchResult'
+      __typename?: 'StructFieldFetchResult'
       name: string
       offset: number
       data_type: any
@@ -3420,34 +3435,38 @@ export type FetchStructsQuery = {
 }
 
 export type SearchFsQueryVariables = Exact<{
-  searchTerm: Scalars['String']['input']
-  commitRange: CommitRange
+  input: SearchInput
 }>
 
 export type SearchFsQuery = {
   __typename?: 'Query'
   search: Array<{
     __typename?: 'SearchResult'
+    type: SearchEntityType
     commit_name: string
     commit_hash: string
-    hash: string
-    path: string
+    blob_path: string
+    blob_hash: string
+    entity_path?: string | null
+    node_hash: string
   }>
 }
 
 export type SearchFsStreamSubscriptionVariables = Exact<{
-  commitRange: CommitRange
-  searchTerm: Scalars['String']['input']
+  input: SearchInput
 }>
 
 export type SearchFsStreamSubscription = {
   __typename?: 'Subscription'
   searchStream: {
     __typename?: 'SearchResult'
+    type: SearchEntityType
     commit_name: string
     commit_hash: string
-    hash: string
-    path: string
+    blob_path: string
+    blob_hash: string
+    entity_path?: string | null
+    node_hash: string
   }
 }
 
@@ -4270,8 +4289,8 @@ export type FetchSymbolsQueryCompositionFunctionResult = VueApolloComposable.Use
   FetchSymbolsQueryVariables
 >
 export const FetchStructsDocument = gql`
-  query FetchStructs($blobHash: String!, $options: WinStructOptions, $where: WinStructWhere) {
-    winStructsAggregate(where: $where) {
+  query FetchStructs($blobHash: String!, $options: StructOptions, $where: StructWhere) {
+    structsAggregate(where: $where) {
       count
     }
     fetchStructs(blob_hash: $blobHash, options: $options) {
@@ -4349,12 +4368,15 @@ export type FetchStructsQueryCompositionFunctionResult = VueApolloComposable.Use
   FetchStructsQueryVariables
 >
 export const SearchFsDocument = gql`
-  query SearchFs($searchTerm: String!, $commitRange: CommitRange!) {
-    search(search_term: $searchTerm, commit_range: $commitRange) {
+  query SearchFs($input: SearchInput!) {
+    search(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
@@ -4371,8 +4393,7 @@ export const SearchFsDocument = gql`
  *
  * @example
  * const { result, loading, error } = useSearchFsQuery({
- *   searchTerm: // value for 'searchTerm'
- *   commitRange: // value for 'commitRange'
+ *   input: // value for 'input'
  * });
  */
 export function useSearchFsQuery(
@@ -4420,12 +4441,15 @@ export type SearchFsQueryCompositionFunctionResult = VueApolloComposable.UseQuer
   SearchFsQueryVariables
 >
 export const SearchFsStreamDocument = gql`
-  subscription SearchFsStream($commitRange: CommitRange!, $searchTerm: String!) {
-    searchStream(commit_range: $commitRange, search_term: $searchTerm) {
+  subscription SearchFsStream($input: SearchInput!) {
+    searchStream(input: $input) {
+      type
       commit_name
       commit_hash
-      hash
-      path
+      blob_path
+      blob_hash
+      entity_path
+      node_hash
     }
   }
 `
@@ -4442,8 +4466,7 @@ export const SearchFsStreamDocument = gql`
  *
  * @example
  * const { result, loading, error } = useSearchFsStreamSubscription({
- *   commitRange: // value for 'commitRange'
- *   searchTerm: // value for 'searchTerm'
+ *   input: // value for 'input'
  * });
  */
 export function useSearchFsStreamSubscription(

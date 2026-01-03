@@ -9,6 +9,7 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType } from '@/types'
+import { DiffStatus } from '@/graphql-types'
 import {
   parseFilesystemEntries,
   parseFilesystemDiffEntries,
@@ -34,6 +35,10 @@ export function useFilesystemInspector(
   const fsRootHash = ref<string>('')
   const baseFsRootHash = ref<string>('')
   const diffeeFsRootHash = ref<string>('')
+  const statusFilter = ref<DiffStatus[]>([])
+
+  // Debounce timer for filter changes
+  let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const entries = computed<FilesystemEntry[] | FilesystemDiffEntry[]>(() => {
     if (mode === 'single') {
@@ -124,6 +129,12 @@ export function useFilesystemInspector(
     path: string
   ): Promise<any[]> {
     try {
+      // Build options with optional status filter
+      const options: any = {}
+      if (statusFilter.value.length > 0) {
+        options.status_filter = statusFilter.value
+      }
+
       const response = await gqlClient.query({
         query: DIFF_NODES,
         variables: {
@@ -132,8 +143,8 @@ export function useFilesystemInspector(
           diffeeNodeHash: diffeeTreeHash,
           atPath: path,
           maxDepth: 0,
-          filter: ['Blob']
-          // No options - fetch all diffs at once (consistent with PDB Inspector pattern)
+          filter: ['Blob'],
+          options
         }
       })
       const diffResult = response.data?.diffNodesAt
@@ -236,6 +247,20 @@ export function useFilesystemInspector(
     await navigateToDirectory(currentPath.value, highlightedFile.value)
   }
 
+  function setStatusFilter(statuses: DiffStatus[]): void {
+    statusFilter.value = statuses
+
+    // Cancel pending debounce
+    if (filterDebounceTimer) {
+      clearTimeout(filterDebounceTimer)
+    }
+
+    // Debounce the refetch
+    filterDebounceTimer = setTimeout(() => {
+      navigateToDirectory(currentPath.value, highlightedFile.value)
+    }, 1000)
+  }
+
   watch(
     () => [mode, commit, baseCommit, diffeeCommit],
     () => {
@@ -253,6 +278,8 @@ export function useFilesystemInspector(
     navigateToPath,
     navigateToDirectory,
     highlightedFile,
-    refresh
+    refresh,
+    statusFilter,
+    setStatusFilter
   }
 }
