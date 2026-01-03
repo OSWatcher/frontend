@@ -9,7 +9,7 @@ import type { FetchBranchesQuery, FetchCommitHistoryQuery } from '@/graphql-type
 type BranchData = NonNullable<FetchBranchesQuery['branches']>[0]
 type CommitData = NonNullable<FetchCommitHistoryQuery['fetchCommitHistory']>[0]
 
-type CommitWithExpandable = CommitData & {
+export type CommitWithExpandable = CommitData & {
   expandableNextCommits: { hash: string }[]
 }
 
