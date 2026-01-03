@@ -474,7 +474,7 @@ onUnmounted(() => {
       <NModal
         v-model:show="showSearchModal"
         preset="card"
-        title="Search Filesystem"
+        title="Search"
         class="search-modal"
         :style="{ width: '1200px', maxWidth: '95vw' }"
         @after-leave="clearSearch"
