@@ -47,10 +47,7 @@ interface SearchResult {
 const showSearchModal = ref(false)
 const searchTerm = ref('')
 const caseSensitive = ref(false)
-const selectedEntityTypes = ref<SearchEntityType[]>([
-  SearchEntityType.Filesystem,
-  SearchEntityType.Registry
-])
+const selectedEntityTypes = ref<SearchEntityType[]>([SearchEntityType.Filesystem])
 const activeResultTab = ref<'filesystem' | 'registry'>('filesystem')
 const searchResults = ref<SearchResult[]>([])
 const currentPage = ref(1)
