@@ -3,12 +3,8 @@ import { defineProps, ref, watch } from 'vue'
 import gqlClient from '@/graphql-client'
 import { BTable, BPagination, BButton, BCard } from 'bootstrap-vue-next'
 import type { TableFieldRaw, TableItem } from 'bootstrap-vue-next'
-import {
-  FetchStructsDocument,
-  FetchStructsQuery,
-  FetchStructsQueryVariables,
-  WinStructFetchResult
-} from '@/graphql-types'
+import { FetchStructsDocument } from '@/graphql-types'
+import type { FetchStructsQuery, FetchStructsQueryVariables, StructFetchResult } from '@/graphql-types'
 
 const props = defineProps({
   blob_hash: {
@@ -17,9 +13,9 @@ const props = defineProps({
   }
 })
 
-const structs = ref<TableItem<WinStructFetchResult>[]>([])
+const structs = ref<TableItem<StructFetchResult>[]>([])
 // BTable fields
-const fields = ref<Exclude<TableFieldRaw<WinStructFetchResult>, string>[]>([
+const fields = ref<Exclude<TableFieldRaw<StructFetchResult>, string>[]>([
   { key: 'name', sortable: false },
   { key: 'kind', sortable: false },
   { key: 'size', sortable: false }
@@ -52,7 +48,7 @@ async function fetchStructs() {
       }
     })
     if (response.data) {
-      totalStructs.value = response.data.winStructsAggregate?.count ?? 0
+      totalStructs.value = response.data.structsAggregate?.count ?? 0
       structs.value = (response.data.fetchStructs ?? []).map((struct) => ({
         ...struct,
         fields:
@@ -130,7 +126,7 @@ function formatOffset(offset: number): string {
                 key: 'offset',
                 label: 'Offset',
                 sortable: true,
-                formatter: (value) => formatOffset(value)
+                formatter: (value: any) => formatOffset(value)
               },
               { key: 'name', label: 'Name', sortable: true },
               { key: 'type', label: 'Type', sortable: false }

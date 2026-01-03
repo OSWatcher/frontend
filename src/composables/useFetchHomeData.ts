@@ -123,7 +123,7 @@ export function useFetchHomeData() {
       currentBranches.forEach((branch) => {
         if (!branchQueriesMap.value.has(branch.name)) {
           const branchData = createBranchWithCommits(branch)
-          branchQueriesMap.value.set(branch.name, branchData)
+          branchQueriesMap.value.set(branch.name, branchData as any)
         }
       })
 
@@ -143,7 +143,7 @@ export function useFetchHomeData() {
   const branchesWithCommits = computed(() => {
     return branches.value
       .map((branch) => branchQueriesMap.value.get(branch.name))
-      .filter((data): data is BranchWithCommits => data !== undefined)
+      .filter((data) => data !== undefined) as unknown as BranchWithCommits[]
   })
 
   const allCommitsLoaded = computed(() =>

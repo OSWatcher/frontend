@@ -4,17 +4,15 @@ clicked from the filesystem view By default, it should explore the commit hash f
 to locate /Windows/System32/ntoskrnl.exe and display its symbols.
 
 <script setup lang="ts">
-import { ref, onMounted, PropType } from 'vue'
+import { ref, onMounted } from 'vue'
+import type { PropType } from 'vue'
 import gqlClient from '@/graphql-client'
 import { BTabs, BTab, BCard, BRow, BCol } from 'bootstrap-vue-next'
 import SymbolDiffView from '@/components/diff/pdb/SymbolDiffView.vue'
-import { HashDiff } from '@/types'
+import type { HashDiff } from '@/types'
 import { fetchFSRootCommitDiff } from '@/utils'
-import {
-  TraversePathQuery,
-  TraversePathQueryVariables,
-  TraversePathDocument
-} from '@/graphql-types'
+import { TraversePathDocument } from '@/graphql-types'
+import type { TraversePathQuery, TraversePathQueryVariables } from '@/graphql-types'
 
 const NTOSKRNL_PATH = '/Windows/System32/ntoskrnl.exe'
 

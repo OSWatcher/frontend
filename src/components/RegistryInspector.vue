@@ -74,7 +74,7 @@ const {
 
 // Table filtering
 const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
-  entries,
+  entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
 })
@@ -117,7 +117,7 @@ async function exportLocalDiff() {
     props.diffeeCommit?.name || 'diffee',
     'local'
   )
-  downloadJsonFile(exportData, filename)
+  downloadJsonFile(exportData as any, filename)
 }
 
 // Export full diff (recursive)
@@ -556,7 +556,7 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           <div v-if="filteredEntries.length > 0" class="table-container">
             <NDataTable
               :columns="tableColumns"
-              :data="filteredEntries"
+              :data="(filteredEntries as any)"
               :row-props="getRowProps"
               striped
               virtual-scroll

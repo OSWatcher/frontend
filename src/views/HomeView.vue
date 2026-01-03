@@ -44,7 +44,7 @@ const maintenanceMode = computed(() => !!error.value)
 // Dropdown options for branch selector
 const branchOptions = computed<DropdownOption[]>(() =>
   branchesWithCommits.value
-    .filter((branchData) => branchData !== undefined)
+    .filter((branchData): branchData is NonNullable<typeof branchData> => branchData !== undefined)
     .map((branchData) => ({
       label: branchData.branch.name,
       key: branchData.branch.name
@@ -125,7 +125,7 @@ function handleCompare() {
       <!-- Commit graph visualization -->
       <div v-else-if="branchesWithCommits.length > 0">
         <CommitGraph
-          :branches-with-commits="branchesWithCommits"
+          :branches-with-commits="(branchesWithCommits as any)"
           :selected-branch="selectedBranch"
         />
       </div>
