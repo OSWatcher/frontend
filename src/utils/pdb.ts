@@ -67,7 +67,7 @@ export function parseSymbolDiffEntries(
 
 /**
  * Parse data_type JSON field into structured representation
- * @param dataTypeJson - Raw JSON from data_type field
+ * @param dataTypeJson - Raw JSON from data_type field (backend format)
  * @returns Parsed data type structure
  */
 export function parseDataType(dataTypeJson: any): ParsedDataType {
@@ -75,17 +75,25 @@ export function parseDataType(dataTypeJson: any): ParsedDataType {
     return { type: 'unknown', name: 'unknown' }
   }
 
+  // Backend uses 'kind' field with case variations (Base, base, etc.)
+  const rawKind = dataTypeJson.kind || 'unknown'
+  const kind = rawKind.toLowerCase()
+
   const parsed: ParsedDataType = {
-    type: dataTypeJson.type || 'unknown',
+    type: kind,
     name: dataTypeJson.name || undefined,
-    arrayCounter: dataTypeJson.array_counter || undefined,
-    bitPosition: dataTypeJson.bit_position || undefined,
-    bitLength: dataTypeJson.bit_length || undefined
+    arrayCounter: dataTypeJson.count ?? undefined,
+    bitPosition: dataTypeJson.bit_position ?? undefined,
+    bitLength: dataTypeJson.bit_length ?? undefined
   }
 
-  // Recursively parse nested data type (for pointers, arrays, etc.)
-  if (dataTypeJson.has_data_type) {
-    parsed.hasDataType = parseDataType(dataTypeJson.has_data_type)
+  // Handle nested types:
+  // - 'subtype' for pointers/arrays
+  // - 'type' for bitfields (contains base type object)
+  const nestedType = dataTypeJson.subtype || (kind === 'bitfield' ? dataTypeJson.type : null)
+
+  if (nestedType && typeof nestedType === 'object') {
+    parsed.hasDataType = parseDataType(nestedType)
   }
 
   return parsed
@@ -133,6 +141,7 @@ export function formatDataType(dataType: ParsedDataType): string {
       // Unions: union _LARGE_INTEGER, etc.
       return dataType.name ? `union ${dataType.name}` : 'union'
 
+    case 'enum':
     case 'enumeration':
       // Enumerations: enum _KWAIT_REASON, etc.
       return dataType.name ? `enum ${dataType.name}` : 'enum'
@@ -224,6 +233,25 @@ export function parseStructDiffEntries(
 }
 
 /**
+ * Parse a JSON field that may be stringified (from diffNodesAt API)
+ * @param value - Raw value that may be a string or object
+ * @returns Parsed object or null if invalid
+ */
+function parseJsonField(value: any): any {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return null
+    }
+  }
+  return value
+}
+
+/**
  * Parse field-level diff entries from DIFF_NODES response
  * @param rawDiffItems - Raw diff items from DIFF_NODES query on Struct node
  * @returns Array of StructFieldDiffEntry with status for each field
@@ -249,8 +277,10 @@ export function parseFieldDiffEntries(
   const entries = rawDiffItems.map((item) => {
     const oldOffset = item.old_props?.properties?.offset
     const newOffset = item.new_props?.properties?.offset
-    const oldDataType = item.old_props?.properties?.data_type
-    const newDataType = item.new_props?.properties?.data_type
+
+    // Parse data_type - may be stringified JSON from diffNodesAt API
+    const oldDataType = parseJsonField(item.old_props?.properties?.data_type)
+    const newDataType = parseJsonField(item.new_props?.properties?.data_type)
 
     // Parse and format data types
     const baseDataType = oldDataType ? formatDataType(parseDataType(oldDataType)) : undefined
