@@ -1,4 +1,5 @@
 import { computed, effectScope, ref, watch, type ComputedRef, type Ref } from 'vue'
+import { useAuth0 } from '@auth0/auth0-vue'
 import {
   useFetchBranchesQuery,
   useFetchCommitHistoryQuery,
@@ -21,8 +22,13 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  // Filter to show only main branches in the dropdown
-  const MAIN_BRANCHES = ['ubuntu-server', 'windows']
+  const { isAuthenticated } = useAuth0()
+
+  // Filter branches based on authentication status
+  // Unauthenticated users only see ubuntu-server
+  const mainBranches = computed(() =>
+    isAuthenticated.value ? ['ubuntu-server', 'windows'] : ['ubuntu-server']
+  )
 
   return effectScope().run(() => {
     const {
@@ -32,7 +38,9 @@ function useBranchesData() {
     } = useFetchBranchesQuery()
 
     const branches = computed(() =>
-      (branchesResult.value?.branches || []).filter((branch) => MAIN_BRANCHES.includes(branch.name))
+      (branchesResult.value?.branches || []).filter((branch) =>
+        mainBranches.value.includes(branch.name)
+      )
     )
 
     return {
