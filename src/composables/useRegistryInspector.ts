@@ -236,7 +236,7 @@ export function useRegistryInspector(
           baseNodeHash: baseRegKeyHash,
           diffeeNodeHash: diffeeRegKeyHash,
           atPath: path,
-          maxDepth: 0,
+          maxDepth: 1,
           filter: ['WinRegValue'],
           options
         }
