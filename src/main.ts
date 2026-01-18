@@ -1,3 +1,6 @@
+// Monaco editor setup - MUST be first import before any Monaco components
+import './monaco-setup'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 

@@ -14,6 +14,7 @@ import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
 import { formatOffset, formatSize } from '@/utils/pdb'
 import DiffStatusFilter from './DiffStatusFilter.vue'
+import MonacoStructDiff from './MonacoStructDiff.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -239,6 +240,15 @@ const structsTableDataComparison = computed(() => {
   })
 
   return rows
+})
+
+// Get expanded structs for Monaco diff display (only those with fields loaded)
+const expandedStructsForDiff = computed(() => {
+  if (props.mode !== 'comparison') return []
+  return (structs.value as StructDiffEntry[]).filter(
+    (struct) =>
+      expandedStructNames.value.has(struct.name) && struct.fields && struct.fields.length > 0
+  )
 })
 
 // Combined struct table data
@@ -500,6 +510,23 @@ const structColumns = computed(() => {
               <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
             </span>
           </div>
+
+          <!-- Monaco Diff Panels (comparison mode only) -->
+          <div
+            v-if="mode === 'comparison' && expandedStructsForDiff.length > 0"
+            class="monaco-diff-panels"
+          >
+            <div
+              v-for="struct in expandedStructsForDiff"
+              :key="`monaco-${struct.name}`"
+              class="monaco-panel"
+            >
+              <div class="monaco-panel-header">
+                <h4>{{ struct.name }} - Diff View</h4>
+              </div>
+              <MonacoStructDiff :struct="struct" />
+            </div>
+          </div>
         </NTabPane>
       </NTabs>
     </div>
@@ -654,5 +681,35 @@ const structColumns = computed(() => {
   font-size: 14px;
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
+}
+
+/* Monaco diff panels styling */
+.monaco-diff-panels {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.monaco-panel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.monaco-panel-header {
+  background: #f9fafb;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.monaco-panel-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  font-family: monospace;
 }
 </style>

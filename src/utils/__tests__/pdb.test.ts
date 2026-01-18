@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseSymbolEntries,
   parseSymbolDiffEntries,
+  parseFieldDiffEntries,
   formatAddress,
   formatOffset,
   formatSize,
@@ -297,7 +298,7 @@ describe('pdb utils', () => {
 
   describe('parseDataType', () => {
     it('parses base type', () => {
-      const json = { type: 'base', name: 'unsigned long' }
+      const json = { kind: 'base', name: 'unsigned long' }
       const result = parseDataType(json)
 
       expect(result.type).toBe('base')
@@ -305,11 +306,18 @@ describe('pdb utils', () => {
       expect(result.hasDataType).toBeUndefined()
     })
 
+    it('parses base type with capitalized kind', () => {
+      const json = { kind: 'Base', name: 'int' }
+      const result = parseDataType(json)
+
+      expect(result.type).toBe('base')
+      expect(result.name).toBe('int')
+    })
+
     it('parses pointer type', () => {
       const json = {
-        type: 'pointer',
-        name: null,
-        has_data_type: { type: 'base', name: 'void' }
+        kind: 'pointer',
+        subtype: { kind: 'base', name: 'void' }
       }
       const result = parseDataType(json)
 
@@ -321,9 +329,9 @@ describe('pdb utils', () => {
 
     it('parses array type', () => {
       const json = {
-        type: 'array',
-        array_counter: 15,
-        has_data_type: { type: 'base', name: 'char' }
+        kind: 'array',
+        count: 15,
+        subtype: { kind: 'base', name: 'char' }
       }
       const result = parseDataType(json)
 
@@ -334,10 +342,10 @@ describe('pdb utils', () => {
 
     it('parses nested pointer (pointer to pointer)', () => {
       const json = {
-        type: 'pointer',
-        has_data_type: {
-          type: 'pointer',
-          has_data_type: { type: 'base', name: 'void' }
+        kind: 'pointer',
+        subtype: {
+          kind: 'pointer',
+          subtype: { kind: 'base', name: 'void' }
         }
       }
       const result = parseDataType(json)
@@ -348,7 +356,7 @@ describe('pdb utils', () => {
     })
 
     it('parses struct type', () => {
-      const json = { type: 'struct', name: '_EPROCESS' }
+      const json = { kind: 'struct', name: '_EPROCESS' }
       const result = parseDataType(json)
 
       expect(result.type).toBe('struct')
@@ -356,29 +364,39 @@ describe('pdb utils', () => {
     })
 
     it('parses union type', () => {
-      const json = { type: 'union', name: '_LARGE_INTEGER' }
+      const json = { kind: 'union', name: '_LARGE_INTEGER' }
       const result = parseDataType(json)
 
       expect(result.type).toBe('union')
       expect(result.name).toBe('_LARGE_INTEGER')
     })
 
+    it('parses enum type', () => {
+      const json = { kind: 'enum', name: '_INTERFACE_TYPE' }
+      const result = parseDataType(json)
+
+      expect(result.type).toBe('enum')
+      expect(result.name).toBe('_INTERFACE_TYPE')
+    })
+
     it('parses bitfield type', () => {
       const json = {
-        type: 'bitfield',
+        kind: 'bitfield',
+        type: { kind: 'base', name: 'unsigned long' },
         bit_length: 3,
-        bit_position: 5,
-        has_data_type: { type: 'base', name: 'unsigned long' }
+        bit_position: 5
       }
       const result = parseDataType(json)
 
       expect(result.type).toBe('bitfield')
       expect(result.bitLength).toBe(3)
       expect(result.bitPosition).toBe(5)
+      expect(result.hasDataType?.type).toBe('base')
+      expect(result.hasDataType?.name).toBe('unsigned long')
     })
 
     it('handles missing fields gracefully', () => {
-      const json = { type: 'struct' }
+      const json = { kind: 'struct' }
       const result = parseDataType(json)
 
       expect(result.type).toBe('struct')
@@ -477,6 +495,11 @@ describe('pdb utils', () => {
       expect(formatDataType(dataType)).toBe('enum _KWAIT_REASON')
     })
 
+    it('formats enum type', () => {
+      const dataType = { type: 'enum', name: '_INTERFACE_TYPE' }
+      expect(formatDataType(dataType)).toBe('enum _INTERFACE_TYPE')
+    })
+
     it('formats bit field', () => {
       const dataType = {
         type: 'bitfield',
@@ -498,6 +521,68 @@ describe('pdb utils', () => {
 
     it('handles null input', () => {
       expect(formatDataType(null as any)).toBe('unknown')
+    })
+  })
+
+  describe('parseDataType + formatDataType integration', () => {
+    it('formats base type from backend JSON', () => {
+      const json = { kind: 'Base', name: 'int' }
+      expect(formatDataType(parseDataType(json))).toBe('int')
+    })
+
+    it('formats pointer from backend JSON', () => {
+      const json = { kind: 'pointer', subtype: { kind: 'base', name: 'void' } }
+      expect(formatDataType(parseDataType(json))).toBe('void*')
+    })
+
+    it('formats struct from backend JSON', () => {
+      const json = { kind: 'struct', name: '_EX_PUSH_LOCK' }
+      expect(formatDataType(parseDataType(json))).toBe('struct _EX_PUSH_LOCK')
+    })
+
+    it('formats enum from backend JSON', () => {
+      const json = { kind: 'enum', name: '_INTERFACE_TYPE' }
+      expect(formatDataType(parseDataType(json))).toBe('enum _INTERFACE_TYPE')
+    })
+
+    it('formats union from backend JSON', () => {
+      const json = { kind: 'union', name: '__anonymous_1d83' }
+      expect(formatDataType(parseDataType(json))).toBe('union __anonymous_1d83')
+    })
+
+    it('formats bitfield from backend JSON', () => {
+      const json = {
+        kind: 'bitfield',
+        type: { kind: 'base', name: 'unsigned long' },
+        bit_length: 1,
+        bit_position: 0
+      }
+      expect(formatDataType(parseDataType(json))).toBe('unsigned long : 1')
+    })
+
+    it('formats array of pointers from backend JSON', () => {
+      const json = {
+        count: 2,
+        kind: 'array',
+        subtype: { kind: 'pointer', subtype: { kind: 'base', name: 'void' } }
+      }
+      expect(formatDataType(parseDataType(json))).toBe('void*[2]')
+    })
+
+    it('formats nested pointer from backend JSON', () => {
+      const json = {
+        kind: 'pointer',
+        subtype: { kind: 'pointer', subtype: { kind: 'base', name: 'void' } }
+      }
+      expect(formatDataType(parseDataType(json))).toBe('void**')
+    })
+
+    it('formats pointer to struct from backend JSON', () => {
+      const json = {
+        kind: 'pointer',
+        subtype: { kind: 'struct', name: '_KPROCESS' }
+      }
+      expect(formatDataType(parseDataType(json))).toBe('struct _KPROCESS*')
     })
   })
 
@@ -550,14 +635,14 @@ describe('pdb utils', () => {
             {
               name: 'Pcb',
               offset: 0,
-              data_type: { type: 'struct', name: '_KPROCESS' }
+              data_type: { kind: 'struct', name: '_KPROCESS' }
             },
             {
               name: 'Pid',
               offset: 744,
               data_type: {
-                type: 'pointer',
-                has_data_type: { type: 'base', name: 'void' }
+                kind: 'pointer',
+                subtype: { kind: 'base', name: 'void' }
               }
             }
           ]
@@ -608,23 +693,23 @@ describe('pdb utils', () => {
             {
               name: 'baseField',
               offset: 0,
-              data_type: { type: 'base', name: 'unsigned long' }
+              data_type: { kind: 'base', name: 'unsigned long' }
             },
             {
               name: 'pointerField',
               offset: 8,
               data_type: {
-                type: 'pointer',
-                has_data_type: { type: 'base', name: 'char' }
+                kind: 'pointer',
+                subtype: { kind: 'base', name: 'char' }
               }
             },
             {
               name: 'arrayField',
               offset: 16,
               data_type: {
-                type: 'array',
-                array_counter: 15,
-                has_data_type: { type: 'base', name: 'char' }
+                kind: 'array',
+                count: 15,
+                subtype: { kind: 'base', name: 'char' }
               }
             }
           ]
@@ -647,7 +732,7 @@ describe('pdb utils', () => {
             {
               name: 'testField',
               offset: 0,
-              data_type: { type: 'base', name: 'int', custom_prop: 'value' }
+              data_type: { kind: 'base', name: 'int', custom_prop: 'value' }
             }
           ]
         }
@@ -655,7 +740,7 @@ describe('pdb utils', () => {
       const result = parseStructEntries(raw)
 
       expect(result[0].fields?.[0].dataTypeRaw).toEqual({
-        type: 'base',
+        kind: 'base',
         name: 'int',
         custom_prop: 'value'
       })
@@ -707,6 +792,364 @@ describe('pdb utils', () => {
       expect(sorted[0].name).toBe('_Apple')
       expect(sorted[1].name).toBe('_banana')
       expect(sorted[2].name).toBe('_zebra')
+    })
+  })
+
+  describe('parseFieldDiffEntries', () => {
+    it('should parse UNCHANGED field with same offsets', () => {
+      const input = [
+        {
+          path: 'AdjustCounter',
+          status: 'UNCHANGED',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 382 }
+          },
+          new_props: {
+            hash: '...',
+            properties: { offset: 382 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('AdjustCounter')
+      expect(result[0].status).toBe('UNCHANGED')
+      expect(result[0].offset).toBe(382)
+      expect(result[0].baseOffset).toBe(382)
+      expect(result[0].diffeeOffset).toBe(382)
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should parse NEW field with only new_props', () => {
+      const input = [
+        {
+          path: 'BreakMakePte',
+          status: 'NEW',
+          type: 'StructField',
+          old_props: null,
+          new_props: {
+            hash: '...',
+            properties: { offset: 424 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('BreakMakePte')
+      expect(result[0].status).toBe('NEW')
+      expect(result[0].offset).toBe(424)
+      expect(result[0].diffeeOffset).toBe(424)
+      expect(result[0].baseOffset).toBeUndefined()
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].diffeeDataType).toBeUndefined()
+      expect(result[0].baseDataType).toBeUndefined()
+    })
+
+    it('should parse MOD field with different offsets', () => {
+      const input = [
+        {
+          path: 'NumberOfUltraMdlMaps',
+          status: 'MOD',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 488 }
+          },
+          new_props: {
+            hash: '...',
+            properties: { offset: 496 }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('NumberOfUltraMdlMaps')
+      expect(result[0].status).toBe('MOD')
+      expect(result[0].offset).toBe(496) // Display offset should be diffee
+      expect(result[0].baseOffset).toBe(488)
+      expect(result[0].diffeeOffset).toBe(496)
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should parse DEL field with only old_props', () => {
+      const input = [
+        {
+          path: 'DeletedField',
+          status: 'DEL',
+          type: 'StructField',
+          old_props: {
+            hash: '...',
+            properties: { offset: 100 }
+          },
+          new_props: null
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('DeletedField')
+      expect(result[0].status).toBe('DEL')
+      expect(result[0].offset).toBe(100)
+      expect(result[0].baseOffset).toBe(100)
+      expect(result[0].diffeeOffset).toBeUndefined()
+      expect(result[0].dataType).toBe('unknown')
+      expect(result[0].baseDataType).toBeUndefined()
+      expect(result[0].diffeeDataType).toBeUndefined()
+    })
+
+    it('should sort fields by offset (smallest to largest)', () => {
+      const input = [
+        {
+          path: 'field3',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 200 } },
+          new_props: { properties: { offset: 200 } }
+        },
+        {
+          path: 'field1',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 0 } },
+          new_props: { properties: { offset: 0 } }
+        },
+        {
+          path: 'field2',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 100 } },
+          new_props: { properties: { offset: 100 } }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result.map((f) => f.name)).toEqual(['field1', 'field2', 'field3'])
+    })
+
+    it('should handle mixed field statuses from real GraphQL response', () => {
+      // Use the actual _MI_SYSTEM_PTE_STATE sample the user provided
+      const input = [
+        {
+          path: 'MdlTrackerLookaside',
+          status: 'UNCHANGED',
+          old_props: { properties: { offset: 0 } },
+          new_props: { properties: { offset: 0 } }
+        },
+        {
+          path: 'BreakMakePte',
+          status: 'NEW',
+          old_props: null,
+          new_props: { properties: { offset: 424 } }
+        },
+        {
+          path: 'NumberOfUltraMdlMaps',
+          status: 'MOD',
+          old_props: { properties: { offset: 488 } },
+          new_props: { properties: { offset: 496 } }
+        },
+        {
+          path: 'UltraSpaceContext',
+          status: 'MOD',
+          old_props: { properties: { offset: 424 } },
+          new_props: { properties: { offset: 432 } }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      // Verify correct parsing of all statuses
+      expect(result.find((f) => f.name === 'MdlTrackerLookaside')).toMatchObject({
+        status: 'UNCHANGED',
+        baseOffset: 0,
+        diffeeOffset: 0
+      })
+
+      expect(result.find((f) => f.name === 'BreakMakePte')).toMatchObject({
+        status: 'NEW',
+        diffeeOffset: 424
+      })
+      expect(result.find((f) => f.name === 'BreakMakePte')?.baseOffset).toBeUndefined()
+
+      expect(result.find((f) => f.name === 'NumberOfUltraMdlMaps')).toMatchObject({
+        status: 'MOD',
+        baseOffset: 488,
+        diffeeOffset: 496
+      })
+    })
+
+    it('should parse stringified JSON data_type from diffNodesAt API', () => {
+      // diffNodesAt returns data_type as stringified JSON inside properties blob
+      const input = [
+        {
+          path: 'Pcb',
+          status: 'UNCHANGED',
+          old_props: {
+            hash: 'abc123',
+            properties: {
+              offset: 0,
+              data_type: '{"kind": "struct", "name": "_KPROCESS"}'
+            }
+          },
+          new_props: {
+            hash: 'def456',
+            properties: {
+              offset: 0,
+              data_type: '{"kind": "struct", "name": "_KPROCESS"}'
+            }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].dataType).toBe('struct _KPROCESS')
+      expect(result[0].baseDataType).toBe('struct _KPROCESS')
+      expect(result[0].diffeeDataType).toBe('struct _KPROCESS')
+    })
+
+    it('should parse various stringified data_types correctly', () => {
+      const input = [
+        {
+          path: 'BaseField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 0,
+              data_type: '{"kind": "base", "name": "unsigned long"}'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 0,
+              data_type: '{"kind": "base", "name": "unsigned long"}'
+            }
+          }
+        },
+        {
+          path: 'PointerField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 8,
+              data_type: '{"kind": "pointer", "subtype": {"kind": "base", "name": "void"}}'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 8,
+              data_type: '{"kind": "pointer", "subtype": {"kind": "base", "name": "void"}}'
+            }
+          }
+        },
+        {
+          path: 'ArrayField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 16,
+              data_type:
+                '{"kind": "array", "count": 4, "subtype": {"kind": "base", "name": "unsigned long"}}'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 16,
+              data_type:
+                '{"kind": "array", "count": 4, "subtype": {"kind": "base", "name": "unsigned long"}}'
+            }
+          }
+        },
+        {
+          path: 'BitfieldField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 32,
+              data_type:
+                '{"kind": "bitfield", "type": {"kind": "base", "name": "unsigned long"}, "bit_length": 1, "bit_position": 0}'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 32,
+              data_type:
+                '{"kind": "bitfield", "type": {"kind": "base", "name": "unsigned long"}, "bit_length": 1, "bit_position": 0}'
+            }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result.find((f) => f.name === 'BaseField')?.dataType).toBe('unsigned long')
+      expect(result.find((f) => f.name === 'PointerField')?.dataType).toBe('void*')
+      expect(result.find((f) => f.name === 'ArrayField')?.dataType).toBe('unsigned long[4]')
+      expect(result.find((f) => f.name === 'BitfieldField')?.dataType).toBe('unsigned long : 1')
+    })
+
+    it('should handle malformed stringified JSON gracefully', () => {
+      const input = [
+        {
+          path: 'BadField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 0,
+              data_type: 'not valid json {'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 0,
+              data_type: 'not valid json {'
+            }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].dataType).toBe('unknown')
+    })
+
+    it('should handle both parsed objects and stringified JSON', () => {
+      // In case some fields have parsed objects and others have strings
+      const input = [
+        {
+          path: 'StringField',
+          status: 'UNCHANGED',
+          old_props: {
+            properties: {
+              offset: 0,
+              data_type: '{"kind": "base", "name": "int"}'
+            }
+          },
+          new_props: {
+            properties: {
+              offset: 0,
+              data_type: { kind: 'base', name: 'int' } // Already parsed
+            }
+          }
+        }
+      ]
+
+      const result = parseFieldDiffEntries(input)
+
+      expect(result[0].baseDataType).toBe('int')
+      expect(result[0].diffeeDataType).toBe('int')
     })
   })
 })
