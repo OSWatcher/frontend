@@ -4,7 +4,7 @@
  * Generates C struct definitions from field entries for Monaco diff display.
  */
 
-import type { StructFieldDiffEntry } from '@/types/pdb'
+import type { StructFieldEntry, StructFieldDiffEntry } from '@/types/pdb'
 
 /**
  * Generate C struct definition from field entries for diff display
@@ -71,6 +71,64 @@ export function generateStructText(
     // Format: "    /* 0x0010 */ unsigned long FieldName;"
     const offsetHex = `0x${offset.toString(16).toUpperCase().padStart(4, '0')}`
     lines.push(`    /* ${offsetHex} */ ${dataType} ${field.name};`)
+  }
+
+  // Struct footer with size
+  const sizeHex = `0x${structSize.toString(16).toUpperCase()}`
+  const typedefName = structName.startsWith('_') ? structName.slice(1) : structName
+  lines.push(`} ${typedefName}; /* size: ${sizeHex} */`)
+
+  return lines.join('\n')
+}
+
+/**
+ * Generate C struct definition from field entries for single mode display
+ *
+ * Converts struct field metadata into a formatted C typedef declaration suitable
+ * for displaying in Monaco Editor (single mode, not diff). Simpler than the diff
+ * version as it doesn't need version-specific handling.
+ *
+ * @param structName - Name of the struct (e.g., "_EPROCESS" or "EPROCESS")
+ *                     Leading underscore is handled automatically to avoid double underscores
+ * @param structSize - Total size of the struct in bytes (must be non-negative)
+ * @param fields - Array of struct field entries, sorted by offset
+ * @returns Formatted C struct definition as a multi-line string
+ *
+ * @example
+ * ```typescript
+ * const fields = [
+ *   { name: 'pid', offset: 0, dataType: 'unsigned long' }
+ * ]
+ * const code = generateStructTextSingle('_EPROCESS', 16, fields)
+ * // Returns:
+ * // typedef struct _EPROCESS {
+ * //     /* 0x0000 *\/ unsigned long pid;
+ * // } EPROCESS; /* size: 0x10 *\/
+ * ```
+ *
+ * @throws {Error} If structSize is negative
+ */
+export function generateStructTextSingle(
+  structName: string,
+  structSize: number,
+  fields: StructFieldEntry[]
+): string {
+  // Validate inputs
+  if (structSize < 0) {
+    throw new Error(`Invalid struct size: ${structSize}. Size must be non-negative.`)
+  }
+
+  const lines: string[] = []
+
+  // Struct header - avoid double underscore if name already starts with _
+  const structTag = structName.startsWith('_') ? structName : `_${structName}`
+  lines.push(`typedef struct ${structTag} {`)
+
+  // Generate field lines
+  for (const field of fields) {
+    // Format: "    /* 0x0010 */ unsigned long FieldName;"
+    const offsetHex = `0x${field.offset.toString(16).toUpperCase().padStart(4, '0')}`
+    lines.push(`    /* ${offsetHex} */ ${field.dataType} ${field.name};`)
   }
 
   // Struct footer with size
