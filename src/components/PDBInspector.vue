@@ -15,6 +15,7 @@ import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from 
 import { formatOffset, formatSize } from '@/utils/pdb'
 import DiffStatusFilter from './DiffStatusFilter.vue'
 import MonacoStructDiff from './MonacoStructDiff.vue'
+import MonacoStructView from './MonacoStructView.vue'
 
 const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
@@ -161,42 +162,20 @@ function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
 // Struct Table Data (Single Mode)
 // ============================================
 
-// Flatten structs and their expanded fields into table rows (single mode only)
+// Struct rows for single mode (no field rows - Monaco shows struct details)
 const structsTableDataSingle = computed(() => {
   if (props.mode !== 'single') return []
 
-  const rows: any[] = []
-
-  ;(structs.value as StructEntry[]).forEach((struct) => {
-    // Add struct row
-    rows.push({
-      key: struct.name,
-      type: 'struct',
-      offset: '',
-      name: struct.name,
-      dataType: struct.kind,
-      size: formatSize(struct.size),
-      isExpanded: expandedStructNames.value.has(struct.name),
-      struct: struct
-    })
-
-    // Add field rows if expanded
-    if (expandedStructNames.value.has(struct.name)) {
-      struct.fields?.forEach((field) => {
-        rows.push({
-          key: `${struct.name}-${field.name}`,
-          type: 'field',
-          offset: formatOffset(field.offset),
-          name: field.name,
-          dataType: field.dataType,
-          size: '',
-          parentStruct: struct.name
-        })
-      })
-    }
-  })
-
-  return rows
+  return (structs.value as StructEntry[]).map((struct) => ({
+    key: struct.name,
+    type: 'struct',
+    offset: '',
+    name: struct.name,
+    dataType: struct.kind,
+    size: formatSize(struct.size),
+    isExpanded: expandedStructNames.value.has(struct.name),
+    struct: struct
+  }))
 })
 
 // Struct table data for comparison mode (with expandable fields)
@@ -246,6 +225,15 @@ const structsTableDataComparison = computed(() => {
 const expandedStructsForDiff = computed(() => {
   if (props.mode !== 'comparison') return []
   return (structs.value as StructDiffEntry[]).filter(
+    (struct) =>
+      expandedStructNames.value.has(struct.name) && struct.fields && struct.fields.length > 0
+  )
+})
+
+// Get expanded structs for Monaco view display in single mode (only those with fields loaded)
+const expandedStructsForView = computed(() => {
+  if (props.mode !== 'single') return []
+  return (structs.value as StructEntry[]).filter(
     (struct) =>
       expandedStructNames.value.has(struct.name) && struct.fields && struct.fields.length > 0
   )
@@ -509,6 +497,23 @@ const structColumns = computed(() => {
               {{ structs.length }} / {{ totalStructs }} structs
               <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
             </span>
+          </div>
+
+          <!-- Monaco View Panels (single mode only) -->
+          <div
+            v-if="mode === 'single' && expandedStructsForView.length > 0"
+            class="monaco-diff-panels"
+          >
+            <div
+              v-for="struct in expandedStructsForView"
+              :key="`monaco-${struct.name}`"
+              class="monaco-panel"
+            >
+              <div class="monaco-panel-header">
+                <h4>{{ struct.name }}</h4>
+              </div>
+              <MonacoStructView :struct="struct" />
+            </div>
           </div>
 
           <!-- Monaco Diff Panels (comparison mode only) -->
