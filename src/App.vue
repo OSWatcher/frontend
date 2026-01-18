@@ -29,7 +29,7 @@ import { onUnmounted } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import gqlClient, { setAuthTokenGetter } from '@/graphql-client'
 import { SEARCH_FS_STREAM, fetchCommitDetails } from '@/queries'
-import { CommitScope, SearchEntityType } from '@/graphql-types'
+import { CommitHistoryDirection, EntityType } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 import { useSearchContextStore } from '@/stores/searchContext'
 import { parseRegistryEntityPath } from '@/utils/registry'
@@ -47,7 +47,7 @@ interface SearchResult {
 const showSearchModal = ref(false)
 const searchTerm = ref('')
 const caseSensitive = ref(false)
-const selectedEntityTypes = ref<SearchEntityType[]>([SearchEntityType.Filesystem])
+const selectedEntityTypes = ref<EntityType[]>([EntityType.Filesystem])
 const activeResultTab = ref<'filesystem' | 'registry'>('filesystem')
 const searchResults = ref<SearchResult[]>([])
 const currentPage = ref(1)
@@ -97,15 +97,15 @@ watch(
 
 // Computed results by entity type
 const filesystemResults = computed(() =>
-  searchResults.value.filter((r) => r.type === SearchEntityType.Filesystem)
+  searchResults.value.filter((r) => r.type === EntityType.Filesystem)
 )
 
 const registryResults = computed(() =>
-  searchResults.value.filter((r) => r.type === SearchEntityType.Registry)
+  searchResults.value.filter((r) => r.type === EntityType.Registry)
 )
 
 // Helper to toggle entity type
-const toggleEntityType = (type: SearchEntityType, checked: boolean) => {
+const toggleEntityType = (type: EntityType, checked: boolean) => {
   if (checked) {
     // Add if not already included
     if (!selectedEntityTypes.value.includes(type)) {
@@ -126,15 +126,15 @@ watch(showSearchModal, (show) => {
       // Inspector mode: search current tab only
       const tab = searchContext.activeInspectorTab
       if (tab === 'filesystem') {
-        selectedEntityTypes.value = [SearchEntityType.Filesystem]
+        selectedEntityTypes.value = [EntityType.Filesystem]
         activeResultTab.value = 'filesystem'
       } else if (tab === 'registry') {
-        selectedEntityTypes.value = [SearchEntityType.Registry]
+        selectedEntityTypes.value = [EntityType.Registry]
         activeResultTab.value = 'registry'
       }
     } else {
       // HomeView: omnisearch all entities
-      selectedEntityTypes.value = [SearchEntityType.Filesystem, SearchEntityType.Registry]
+      selectedEntityTypes.value = [EntityType.Filesystem, EntityType.Registry]
       activeResultTab.value = 'filesystem'
     }
   }
@@ -253,13 +253,16 @@ const performSearch = () => {
 
   // Start streaming subscription
   try {
-    let startCommit: string
-    let scope: CommitScope
+    let startRef: string
+    let direction: CommitHistoryDirection
+    let includeUpdates = false
+    let endRef: string | null = null
 
     if (isInspectorSingleMode.value && inspectorCommitHash.value) {
       // Inspector mode: search within current commit only
-      startCommit = inspectorCommitHash.value
-      scope = CommitScope.Single
+      startRef = inspectorCommitHash.value
+      direction = CommitHistoryDirection.Backward
+      endRef = inspectorCommitHash.value
     } else {
       // Global mode: search commit history
       if (!branchSelection.selectedBranchHash) {
@@ -268,17 +271,30 @@ const performSearch = () => {
         isStreaming.value = false
         return
       }
-      startCommit = branchSelection.selectedBranchHash
-      scope = isAuthenticated.value ? CommitScope.HistoryWithUpdates : CommitScope.History
+      startRef = branchSelection.selectedBranchHash
+      direction = CommitHistoryDirection.Backward
+      includeUpdates = isAuthenticated.value
+    }
+
+    const commitRange: {
+      startRef: string
+      direction: CommitHistoryDirection
+      include_updates: boolean
+      endRef?: string
+    } = {
+      startRef,
+      direction,
+      include_updates: includeUpdates
+    }
+
+    if (endRef) {
+      commitRange.endRef = endRef
     }
 
     const variables = {
       input: {
         search_term: searchTerm.value,
-        commit_range: {
-          startCommit,
-          scope
-        },
+        commit_range: commitRange,
         entity_types: selectedEntityTypes.value,
         case_sensitive: caseSensitive.value
       }
@@ -319,7 +335,7 @@ const performSearch = () => {
 const handleRowClick = (row: SearchResult) => {
   showSearchModal.value = false
 
-  if (row.type === SearchEntityType.Filesystem) {
+  if (row.type === EntityType.Filesystem) {
     // Navigate to filesystem with directory and highlight
     const pathParts = row.blob_path.split('/')
     const filename = pathParts.pop() || ''
@@ -332,7 +348,7 @@ const handleRowClick = (row: SearchResult) => {
         highlight: filename
       }
     })
-  } else if (row.type === SearchEntityType.Registry) {
+  } else if (row.type === EntityType.Registry) {
     // Navigate to registry with deep-linking
     const parsed = parseRegistryEntityPath(row.entity_path || '')
 
@@ -504,16 +520,14 @@ onUnmounted(() => {
             <div class="entity-type-selectors">
               <span class="search-section-label">Search in:</span>
               <NCheckbox
-                :checked="selectedEntityTypes.includes(SearchEntityType.Filesystem)"
-                @update:checked="
-                  (checked) => toggleEntityType(SearchEntityType.Filesystem, checked)
-                "
+                :checked="selectedEntityTypes.includes(EntityType.Filesystem)"
+                @update:checked="(checked) => toggleEntityType(EntityType.Filesystem, checked)"
               >
                 Filesystem
               </NCheckbox>
               <NCheckbox
-                :checked="selectedEntityTypes.includes(SearchEntityType.Registry)"
-                @update:checked="(checked) => toggleEntityType(SearchEntityType.Registry, checked)"
+                :checked="selectedEntityTypes.includes(EntityType.Registry)"
+                @update:checked="(checked) => toggleEntityType(EntityType.Registry, checked)"
               >
                 Registry
               </NCheckbox>
