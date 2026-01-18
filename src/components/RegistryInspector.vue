@@ -8,7 +8,6 @@ import {
   NSelect,
   NButton,
   NDropdown,
-  NInput,
   NSpin,
   NAlert,
   NEmpty,
@@ -17,13 +16,7 @@ import {
   type SelectOption,
   type DropdownOption
 } from 'naive-ui'
-import {
-  DocumentOutline,
-  HomeOutline,
-  FolderOutline,
-  DownloadOutline,
-  SearchOutline
-} from '@vicons/ionicons5'
+import { DocumentOutline, HomeOutline, FolderOutline, DownloadOutline } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
@@ -73,7 +66,7 @@ const {
 )
 
 // Table filtering
-const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
+const { searchQuery, filteredEntries } = useTableFilter({
   entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath

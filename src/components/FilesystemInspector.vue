@@ -7,7 +7,6 @@ import {
   NIcon,
   NButton,
   NDropdown,
-  NInput,
   NSpin,
   NAlert,
   NEmpty,
@@ -19,8 +18,7 @@ import {
   FolderOutline,
   DownloadOutline,
   HomeOutline,
-  ChevronDownOutline,
-  SearchOutline
+  ChevronDownOutline
 } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
@@ -33,7 +31,6 @@ import type {
   FilesystemDiffEntry
 } from '@/types/inspector'
 import { TreeNodeType, treeNodeTypeToString } from '@/types'
-import { DiffStatus } from '@/graphql-types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
@@ -71,7 +68,7 @@ const {
 )
 
 // Table filtering
-const { searchQuery, filteredEntries, totalCount, filterInputRef } = useTableFilter({
+const { searchQuery, filteredEntries } = useTableFilter({
   entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
