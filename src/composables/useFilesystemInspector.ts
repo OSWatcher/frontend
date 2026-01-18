@@ -142,7 +142,7 @@ export function useFilesystemInspector(
           baseNodeHash: baseTreeHash,
           diffeeNodeHash: diffeeTreeHash,
           atPath: path,
-          maxDepth: 0,
+          maxDepth: 1,
           filter: ['Blob'],
           options
         }

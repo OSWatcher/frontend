@@ -187,7 +187,7 @@ export function usePDBInspector(
           baseNodeHash: pdbContextDiff.value.baseBlobHash,
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
-          maxDepth: 0, // Only immediate children (symbols are direct children of Blob)
+          maxDepth: 1, // Only immediate children (symbols are direct children of Blob)
           filter: ['Symbol'],
           options
         }
@@ -335,7 +335,7 @@ export function usePDBInspector(
           baseNodeHash: pdbContextDiff.value.baseBlobHash,
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: '/',
-          maxDepth: 0, // Only immediate children (structs are direct children of Blob)
+          maxDepth: 1, // Only immediate children (structs are direct children of Blob)
           filter: ['Struct'],
           options: Object.keys(options).length > 0 ? options : undefined
         }
@@ -424,7 +424,7 @@ export function usePDBInspector(
           baseNodeHash: pdbContextDiff.value.baseBlobHash,
           diffeeNodeHash: pdbContextDiff.value.diffeeBlobHash,
           atPath: `/${structName}`,
-          maxDepth: 0,
+          maxDepth: 1,
           filter: ['StructField'],
           options: {
             status_filter: ['NEW', 'MOD', 'DEL', 'UNCHANGED']
