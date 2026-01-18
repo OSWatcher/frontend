@@ -1013,16 +1013,11 @@ export type CommitPreviousRelationship = {
 }
 
 export type CommitRange = {
-  endCommit?: InputMaybe<Scalars['String']['input']>
-  scope: CommitScope
-  startCommit: Scalars['String']['input']
-}
-
-export enum CommitScope {
-  History = 'HISTORY',
-  HistoryWithUpdates = 'HISTORY_WITH_UPDATES',
-  Range = 'RANGE',
-  Single = 'SINGLE'
+  branch?: InputMaybe<Scalars['String']['input']>
+  direction?: InputMaybe<CommitHistoryDirection>
+  endRef?: InputMaybe<Scalars['String']['input']>
+  include_updates?: InputMaybe<Scalars['Boolean']['input']>
+  startRef: Scalars['String']['input']
 }
 
 /** Fields to sort Commits by. The order in which sorts are applied is not guaranteed when specifying many fields in one CommitSort object. */
@@ -1417,6 +1412,13 @@ export enum DiffStatus {
   Mod = 'MOD',
   New = 'NEW',
   Unchanged = 'UNCHANGED'
+}
+
+export enum EntityType {
+  Filesystem = 'FILESYSTEM',
+  Registry = 'REGISTRY',
+  Struct = 'STRUCT',
+  Symbol = 'SYMBOL'
 }
 
 /**
@@ -1865,15 +1867,10 @@ export type QueryWinRegValuesConnectionArgs = {
   where?: InputMaybe<WinRegValueWhere>
 }
 
-export enum SearchEntityType {
-  Filesystem = 'FILESYSTEM',
-  Registry = 'REGISTRY'
-}
-
 export type SearchInput = {
   case_sensitive?: InputMaybe<Scalars['Boolean']['input']>
   commit_range: CommitRange
-  entity_types?: InputMaybe<Array<SearchEntityType>>
+  entity_types?: InputMaybe<Array<EntityType>>
   search_term: Scalars['String']['input']
 }
 
@@ -1885,7 +1882,7 @@ export type SearchResult = {
   commit_name: Scalars['String']['output']
   entity_path?: Maybe<Scalars['String']['output']>
   node_hash: Scalars['String']['output']
-  type: SearchEntityType
+  type: EntityType
 }
 
 /** An enum for sorting in either ascending or descending order. */
@@ -3442,7 +3439,7 @@ export type SearchFsQuery = {
   __typename?: 'Query'
   search: Array<{
     __typename?: 'SearchResult'
-    type: SearchEntityType
+    type: EntityType
     commit_name: string
     commit_hash: string
     blob_path: string
@@ -3460,7 +3457,7 @@ export type SearchFsStreamSubscription = {
   __typename?: 'Subscription'
   searchStream: {
     __typename?: 'SearchResult'
-    type: SearchEntityType
+    type: EntityType
     commit_name: string
     commit_hash: string
     blob_path: string
