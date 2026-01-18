@@ -1,14 +1,11 @@
 /**
  * Monaco Editor Setup
  *
- * Configure Monaco to load from CDN (avoids Vite worker bundling issues)
+ * Configure Monaco to bundle locally via Vite workers.
  */
 
 import { loader } from '@guolao/vue-monaco-editor'
+import * as monaco from 'monaco-editor'
 
-// Use CDN - this is the most reliable approach
-loader.config({
-  paths: {
-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs'
-  }
-})
+// Use the locally bundled Monaco instance.
+loader.config({ monaco })
