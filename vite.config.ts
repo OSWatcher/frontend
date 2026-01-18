@@ -3,12 +3,19 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+
+const monacoPlugin =
+  typeof monacoEditorPlugin === 'function'
+    ? monacoEditorPlugin
+    : (monacoEditorPlugin as { default: typeof monacoEditorPlugin }).default
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    vueJsx()
+    vueJsx(),
+    monacoPlugin({})
   ],
   base: process.env.NODE_ENV === 'production' ? '/frontend/' : '/',
   resolve: {
