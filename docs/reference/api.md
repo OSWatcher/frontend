@@ -181,50 +181,132 @@ Lists registry keys and values under a specific registry key.
 
 ### PDB Symbol Operations
 
-#### `LIST_SYMBOLS`
-Retrieves symbols from a PDB file with filtering and pagination.
+#### `LIST_SYMBOLS_CONNECTION`
+Retrieves symbols from a PDB file with cursor-based pagination.
 
 **Parameters:**
 - `blobHash: String!` - The hash of the blob containing PDB data
-- `options: SymbolOptions` - Pagination and filtering options (optional)
-- `where: SymbolWhere` - Additional filter criteria (optional)
+- `first: Int` - Number of items to fetch (default: 1000)
+- `after: String` - Cursor for pagination (optional)
 
 **Returns:**
 ```typescript
 {
-  symbolsAggregate: {
-    count: number
-  }
-  fetchSymbols: Array<{
-    name: string
-    address: string
+  blobs: Array<{
+    has_symbolConnection: {
+      totalCount: number
+      edges: Array<{
+        properties: { name: string }
+        node: { address: string }
+      }>
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string
+      }
+    }
   }>
 }
 ```
 
 #### `LIST_WINSTRUCT`
-Retrieves Windows structure definitions from a PDB file.
+Retrieves Windows structure definitions from a PDB file with cursor-based pagination.
 
 **Parameters:**
 - `blobHash: String!` - The hash of the blob containing PDB data
-- `options: WinStructOptions` - Pagination and filtering options (optional)
-- `where: WinStructWhere` - Additional filter criteria (optional)
+- `first: Int` - Number of items to fetch (default: 400)
+- `after: String` - Cursor for pagination (optional)
 
 **Returns:**
 ```typescript
 {
-  winStructsAggregate: {
-    count: number
-  }
-  fetchStructs: Array<{
-    name: string
-    size: number
-    kind: string
-    fields: Array<{
-      name: string
-      offset: number
-      data_type: string
-    }>
+  blobs: Array<{
+    has_structConnection: {
+      totalCount: number
+      edges: Array<{
+        properties: { name: string }
+        node: {
+          hash: string
+          size: number
+          kind: string
+        }
+      }>
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string
+      }
+    }
+  }>
+}
+```
+
+#### `FETCH_STRUCT_FIELDS`
+Retrieves fields for a specific struct (lazy-loaded on row expansion).
+
+**Parameters:**
+- `structHash: String!` - The hash of the struct
+
+**Returns:**
+```typescript
+{
+  structs: Array<{
+    fieldsConnection: {
+      edges: Array<{
+        properties: { name: string }
+        node: {
+          offset: number
+          data_type: string
+        }
+      }>
+    }
+  }>
+}
+```
+
+#### `FETCH_SYMBOL_BY_NAME`
+Retrieves a specific symbol by name (used for search result navigation).
+
+**Parameters:**
+- `blobHash: String!` - The hash of the blob containing PDB data
+- `symbolName: String!` - The name of the symbol to find
+
+**Returns:**
+```typescript
+{
+  blobs: Array<{
+    has_symbolConnection: {
+      edges: Array<{
+        properties: { name: string }
+        node: {
+          hash: string
+          address: string
+        }
+      }>
+    }
+  }>
+}
+```
+
+#### `FETCH_STRUCT_BY_NAME`
+Retrieves a specific struct by name (used for search result navigation).
+
+**Parameters:**
+- `blobHash: String!` - The hash of the blob containing PDB data
+- `structName: String!` - The name of the struct to find
+
+**Returns:**
+```typescript
+{
+  blobs: Array<{
+    has_structConnection: {
+      edges: Array<{
+        properties: { name: string }
+        node: {
+          hash: string
+          size: number
+          kind: string
+        }
+      }>
+    }
   }>
 }
 ```
@@ -232,20 +314,81 @@ Retrieves Windows structure definitions from a PDB file.
 ### Search Operations
 
 #### `SEARCH_FS`
-Performs filesystem search across commits.
+Performs search across commits (non-streaming).
 
 **Parameters:**
-- `searchTerm: String!` - The search term to look for
+- `input: SearchInput!` - Search input object
+
+**SearchInput:**
+```typescript
+{
+  search_term: string        // The search term
+  entity_types?: EntityType[] // Filter by entity types (optional)
+  commit_range: CommitRange   // Range of commits to search
+  case_sensitive?: boolean    // Case-sensitive search (optional)
+}
+
+enum EntityType {
+  FILESYSTEM
+  REGISTRY
+  SYMBOL
+  STRUCT
+}
+```
 
 **Returns:**
 ```typescript
 {
   search: Array<{
-    commit_name: string
-    commit_hash: string
-    path: string
+    type: EntityType      // Type of result (Filesystem, Registry, Symbol, Struct)
+    commit_name: string   // Name of the commit containing the result
+    commit_hash: string   // Hash of the commit
+    blob_path: string     // Path to the containing blob
+    blob_hash: string     // Hash of the blob
+    entity_path: string   // Path within the entity (e.g., symbol name)
+    node_hash: string     // Hash of the matched node
   }>
 }
+```
+
+#### `SEARCH_FS_STREAM` (Subscription)
+Performs search across commits with streaming results.
+
+**Parameters:**
+- `input: SearchInput!` - Same as SEARCH_FS
+
+**Returns (streamed):**
+```typescript
+{
+  searchStream: {
+    type: EntityType
+    commit_name: string
+    commit_hash: string
+    blob_path: string
+    blob_hash: string
+    entity_path: string
+    node_hash: string
+  }
+}
+```
+
+**Usage:**
+```typescript
+import { SEARCH_FS_STREAM } from '@/queries'
+import { useSubscription } from '@vue/apollo-composable'
+
+const { result, onResult } = useSubscription(SEARCH_FS_STREAM, {
+  input: {
+    search_term: 'kernel32',
+    entity_types: ['FILESYSTEM', 'SYMBOL'],
+    commit_range: { /* ... */ }
+  }
+})
+
+onResult(({ data }) => {
+  // Handle each streamed result
+  console.log(data.searchStream)
+})
 ```
 
 ### Diff Operations

@@ -10,7 +10,7 @@ import { ref, computed } from 'vue'
  */
 export const useSearchContextStore = defineStore('searchContext', () => {
   // State
-  const activeInspectorTab = ref<'filesystem' | 'registry' | null>(null)
+  const activeInspectorTab = ref<'filesystem' | 'registry' | 'pdb' | null>(null)
   const isInInspectorView = ref(false)
 
   // Getters
@@ -19,7 +19,7 @@ export const useSearchContextStore = defineStore('searchContext', () => {
   )
 
   // Actions
-  function setActiveTab(tab: 'filesystem' | 'registry' | null) {
+  function setActiveTab(tab: 'filesystem' | 'registry' | 'pdb' | null) {
     activeInspectorTab.value = tab
   }
 
