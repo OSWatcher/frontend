@@ -20,6 +20,7 @@ OSWatcher Frontend is a Vue.js application for exploring operating system analys
 - **Commit History View**: Git-like commit timeline with branch support
 - **OS Analysis View**: Multi-tab interface for exploring filesystem, registry, and PDB data
 - **Diff View**: Side-by-side comparison of commits showing hierarchical differences
+- **Monaco Struct Diff**: Side-by-side C struct visualization using Monaco Editor for comparing PDB struct definitions
 - **Hash-Based Navigation**: Content-addressed data access for immutable exploration
 - **Tree Virtualization**: Efficient rendering of large hierarchical datasets
 
@@ -65,6 +66,7 @@ npm run docs:dev
 |---------|-------------|
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
+| `npm run test` | Run unit tests with Vitest |
 | `npm run lint` | Run ESLint with auto-fix |
 | `npm run type-check` | Run TypeScript checks |
 | `npm run generate` | Generate GraphQL types |
