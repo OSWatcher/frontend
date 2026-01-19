@@ -36,7 +36,8 @@ export function usePDBInspector(
   baseCommit?: CommitContext,
   diffeeCommit?: CommitContext,
   targetSymbolName?: string,
-  targetPdbTab?: 'symbols' | 'structs'
+  targetPdbTab?: 'symbols' | 'structs',
+  targetStructName?: string
 ) {
   // ============================================
   // State
@@ -55,6 +56,9 @@ export function usePDBInspector(
 
   // Highlighted symbol name (for search result navigation)
   const highlightedSymbolName = ref<string>(targetSymbolName || '')
+
+  // Highlighted struct name (for search result navigation)
+  const highlightedStructName = ref<string>(targetStructName || '')
 
   // Symbols state
   const rawSymbols = ref<any[]>([])
@@ -617,6 +621,9 @@ export function usePDBInspector(
     setStructsStatusFilter,
 
     // Highlighted symbol (for search navigation)
-    highlightedSymbolName
+    highlightedSymbolName,
+
+    // Highlighted struct (for search navigation)
+    highlightedStructName
   }
 }
