@@ -60,8 +60,10 @@ const {
   setSymbolsStatusFilter,
   structsStatusFilter,
   setStructsStatusFilter,
-  highlightedSymbolName,
-  highlightedStructName
+  isSearchingForTargetSymbol,
+  targetSymbolNotFound,
+  isSearchingForTargetStruct,
+  targetStructNotFound
 } = usePDBInspector(
   props.mode,
   props.commit,
@@ -213,40 +215,20 @@ const symbolColumns = computed(() => {
 // ============================================
 
 function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
-  const classes: string[] = []
-
   // Add diff status class in comparison mode
   if (props.mode === 'comparison') {
     const diffRow = row as SymbolDiffEntry
-    classes.push(`diff-row-${diffRow.status.toLowerCase()}`)
+    return { class: `diff-row-${diffRow.status.toLowerCase()}` }
   }
-
-  // Add highlight class if this is the target symbol from search
-  if (highlightedSymbolName.value && row.name === highlightedSymbolName.value) {
-    classes.push('highlighted-row')
-  }
-
-  return classes.length > 0 ? { class: classes.join(' ') } : {}
+  return {}
 }
 
 function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
-  const classes: string[] = []
-
   // Add diff status class in comparison mode
   if (props.mode === 'comparison' && row.status) {
-    classes.push(`diff-row-${row.status.toLowerCase()}`)
+    return { class: `diff-row-${row.status.toLowerCase()}` }
   }
-
-  // Add highlight class if this is the target struct from search
-  if (
-    row.type === 'struct' &&
-    highlightedStructName.value &&
-    row.name === highlightedStructName.value
-  ) {
-    classes.push('highlighted-row')
-  }
-
-  return classes.length > 0 ? { class: classes.join(' ') } : {}
+  return {}
 }
 
 // ============================================
@@ -356,7 +338,7 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
           'div',
           {
             class: 'struct-name-row',
-            onClick: () => toggleStructExpansion(row.key)
+            onClick: () => toggleStructExpansion(row.key, row.struct?.hash)
           },
           [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
         )
@@ -514,6 +496,17 @@ const structColumns = computed(() => {
             />
           </div>
 
+          <!-- Searching indicator for target symbol -->
+          <div v-if="isSearchingForTargetSymbol" class="searching-indicator">
+            <NSpin size="small" />
+            <span>Fetching "{{ props.targetSymbolName }}"...</span>
+          </div>
+
+          <!-- Target symbol not found alert -->
+          <NAlert v-if="targetSymbolNotFound" type="warning" closable style="margin-bottom: 12px">
+            Symbol "{{ props.targetSymbolName }}" not found in this PDB file.
+          </NAlert>
+
           <!-- Top pagination (comparison mode only) -->
           <div v-if="mode === 'comparison'" class="pagination-top">
             <NPagination
@@ -603,6 +596,17 @@ const structColumns = computed(() => {
               @update:model-value="setStructsStatusFilter"
             />
           </div>
+
+          <!-- Searching indicator for target struct -->
+          <div v-if="isSearchingForTargetStruct" class="searching-indicator">
+            <NSpin size="small" />
+            <span>Fetching "{{ props.targetStructName }}"...</span>
+          </div>
+
+          <!-- Target struct not found alert -->
+          <NAlert v-if="targetStructNotFound" type="warning" closable style="margin-bottom: 12px">
+            Struct "{{ props.targetStructName }}" not found in this PDB file.
+          </NAlert>
 
           <!-- Structs Table -->
           <div class="table-container">
@@ -802,14 +806,6 @@ const structColumns = computed(() => {
   color: #9ca3af !important; /* muted text */
 }
 
-/* Highlighted row (from search navigation) */
-:deep(.n-data-table-tr.highlighted-row),
-:deep(.n-data-table-tr.highlighted-row .n-data-table-td) {
-  background-color: #dbeafe !important; /* light blue */
-  outline: 2px solid #3b82f6;
-  outline-offset: -2px;
-}
-
 /* Struct tree table styling */
 .struct-name-row {
   cursor: pointer;
@@ -880,5 +876,18 @@ const structColumns = computed(() => {
   font-weight: 600;
   color: #374151;
   font-family: monospace;
+}
+
+/* Searching indicator for target items from search navigation */
+.searching-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  color: #0369a1;
+  margin-bottom: 12px;
 }
 </style>
