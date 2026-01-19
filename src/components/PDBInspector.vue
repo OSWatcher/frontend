@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, type PropType } from 'vue'
+import { computed, h, watch, type PropType } from 'vue'
 import {
   NTabs,
   NTabPane,
@@ -7,9 +7,14 @@ import {
   NSpin,
   NAlert,
   NPagination,
+  NInput,
+  NButton,
+  NIcon,
   type DataTableColumns
 } from 'naive-ui'
+import { CloseOutline } from '@vicons/ionicons5'
 import { usePDBInspector } from '@/composables/usePDBInspector'
+import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
 import { formatOffset, formatSize } from '@/utils/pdb'
@@ -62,6 +67,32 @@ const {
   props.diffeeCommit,
   props.targetSymbolName,
   props.targetPdbTab
+)
+
+// ============================================
+// Symbol Filter
+// ============================================
+
+const {
+  searchQuery: symbolSearchQuery,
+  filteredEntries: filteredSymbols,
+  filterInputRef: symbolFilterInputRef,
+  clearFilter: clearSymbolFilter
+} = useTableFilter({
+  entries: symbols as any,
+  filterKey: 'name',
+  clearOnChange: activeSubTab
+})
+
+// Initialize filter with targetSymbolName when navigating from search
+watch(
+  () => props.targetSymbolName,
+  (name) => {
+    if (name) {
+      symbolSearchQuery.value = name
+    }
+  },
+  { immediate: true }
 )
 
 // ============================================
@@ -414,9 +445,29 @@ const structColumns = computed(() => {
       <!-- Sub-tabs: Symbols and Structs -->
       <NTabs v-model:value="activeSubTab" type="line" animated>
         <NTabPane name="symbols" tab="Symbols">
-          <!-- Filter buttons (comparison mode only) -->
-          <div v-if="mode === 'comparison'" class="filter-container">
+          <!-- Filter row with text filter and diff status filter -->
+          <div class="filter-row">
+            <!-- Symbol name filter input -->
+            <div class="symbol-filter">
+              <NInput
+                ref="symbolFilterInputRef"
+                v-model:value="symbolSearchQuery"
+                placeholder="Filter symbols... (press / to focus, Esc to clear)"
+                clearable
+                size="small"
+              >
+                <template v-if="symbolSearchQuery" #suffix>
+                  <NButton text size="tiny" @click="clearSymbolFilter">
+                    <template #icon>
+                      <NIcon><CloseOutline /></NIcon>
+                    </template>
+                  </NButton>
+                </template>
+              </NInput>
+            </div>
+            <!-- Diff status filter buttons (comparison mode only) -->
             <DiffStatusFilter
+              v-if="mode === 'comparison'"
               v-model="symbolsStatusFilter"
               @update:model-value="setSymbolsStatusFilter"
             />
@@ -436,7 +487,7 @@ const structColumns = computed(() => {
           <div class="table-container">
             <NDataTable
               :columns="symbolColumns"
-              :data="symbols"
+              :data="filteredSymbols"
               :row-props="getSymbolRowProps"
               :loading="isLoading"
               striped
@@ -458,13 +509,13 @@ const structColumns = computed(() => {
             <span class="total-count">
               <template v-if="mode === 'comparison'">
                 Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }} ({{
-                  symbols.length
+                  filteredSymbols.length
                 }}
-                symbols, {{ totalSymbols }} total)
+                symbols<template v-if="symbolSearchQuery"> matching filter</template>, {{ totalSymbols }} total)
               </template>
               <template v-else>
-                {{ symbols.length }} / {{ totalSymbols }} symbols
-                <template v-if="hasMoreSymbols">(scroll for more)</template>
+                {{ filteredSymbols.length }}<template v-if="symbolSearchQuery"> matching</template> / {{ symbols.length }} loaded / {{ totalSymbols }} total symbols
+                <template v-if="hasMoreSymbols && !symbolSearchQuery">(scroll for more)</template>
               </template>
             </span>
           </div>
@@ -611,6 +662,21 @@ const structColumns = computed(() => {
   padding: 12px 16px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.symbol-filter {
+  flex: 1;
+  max-width: 400px;
 }
 
 .pagination-top {
