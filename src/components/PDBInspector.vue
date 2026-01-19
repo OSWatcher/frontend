@@ -21,7 +21,9 @@ const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined }
+  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
+  targetSymbolName: { type: String, default: '' },
+  targetPdbTab: { type: String as PropType<'symbols' | 'structs'>, default: 'symbols' }
 })
 
 const {
@@ -51,8 +53,16 @@ const {
   symbolsStatusFilter,
   setSymbolsStatusFilter,
   structsStatusFilter,
-  setStructsStatusFilter
-} = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
+  setStructsStatusFilter,
+  highlightedSymbolName
+} = usePDBInspector(
+  props.mode,
+  props.commit,
+  props.baseCommit,
+  props.diffeeCommit,
+  props.targetSymbolName,
+  props.targetPdbTab
+)
 
 // ============================================
 // Symbol Columns
@@ -143,11 +153,20 @@ const symbolColumns = computed(() => {
 // ============================================
 
 function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
+  const classes: string[] = []
+
+  // Add diff status class in comparison mode
   if (props.mode === 'comparison') {
     const diffRow = row as SymbolDiffEntry
-    return { class: `diff-row-${diffRow.status.toLowerCase()}` }
+    classes.push(`diff-row-${diffRow.status.toLowerCase()}`)
   }
-  return {}
+
+  // Add highlight class if this is the target symbol from search
+  if (highlightedSymbolName.value && row.name === highlightedSymbolName.value) {
+    classes.push('highlighted-row')
+  }
+
+  return classes.length > 0 ? { class: classes.join(' ') } : {}
 }
 
 function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
@@ -644,6 +663,14 @@ const structColumns = computed(() => {
   background-color: #f9fafb !important; /* light gray */
   opacity: 0.7 !important;
   color: #9ca3af !important; /* muted text */
+}
+
+/* Highlighted row (from search navigation) */
+:deep(.n-data-table-tr.highlighted-row),
+:deep(.n-data-table-tr.highlighted-row .n-data-table-td) {
+  background-color: #dbeafe !important; /* light blue */
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
 }
 
 /* Struct tree table styling */
