@@ -153,14 +153,7 @@ watch(showSearchModal, (show) => {
 })
 
 // Auth0
-const {
-  isAuthenticated,
-  isLoading: isAuthLoading,
-  user,
-  loginWithRedirect,
-  logout,
-  getAccessTokenSilently
-} = useAuth0()
+const { isAuthenticated, isLoading: isAuthLoading, user, logout, getAccessTokenSilently } = useAuth0()
 
 // Set up auth token getter for Apollo Client
 onMounted(() => {
@@ -523,7 +516,7 @@ onUnmounted(() => {
               <NButton
                 v-if="!isAuthenticated"
                 type="info"
-                @click="() => loginWithRedirect()"
+                @click="() => router.push('/login')"
                 class="login-button"
               >
                 <template #icon>
