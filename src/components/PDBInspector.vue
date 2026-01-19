@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, type PropType } from 'vue'
+import { computed, h, watch, type PropType } from 'vue'
 import {
   NTabs,
   NTabPane,
@@ -7,9 +7,14 @@ import {
   NSpin,
   NAlert,
   NPagination,
+  NInput,
+  NButton,
+  NIcon,
   type DataTableColumns
 } from 'naive-ui'
+import { CloseOutline } from '@vicons/ionicons5'
 import { usePDBInspector } from '@/composables/usePDBInspector'
+import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
 import { formatOffset, formatSize } from '@/utils/pdb'
@@ -21,7 +26,10 @@ const props = defineProps({
   mode: { type: String as PropType<InspectorMode>, required: true },
   commit: { type: Object as PropType<CommitContext>, default: undefined },
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
-  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined }
+  diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
+  targetSymbolName: { type: String, default: '' },
+  targetPdbTab: { type: String as PropType<'symbols' | 'structs'>, default: 'symbols' },
+  targetStructName: { type: String, default: '' }
 })
 
 const {
@@ -51,8 +59,72 @@ const {
   symbolsStatusFilter,
   setSymbolsStatusFilter,
   structsStatusFilter,
-  setStructsStatusFilter
-} = usePDBInspector(props.mode, props.commit, props.baseCommit, props.diffeeCommit)
+  setStructsStatusFilter,
+  isSearchingForTargetSymbol,
+  targetSymbolNotFound,
+  isSearchingForTargetStruct,
+  targetStructNotFound
+} = usePDBInspector(
+  props.mode,
+  props.commit,
+  props.baseCommit,
+  props.diffeeCommit,
+  props.targetSymbolName,
+  props.targetPdbTab,
+  props.targetStructName
+)
+
+// ============================================
+// Symbol Filter
+// ============================================
+
+const {
+  searchQuery: symbolSearchQuery,
+  filteredEntries: filteredSymbols,
+  filterInputRef: symbolFilterInputRef,
+  clearFilter: clearSymbolFilter
+} = useTableFilter({
+  entries: symbols as any,
+  filterKey: 'name',
+  clearOnChange: activeSubTab
+})
+
+// Initialize filter with targetSymbolName when navigating from search
+watch(
+  () => props.targetSymbolName,
+  (name) => {
+    if (name) {
+      symbolSearchQuery.value = name
+    }
+  },
+  { immediate: true }
+)
+
+// ============================================
+// Struct Filter
+// ============================================
+
+const {
+  searchQuery: structSearchQuery,
+  filteredEntries: filteredStructs,
+  filterInputRef: structFilterInputRef,
+  clearFilter: clearStructFilter
+} = useTableFilter({
+  entries: structs as any,
+  filterKey: 'name',
+  clearOnChange: activeSubTab
+})
+
+// Initialize filter with targetStructName when navigating from search
+watch(
+  () => props.targetStructName,
+  (name) => {
+    if (name) {
+      structSearchQuery.value = name
+    }
+  },
+  { immediate: true }
+)
 
 // ============================================
 // Symbol Columns
@@ -143,6 +215,7 @@ const symbolColumns = computed(() => {
 // ============================================
 
 function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
+  // Add diff status class in comparison mode
   if (props.mode === 'comparison') {
     const diffRow = row as SymbolDiffEntry
     return { class: `diff-row-${diffRow.status.toLowerCase()}` }
@@ -151,8 +224,8 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
 }
 
 function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
+  // Add diff status class in comparison mode
   if (props.mode === 'comparison' && row.status) {
-    // Apply diff row styling based on status (works for both struct and field rows)
     return { class: `diff-row-${row.status.toLowerCase()}` }
   }
   return {}
@@ -166,7 +239,7 @@ function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
 const structsTableDataSingle = computed(() => {
   if (props.mode !== 'single') return []
 
-  return (structs.value as StructEntry[]).map((struct) => ({
+  return (filteredStructs.value as StructEntry[]).map((struct) => ({
     key: struct.name,
     type: 'struct',
     offset: '',
@@ -184,7 +257,7 @@ const structsTableDataComparison = computed(() => {
 
   const rows: any[] = []
 
-  ;(structs.value as StructDiffEntry[]).forEach((struct) => {
+  ;(filteredStructs.value as StructDiffEntry[]).forEach((struct) => {
     // Add struct row
     rows.push({
       key: struct.name,
@@ -265,7 +338,7 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
           'div',
           {
             class: 'struct-name-row',
-            onClick: () => toggleStructExpansion(row.key)
+            onClick: () => toggleStructExpansion(row.key, row.struct?.hash)
           },
           [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
         )
@@ -395,13 +468,44 @@ const structColumns = computed(() => {
       <!-- Sub-tabs: Symbols and Structs -->
       <NTabs v-model:value="activeSubTab" type="line" animated>
         <NTabPane name="symbols" tab="Symbols">
-          <!-- Filter buttons (comparison mode only) -->
-          <div v-if="mode === 'comparison'" class="filter-container">
+          <!-- Filter row with text filter and diff status filter -->
+          <div class="filter-row">
+            <!-- Symbol name filter input -->
+            <div class="symbol-filter">
+              <NInput
+                ref="symbolFilterInputRef"
+                v-model:value="symbolSearchQuery"
+                placeholder="Filter symbols... (press / to focus, Esc to clear)"
+                clearable
+                size="small"
+              >
+                <template v-if="symbolSearchQuery" #suffix>
+                  <NButton text size="tiny" @click="clearSymbolFilter">
+                    <template #icon>
+                      <NIcon><CloseOutline /></NIcon>
+                    </template>
+                  </NButton>
+                </template>
+              </NInput>
+            </div>
+            <!-- Diff status filter buttons (comparison mode only) -->
             <DiffStatusFilter
+              v-if="mode === 'comparison'"
               v-model="symbolsStatusFilter"
               @update:model-value="setSymbolsStatusFilter"
             />
           </div>
+
+          <!-- Searching indicator for target symbol -->
+          <div v-if="isSearchingForTargetSymbol" class="searching-indicator">
+            <NSpin size="small" />
+            <span>Fetching "{{ props.targetSymbolName }}"...</span>
+          </div>
+
+          <!-- Target symbol not found alert -->
+          <NAlert v-if="targetSymbolNotFound" type="warning" closable style="margin-bottom: 12px">
+            Symbol "{{ props.targetSymbolName }}" not found in this PDB file.
+          </NAlert>
 
           <!-- Top pagination (comparison mode only) -->
           <div v-if="mode === 'comparison'" class="pagination-top">
@@ -417,7 +521,7 @@ const structColumns = computed(() => {
           <div class="table-container">
             <NDataTable
               :columns="symbolColumns"
-              :data="symbols"
+              :data="filteredSymbols"
               :row-props="getSymbolRowProps"
               :loading="isLoading"
               striped
@@ -439,13 +543,16 @@ const structColumns = computed(() => {
             <span class="total-count">
               <template v-if="mode === 'comparison'">
                 Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }} ({{
-                  symbols.length
+                  filteredSymbols.length
                 }}
-                symbols, {{ totalSymbols }} total)
+                symbols<template v-if="symbolSearchQuery"> matching filter</template>,
+                {{ totalSymbols }} total)
               </template>
               <template v-else>
-                {{ symbols.length }} / {{ totalSymbols }} symbols
-                <template v-if="hasMoreSymbols">(scroll for more)</template>
+                {{ filteredSymbols.length
+                }}<template v-if="symbolSearchQuery"> matching</template> /
+                {{ symbols.length }} loaded / {{ totalSymbols }} total symbols
+                <template v-if="hasMoreSymbols && !symbolSearchQuery">(scroll for more)</template>
               </template>
             </span>
           </div>
@@ -462,13 +569,44 @@ const structColumns = computed(() => {
         </NTabPane>
 
         <NTabPane name="structs" tab="Structs">
-          <!-- Filter buttons (comparison mode only) -->
-          <div v-if="mode === 'comparison'" class="filter-container">
+          <!-- Filter row with text filter and diff status filter -->
+          <div class="filter-row">
+            <!-- Struct name filter input -->
+            <div class="struct-filter">
+              <NInput
+                ref="structFilterInputRef"
+                v-model:value="structSearchQuery"
+                placeholder="Filter structs... (press / to focus, Esc to clear)"
+                clearable
+                size="small"
+              >
+                <template v-if="structSearchQuery" #suffix>
+                  <NButton text size="tiny" @click="clearStructFilter">
+                    <template #icon>
+                      <NIcon><CloseOutline /></NIcon>
+                    </template>
+                  </NButton>
+                </template>
+              </NInput>
+            </div>
+            <!-- Diff status filter buttons (comparison mode only) -->
             <DiffStatusFilter
+              v-if="mode === 'comparison'"
               v-model="structsStatusFilter"
               @update:model-value="setStructsStatusFilter"
             />
           </div>
+
+          <!-- Searching indicator for target struct -->
+          <div v-if="isSearchingForTargetStruct" class="searching-indicator">
+            <NSpin size="small" />
+            <span>Fetching "{{ props.targetStructName }}"...</span>
+          </div>
+
+          <!-- Target struct not found alert -->
+          <NAlert v-if="targetStructNotFound" type="warning" closable style="margin-bottom: 12px">
+            Struct "{{ props.targetStructName }}" not found in this PDB file.
+          </NAlert>
 
           <!-- Structs Table -->
           <div class="table-container">
@@ -494,8 +632,14 @@ const structColumns = computed(() => {
           <!-- Total count display (no pagination) -->
           <div class="pagination-container">
             <span class="total-count">
-              {{ structs.length }} / {{ totalStructs }} structs
-              <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
+              <template v-if="structSearchQuery">
+                {{ filteredStructs.length }} matching / {{ structs.length }} loaded /
+                {{ totalStructs }} total structs
+              </template>
+              <template v-else>
+                {{ structs.length }} / {{ totalStructs }} structs
+                <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
+              </template>
             </span>
           </div>
 
@@ -592,6 +736,22 @@ const structColumns = computed(() => {
   padding: 12px 16px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.symbol-filter,
+.struct-filter {
+  flex: 1;
+  max-width: 400px;
 }
 
 .pagination-top {
@@ -716,5 +876,18 @@ const structColumns = computed(() => {
   font-weight: 600;
   color: #374151;
   font-family: monospace;
+}
+
+/* Searching indicator for target items from search navigation */
+.searching-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  color: #0369a1;
+  margin-bottom: 12px;
 }
 </style>

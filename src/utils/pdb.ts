@@ -9,6 +9,7 @@ import type {
   SymbolEntry,
   SymbolDiffEntry,
   StructEntry,
+  StructFieldEntry,
   StructDiffEntry,
   StructFieldDiffEntry,
   ParsedDataType
@@ -59,6 +60,41 @@ export function parseSymbolDiffEntries(
       diffeeAddress: newAddress ? formatAddress(newAddress) : undefined
     }
   })
+}
+
+/**
+ * Raw edge shape from has_symbolConnection
+ */
+export interface SymbolConnectionEdge {
+  properties: { name: string }
+  node: { address: string }
+}
+
+/**
+ * Parse a single symbol connection edge into a raw symbol entry
+ * @param edge - Edge from has_symbolConnection query
+ * @returns Raw symbol data with name and address
+ */
+export function parseSymbolConnectionEdge(edge: SymbolConnectionEdge): {
+  name: string
+  address: string
+} {
+  return {
+    name: edge.properties.name,
+    address: edge.node.address
+  }
+}
+
+/**
+ * Parse multiple symbol connection edges
+ * @param edges - Array of edges from has_symbolConnection query
+ * @returns Array of raw symbol data
+ */
+export function parseSymbolConnectionEdges(edges: SymbolConnectionEdge[]): Array<{
+  name: string
+  address: string
+}> {
+  return edges.map(parseSymbolConnectionEdge)
 }
 
 // ============================================
@@ -170,36 +206,89 @@ export function isStructType(dataType: ParsedDataType): boolean {
 }
 
 /**
+ * Raw edge shape from has_structConnection
+ */
+export interface StructConnectionEdge {
+  properties: { name: string }
+  node: { hash: string; size: number; kind: string }
+}
+
+/**
+ * Parse a single struct connection edge into a raw struct entry
+ * @param edge - Edge from has_structConnection query
+ * @returns Raw struct data with name, hash, size, kind
+ */
+export function parseStructConnectionEdge(edge: StructConnectionEdge): {
+  name: string
+  hash: string
+  size: number
+  kind: string
+} {
+  return {
+    name: edge.properties.name,
+    hash: edge.node.hash,
+    size: edge.node.size,
+    kind: edge.node.kind
+  }
+}
+
+/**
+ * Parse multiple struct connection edges
+ * @param edges - Array of edges from has_structConnection query
+ * @returns Array of raw struct data
+ */
+export function parseStructConnectionEdges(edges: StructConnectionEdge[]): Array<{
+  name: string
+  hash: string
+  size: number
+  kind: string
+}> {
+  return edges.map(parseStructConnectionEdge)
+}
+
+/**
  * Parse raw struct data from GraphQL response
- * @param rawStructs - Raw struct data from fetchStructs query
- * @returns Array of normalized StructEntry objects
+ * @param rawStructs - Raw struct data from has_structConnection query
+ * @returns Array of normalized StructEntry objects (fields loaded lazily)
  */
 export function parseStructEntries(
   rawStructs: Array<{
     name: string
+    hash: string
     size: number
     kind: string
-    fields: Array<{
-      name: string
-      offset: number
-      data_type: any
-    }>
   }>
 ): StructEntry[] {
   return rawStructs.map((struct) => ({
     name: struct.name,
+    hash: struct.hash,
     size: struct.size,
-    kind: struct.kind,
-    fields: struct.fields.map((field) => {
-      const parsedDataType = parseDataType(field.data_type)
-      return {
-        name: field.name,
-        offset: field.offset,
-        dataType: formatDataType(parsedDataType),
-        dataTypeRaw: field.data_type
-      }
-    })
+    kind: struct.kind
+    // fields are now loaded lazily via FETCH_STRUCT_FIELDS
   }))
+}
+
+/**
+ * Parse raw field data from GraphQL fieldsConnection response
+ * @param rawFields - Raw field data from fieldsConnection edges
+ * @returns Array of normalized StructFieldEntry objects
+ */
+export function parseStructFieldEntries(
+  rawFields: Array<{
+    properties: { name: string }
+    node: { offset: number; data_type: any }
+  }>
+): StructFieldEntry[] {
+  const entries = rawFields.map((edge) => {
+    const parsedDataType = parseDataType(edge.node.data_type)
+    return {
+      name: edge.properties.name,
+      offset: edge.node.offset,
+      dataType: formatDataType(parsedDataType),
+      dataTypeRaw: edge.node.data_type
+    }
+  })
+  return sortByOffset(entries)
 }
 
 /**
@@ -302,8 +391,7 @@ export function parseFieldDiffEntries(
     }
   })
 
-  // Sort by offset (smallest to highest)
-  return entries.sort((a, b) => a.offset - b.offset)
+  return sortByOffset(entries)
 }
 
 /**
@@ -357,6 +445,17 @@ export function formatSize(size: number): string {
 // ============================================
 // Sorting
 // ============================================
+
+/**
+ * Sort items by offset (smallest to largest)
+ * Generic helper that works with any object containing an offset property
+ * Returns a new array without mutating the original
+ * @param items - Array of items with offset property
+ * @returns New sorted array
+ */
+export function sortByOffset<T extends { offset: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.offset - b.offset)
+}
 
 /**
  * Sort symbols alphabetically by name (case-insensitive)
