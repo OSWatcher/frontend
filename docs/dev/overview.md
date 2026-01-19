@@ -143,8 +143,8 @@ WinRegKey → child_keys (subkeys)
 - `DIFF_NODES` - Compare two registry keys (works for both filesystem and registry)
 
 **PDB Symbols (Windows)**:
-- `LIST_SYMBOLS` - Fetch symbols with pagination (limit, offset, sort)
-- `LIST_WINSTRUCT` - Fetch structures with fields (limit, offset, sort)
+- `LIST_SYMBOLS_CONNECTION` - Fetch symbols with cursor-based pagination
+- `LIST_WINSTRUCT` - Fetch structures with cursor-based pagination
 
 **Search**:
 - `SEARCH_FS_STREAM` - Search across all commits by term (streaming subscription)

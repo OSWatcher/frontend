@@ -139,18 +139,6 @@ const LIST_ENTRIES_FOR_TREE = gql`
   }
 `
 
-const LIST_SYMBOLS = gql`
-  query FetchSymbols($blobHash: String!, $options: SymbolOptions, $where: SymbolWhere) {
-    symbolsAggregate(where: $where) {
-      count
-    }
-    fetchSymbols(blob_hash: $blobHash, options: $options) {
-      name
-      address
-    }
-  }
-`
-
 const LIST_SYMBOLS_CONNECTION = gql`
   query ListSymbolsConnection($blobHash: String!, $first: Int, $after: String) {
     blobs(where: { hash: $blobHash }) {
@@ -327,7 +315,6 @@ export {
   TRAVERSE_PATH,
   LIST_ENTRIES_FOR_KEY,
   LIST_ENTRIES_FOR_TREE,
-  LIST_SYMBOLS,
   LIST_SYMBOLS_CONNECTION,
   LIST_WINSTRUCT,
   FETCH_STRUCT_FIELDS,
