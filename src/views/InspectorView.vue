@@ -169,6 +169,24 @@ const highlightRegistryKey = computed<string>(() => {
   return (route.query.regHighlight as string) || ''
 })
 
+/**
+ * Target Symbol Name
+ *
+ * Gets target symbol to highlight from query params (e.g., ?symbolName=NtCreateFile)
+ */
+const targetSymbolName = computed<string>(() => {
+  return (route.query.symbolName as string) || ''
+})
+
+/**
+ * Target PDB Tab
+ *
+ * Gets which PDB sub-tab to activate from query params (e.g., ?pdbTab=symbols)
+ */
+const targetPdbTab = computed<'symbols' | 'structs'>(() => {
+  return (route.query.pdbTab as 'symbols' | 'structs') || 'symbols'
+})
+
 // ===================================================================
 // METHODS
 // ===================================================================
@@ -363,7 +381,7 @@ watch(
 watch(
   activeTab,
   (tab) => {
-    searchContext.setActiveTab(tab as 'filesystem' | 'registry')
+    searchContext.setActiveTab(tab as 'filesystem' | 'registry' | 'pdb')
   },
   { immediate: true }
 )
@@ -498,12 +516,16 @@ onMounted(() => {
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
               :commit="singleCommit"
+              :target-symbol-name="targetSymbolName"
+              :target-pdb-tab="targetPdbTab"
             />
             <PDBInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
               :mode="inspectorMode"
               :base-commit="baseCommit"
               :diffee-commit="diffeeCommit"
+              :target-symbol-name="targetSymbolName"
+              :target-pdb-tab="targetPdbTab"
             />
           </NTabPane>
         </NTabs>
