@@ -279,7 +279,7 @@ export function parseStructFieldEntries(
     node: { offset: number; data_type: any }
   }>
 ): StructFieldEntry[] {
-  return rawFields.map((edge) => {
+  const entries = rawFields.map((edge) => {
     const parsedDataType = parseDataType(edge.node.data_type)
     return {
       name: edge.properties.name,
@@ -288,6 +288,7 @@ export function parseStructFieldEntries(
       dataTypeRaw: edge.node.data_type
     }
   })
+  return sortByOffset(entries)
 }
 
 /**
@@ -390,8 +391,7 @@ export function parseFieldDiffEntries(
     }
   })
 
-  // Sort by offset (smallest to highest)
-  return entries.sort((a, b) => a.offset - b.offset)
+  return sortByOffset(entries)
 }
 
 /**
@@ -445,6 +445,17 @@ export function formatSize(size: number): string {
 // ============================================
 // Sorting
 // ============================================
+
+/**
+ * Sort items by offset (smallest to largest)
+ * Generic helper that works with any object containing an offset property
+ * Returns a new array without mutating the original
+ * @param items - Array of items with offset property
+ * @returns New sorted array
+ */
+export function sortByOffset<T extends { offset: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.offset - b.offset)
+}
 
 /**
  * Sort symbols alphabetically by name (case-insensitive)
