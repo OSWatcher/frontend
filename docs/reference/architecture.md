@@ -162,6 +162,64 @@ Render Side-by-Side Diff View
 Handle User Navigation within Diff
 ```
 
+### 5. Cursor-Based Pagination Flow
+
+The PDB Inspector uses cursor-based pagination for efficient loading of large symbol and struct lists.
+
+```
+Initial Load (first N items)
+    ↓
+User Scrolls to 80% of List
+    ↓
+Check hasNextPage from pageInfo
+    ↓
+Fetch Next Batch (using endCursor)
+    ↓
+Append to Existing Data
+    ↓
+Update pageInfo State
+    ↓
+Repeat Until No More Pages
+```
+
+**Batch Sizes:**
+- Symbols: 1000 items per batch
+- Structs: 400 items per batch
+
+**Implementation Details:**
+- Scroll threshold: 80% triggers next batch fetch
+- Uses `endCursor` from GraphQL `pageInfo` for efficient pagination
+- Maintains `totalCount` for progress indication
+- Struct fields are lazy-loaded on row expansion (separate query)
+
+### 6. Search Context Integration Flow
+
+Global search integrates with the active inspector context to provide relevant results.
+
+```
+User Opens Search (Ctrl+K)
+    ↓
+Check Active Inspector Tab (useSearchContextStore)
+    ↓
+Pre-select Entity Types Based on Context:
+    - Filesystem tab → [FILESYSTEM]
+    - Registry tab → [REGISTRY]
+    - PDB Symbols tab → [SYMBOL]
+    - PDB Structs tab → [STRUCT]
+    ↓
+User Executes Search
+    ↓
+Stream Results via GraphQL Subscription
+    ↓
+User Clicks Result
+    ↓
+Navigate with Query Params:
+    - Filesystem: ?path=<path>
+    - Registry: ?path=<path>
+    - Symbol: ?tab=pdb&pdbTab=symbols&symbolName=<name>
+    - Struct: ?tab=pdb&pdbTab=structs&structName=<name>
+```
+
 ## Core Concepts
 
 ### 1. Hash-Based Data Model
