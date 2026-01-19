@@ -181,27 +181,6 @@ Lists registry keys and values under a specific registry key.
 
 ### PDB Symbol Operations
 
-#### `LIST_SYMBOLS`
-Retrieves symbols from a PDB file with filtering and pagination.
-
-**Parameters:**
-- `blobHash: String!` - The hash of the blob containing PDB data
-- `options: SymbolOptions` - Pagination and filtering options (optional)
-- `where: SymbolWhere` - Additional filter criteria (optional)
-
-**Returns:**
-```typescript
-{
-  symbolsAggregate: {
-    count: number
-  }
-  fetchSymbols: Array<{
-    name: string
-    address: string
-  }>
-}
-```
-
 #### `LIST_WINSTRUCT`
 Retrieves Windows structure definitions from a PDB file.
 
