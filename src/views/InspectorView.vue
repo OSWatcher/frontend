@@ -187,6 +187,15 @@ const targetPdbTab = computed<'symbols' | 'structs'>(() => {
   return (route.query.pdbTab as 'symbols' | 'structs') || 'symbols'
 })
 
+/**
+ * Target Struct Name
+ *
+ * Gets target struct to filter/highlight from query params (e.g., ?structName=_EPROCESS)
+ */
+const targetStructName = computed<string>(() => {
+  return (route.query.structName as string) || ''
+})
+
 // ===================================================================
 // METHODS
 // ===================================================================
@@ -518,6 +527,7 @@ onMounted(() => {
               :commit="singleCommit"
               :target-symbol-name="targetSymbolName"
               :target-pdb-tab="targetPdbTab"
+              :target-struct-name="targetStructName"
             />
             <PDBInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
@@ -526,6 +536,7 @@ onMounted(() => {
               :diffee-commit="diffeeCommit"
               :target-symbol-name="targetSymbolName"
               :target-pdb-tab="targetPdbTab"
+              :target-struct-name="targetStructName"
             />
           </NTabPane>
         </NTabs>
