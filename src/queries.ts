@@ -151,19 +151,65 @@ const LIST_SYMBOLS = gql`
   }
 `
 
-const LIST_WINSTRUCT = gql`
-  query FetchStructs($blobHash: String!, $options: StructOptions, $where: StructWhere) {
-    structsAggregate(where: $where) {
-      count
+const LIST_SYMBOLS_CONNECTION = gql`
+  query ListSymbolsConnection($blobHash: String!, $first: Int, $after: String) {
+    blobs(where: { hash: $blobHash }) {
+      has_symbolConnection(first: $first, after: $after) {
+        totalCount
+        edges {
+          properties {
+            name
+          }
+          node {
+            address
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
     }
-    fetchStructs(blob_hash: $blobHash, options: $options) {
-      name
-      size
-      kind
-      fields {
-        name
-        offset
-        data_type
+  }
+`
+
+const LIST_WINSTRUCT = gql`
+  query FetchStructs($blobHash: String!, $first: Int, $after: String) {
+    blobs(where: { hash: $blobHash }) {
+      has_structConnection(first: $first, after: $after) {
+        totalCount
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            size
+            kind
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+`
+
+const FETCH_STRUCT_FIELDS = gql`
+  query FetchStructFields($structHash: String!) {
+    structs(where: { hash: $structHash }) {
+      fieldsConnection {
+        edges {
+          properties {
+            name
+          }
+          node {
+            offset
+            data_type
+          }
+        }
       }
     }
   }
@@ -234,6 +280,43 @@ const DIFF_NODES = gql`
   }
 `
 
+const FETCH_SYMBOL_BY_NAME = gql`
+  query FetchSymbolByName($blobHash: String!, $symbolName: String!) {
+    blobs(where: { hash: $blobHash }) {
+      has_symbolConnection(where: { edge: { name: $symbolName } }) {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            address
+          }
+        }
+      }
+    }
+  }
+`
+
+const FETCH_STRUCT_BY_NAME = gql`
+  query FetchStructByName($blobHash: String!, $structName: String!) {
+    blobs(where: { hash: $blobHash }) {
+      has_structConnection(where: { edge: { name: $structName } }) {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            size
+            kind
+          }
+        }
+      }
+    }
+  }
+`
+
 export {
   fetchBranches,
   fetchCommitHistory,
@@ -245,8 +328,12 @@ export {
   LIST_ENTRIES_FOR_KEY,
   LIST_ENTRIES_FOR_TREE,
   LIST_SYMBOLS,
+  LIST_SYMBOLS_CONNECTION,
   LIST_WINSTRUCT,
+  FETCH_STRUCT_FIELDS,
   SEARCH_FS,
   SEARCH_FS_STREAM,
-  DIFF_NODES
+  DIFF_NODES,
+  FETCH_SYMBOL_BY_NAME,
+  FETCH_STRUCT_BY_NAME
 }

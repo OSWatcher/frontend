@@ -7,12 +7,20 @@
 
 import { ref, computed, watch } from 'vue'
 import gqlClient from '@/graphql-client'
-import { LIST_SYMBOLS, LIST_WINSTRUCT, DIFF_NODES } from '@/queries'
+import {
+  LIST_SYMBOLS_CONNECTION,
+  LIST_WINSTRUCT,
+  FETCH_STRUCT_FIELDS,
+  DIFF_NODES,
+  FETCH_SYMBOL_BY_NAME,
+  FETCH_STRUCT_BY_NAME
+} from '@/queries'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type {
   SymbolEntry,
   SymbolDiffEntry,
   StructEntry,
+  StructFieldEntry,
   StructDiffEntry,
   StructFieldDiffEntry,
   PDBContext,
@@ -23,9 +31,14 @@ import {
   parseSymbolDiffEntries,
   sortSymbols,
   parseStructEntries,
+  parseStructFieldEntries,
   parseStructDiffEntries,
   sortStructs,
-  parseFieldDiffEntries
+  parseFieldDiffEntries,
+  parseSymbolConnectionEdges,
+  parseSymbolConnectionEdge,
+  parseStructConnectionEdges,
+  parseStructConnectionEdge
 } from '@/utils/pdb'
 import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
 import { DiffStatus } from '@/graphql-types'
@@ -54,18 +67,12 @@ export function usePDBInspector(
   // Active sub-tab
   const activeSubTab = ref<'symbols' | 'structs'>(targetPdbTab || 'symbols')
 
-  // Highlighted symbol name (for search result navigation)
-  const highlightedSymbolName = ref<string>(targetSymbolName || '')
-
-  // Highlighted struct name (for search result navigation)
-  const highlightedStructName = ref<string>(targetStructName || '')
-
   // Symbols state
   const rawSymbols = ref<any[]>([])
   const totalSymbols = ref(0)
 
-  // Progressive loading state for symbols (single mode only)
-  const symbolsOffset = ref(0)
+  // Progressive loading state for symbols (single mode only) - cursor-based pagination
+  const symbolsEndCursor = ref<string | null>(null)
   const symbolsBatchSize = ref(1000) // 1000 symbols per batch
   const hasMoreSymbols = ref(true)
   const isLoadingMoreSymbols = ref(false)
@@ -75,8 +82,8 @@ export function usePDBInspector(
   const totalStructs = ref(0)
   const expandedStructNames = ref<Set<string>>(new Set())
 
-  // Progressive loading state (single mode only)
-  const structsOffset = ref(0)
+  // Progressive loading state (single mode only) - cursor-based pagination
+  const structsEndCursor = ref<string | null>(null)
   const structsBatchSize = ref(400) // 400 structs per batch
   const hasMoreStructs = ref(true)
   const isLoadingMoreStructs = ref(false)
@@ -85,14 +92,20 @@ export function usePDBInspector(
   const symbolsCurrentPage = ref(1)
   const symbolsPageSize = 1000
 
-  // Struct fields for comparison mode (cached for field-level diffs)
-  const computedFieldDiffs = ref<Map<string, StructFieldDiffEntry[]>>(new Map()) // Cache computed field diffs
+  // Struct fields cache (for both modes - lazy loaded on expansion)
+  const structFieldsCache = ref<Map<string, StructFieldEntry[] | StructFieldDiffEntry[]>>(new Map())
 
   // Status filter state (comparison mode only)
   const symbolsStatusFilter = ref<DiffStatus[]>([])
   const structsStatusFilter = ref<DiffStatus[]>([])
   let symbolsFilterDebounceTimer: ReturnType<typeof setTimeout> | null = null
   let structsFilterDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  // Target search state (for search navigation)
+  const isSearchingForTargetSymbol = ref(false)
+  const targetSymbolNotFound = ref(false)
+  const isSearchingForTargetStruct = ref(false)
+  const targetStructNotFound = ref(false)
 
   // ============================================
   // Computed
@@ -110,13 +123,20 @@ export function usePDBInspector(
 
   const structs = computed<StructEntry[] | StructDiffEntry[]>(() => {
     if (mode === 'single') {
-      return sortStructs(parseStructEntries(rawStructs.value))
-    } else {
-      const parsedStructs = sortStructs(parseStructDiffEntries(rawStructs.value))
-      // Merge in computed field diffs for comparison mode
+      const parsedStructs = sortStructs(parseStructEntries(rawStructs.value))
+      // Merge in cached fields for single mode (lazy loaded)
       return parsedStructs.map((struct) => ({
         ...struct,
-        fields: computedFieldDiffs.value.get(struct.name)
+        fields: structFieldsCache.value.get(struct.hash || struct.name) as
+          | StructFieldEntry[]
+          | undefined
+      }))
+    } else {
+      const parsedStructs = sortStructs(parseStructDiffEntries(rawStructs.value))
+      // Merge in cached field diffs for comparison mode
+      return parsedStructs.map((struct) => ({
+        ...struct,
+        fields: structFieldsCache.value.get(struct.name) as StructFieldDiffEntry[] | undefined
       }))
     }
   })
@@ -138,26 +158,27 @@ export function usePDBInspector(
     error.value = null
 
     // Reset progressive loading state
-    symbolsOffset.value = 0
+    symbolsEndCursor.value = null
     hasMoreSymbols.value = true
     rawSymbols.value = [] // Clear existing
 
     try {
       const response = await gqlClient.query({
-        query: LIST_SYMBOLS,
+        query: LIST_SYMBOLS_CONNECTION,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: symbolsBatchSize.value, offset: 0 },
-          where: { blob: { hash: pdbContext.value.blobHash } }
+          first: symbolsBatchSize.value,
+          after: null
         }
       })
 
-      rawSymbols.value = response.data?.fetchSymbols || []
-      totalSymbols.value = response.data?.symbolsAggregate?.count || 0
-
-      // Update state for progressive loading
-      symbolsOffset.value = rawSymbols.value.length
-      hasMoreSymbols.value = rawSymbols.value.length < totalSymbols.value
+      const connection = response.data?.blobs?.[0]?.has_symbolConnection
+      if (connection) {
+        rawSymbols.value = parseSymbolConnectionEdges(connection.edges)
+        totalSymbols.value = connection.totalCount || 0
+        symbolsEndCursor.value = connection.pageInfo?.endCursor || null
+        hasMoreSymbols.value = connection.pageInfo?.hasNextPage || false
+      }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error fetching symbols:', err)
@@ -225,22 +246,25 @@ export function usePDBInspector(
 
     try {
       const response = await gqlClient.query({
-        query: LIST_SYMBOLS,
+        query: LIST_SYMBOLS_CONNECTION,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: symbolsBatchSize.value, offset: symbolsOffset.value },
-          where: { blob: { hash: pdbContext.value.blobHash } }
+          first: symbolsBatchSize.value,
+          after: symbolsEndCursor.value
         }
       })
 
-      const newSymbols = response.data?.fetchSymbols || []
+      const connection = response.data?.blobs?.[0]?.has_symbolConnection
+      if (connection) {
+        const newSymbols = parseSymbolConnectionEdges(connection.edges)
 
-      // APPEND to existing symbols
-      rawSymbols.value = [...rawSymbols.value, ...newSymbols]
+        // APPEND to existing symbols
+        rawSymbols.value = [...rawSymbols.value, ...newSymbols]
 
-      // Update state
-      symbolsOffset.value += newSymbols.length
-      hasMoreSymbols.value = rawSymbols.value.length < totalSymbols.value
+        // Update cursor-based pagination state
+        symbolsEndCursor.value = connection.pageInfo?.endCursor || null
+        hasMoreSymbols.value = connection.pageInfo?.hasNextPage || false
+      }
     } catch (err) {
       console.error('Error loading more symbols:', err)
       // Don't set global error - just log and allow retry
@@ -289,7 +313,7 @@ export function usePDBInspector(
     error.value = null
 
     // Reset progressive loading state
-    structsOffset.value = 0
+    structsEndCursor.value = null
     hasMoreStructs.value = true
     rawStructs.value = [] // Clear existing
 
@@ -298,17 +322,18 @@ export function usePDBInspector(
         query: LIST_WINSTRUCT,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: structsBatchSize.value, offset: 0 },
-          where: { blob: { hash: pdbContext.value.blobHash } }
+          first: structsBatchSize.value,
+          after: null
         }
       })
 
-      rawStructs.value = response.data?.fetchStructs || []
-      totalStructs.value = response.data?.structsAggregate?.count || 0
-
-      // Update state for progressive loading
-      structsOffset.value = rawStructs.value.length
-      hasMoreStructs.value = rawStructs.value.length < totalStructs.value
+      const connection = response.data?.blobs?.[0]?.has_structConnection
+      if (connection) {
+        rawStructs.value = parseStructConnectionEdges(connection.edges)
+        totalStructs.value = connection.totalCount || 0
+        structsEndCursor.value = connection.pageInfo?.endCursor || null
+        hasMoreStructs.value = connection.pageInfo?.hasNextPage || false
+      }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error fetching structs:', err)
@@ -376,19 +401,22 @@ export function usePDBInspector(
         query: LIST_WINSTRUCT,
         variables: {
           blobHash: pdbContext.value.blobHash,
-          options: { limit: structsBatchSize.value, offset: structsOffset.value },
-          where: { blob: { hash: pdbContext.value.blobHash } }
+          first: structsBatchSize.value,
+          after: structsEndCursor.value
         }
       })
 
-      const newStructs = response.data?.fetchStructs || []
+      const connection = response.data?.blobs?.[0]?.has_structConnection
+      if (connection) {
+        const newStructs = parseStructConnectionEdges(connection.edges)
 
-      // APPEND to existing structs
-      rawStructs.value = [...rawStructs.value, ...newStructs]
+        // APPEND to existing structs
+        rawStructs.value = [...rawStructs.value, ...newStructs]
 
-      // Update state
-      structsOffset.value += newStructs.length
-      hasMoreStructs.value = rawStructs.value.length < totalStructs.value
+        // Update cursor-based pagination state
+        structsEndCursor.value = connection.pageInfo?.endCursor || null
+        hasMoreStructs.value = connection.pageInfo?.hasNextPage || false
+      }
     } catch (err) {
       console.error('Error loading more structs:', err)
       // Don't set global error - just log and allow retry
@@ -448,6 +476,24 @@ export function usePDBInspector(
     }
   }
 
+  /**
+   * Fetch struct fields for single mode (lazy loading)
+   */
+  async function fetchStructFields(structHash: string): Promise<StructFieldEntry[]> {
+    try {
+      const response = await gqlClient.query({
+        query: FETCH_STRUCT_FIELDS,
+        variables: { structHash }
+      })
+
+      const edges = response.data?.structs?.[0]?.fieldsConnection?.edges || []
+      return parseStructFieldEntries(edges)
+    } catch (err) {
+      console.error('Error fetching struct fields:', err)
+      return []
+    }
+  }
+
   // ============================================
   // Public Methods
   // ============================================
@@ -468,7 +514,7 @@ export function usePDBInspector(
     }
   }
 
-  async function toggleStructExpansion(structName: string): Promise<void> {
+  async function toggleStructExpansion(structName: string, structHash?: string): Promise<void> {
     if (expandedStructNames.value.has(structName)) {
       // Collapse
       expandedStructNames.value.delete(structName)
@@ -476,11 +522,96 @@ export function usePDBInspector(
       // Expand
       expandedStructNames.value.add(structName)
 
-      // Fetch field-level data in comparison mode
-      if (mode === 'comparison' && !computedFieldDiffs.value.has(structName)) {
-        const fieldDiff = await fetchStructFieldDiff(structName)
-        computedFieldDiffs.value.set(structName, fieldDiff)
+      // Determine cache key: hash for single mode, name for comparison mode
+      const cacheKey = mode === 'single' && structHash ? structHash : structName
+
+      // Fetch field-level data if not already cached
+      if (!structFieldsCache.value.has(cacheKey)) {
+        if (mode === 'comparison') {
+          const fieldDiff = await fetchStructFieldDiff(structName)
+          structFieldsCache.value.set(cacheKey, fieldDiff)
+        } else if (structHash) {
+          // Single mode: fetch fields by hash
+          const fields = await fetchStructFields(structHash)
+          structFieldsCache.value.set(cacheKey, fields)
+        }
       }
+    }
+  }
+
+  // ============================================
+  // Target Item Fetching (Search Navigation)
+  // ============================================
+
+  async function fetchSymbolByName(symbolName: string): Promise<void> {
+    if (!symbolName || !pdbContext.value) return
+
+    // Check if already in loaded symbols
+    const existing = rawSymbols.value.find((s: any) => s.name === symbolName)
+    if (existing) return
+
+    isSearchingForTargetSymbol.value = true
+    targetSymbolNotFound.value = false
+
+    try {
+      const response = await gqlClient.query({
+        query: FETCH_SYMBOL_BY_NAME,
+        variables: {
+          blobHash: pdbContext.value.blobHash,
+          symbolName: symbolName
+        }
+      })
+
+      const edges = response.data?.blobs?.[0]?.has_symbolConnection?.edges || []
+      if (edges.length > 0) {
+        // Add to rawSymbols if not already present
+        const newSymbol = parseSymbolConnectionEdge(edges[0])
+        // Prepend to make it visible at top
+        rawSymbols.value = [newSymbol, ...rawSymbols.value]
+      } else {
+        targetSymbolNotFound.value = true
+      }
+    } catch (err) {
+      console.error('Error fetching symbol by name:', err)
+      targetSymbolNotFound.value = true
+    } finally {
+      isSearchingForTargetSymbol.value = false
+    }
+  }
+
+  async function fetchStructByName(structName: string): Promise<void> {
+    if (!structName || !pdbContext.value) return
+
+    // Check if already in loaded structs
+    const existing = rawStructs.value.find((s: any) => s.name === structName)
+    if (existing) return
+
+    isSearchingForTargetStruct.value = true
+    targetStructNotFound.value = false
+
+    try {
+      const response = await gqlClient.query({
+        query: FETCH_STRUCT_BY_NAME,
+        variables: {
+          blobHash: pdbContext.value.blobHash,
+          structName: structName
+        }
+      })
+
+      const edges = response.data?.blobs?.[0]?.has_structConnection?.edges || []
+      if (edges.length > 0) {
+        // Add to rawStructs if not already present
+        const newStruct = parseStructConnectionEdge(edges[0])
+        // Prepend to make it visible at top
+        rawStructs.value = [newStruct, ...rawStructs.value]
+      } else {
+        targetStructNotFound.value = true
+      }
+    } catch (err) {
+      console.error('Error fetching struct by name:', err)
+      targetStructNotFound.value = true
+    } finally {
+      isSearchingForTargetStruct.value = false
     }
   }
 
@@ -548,6 +679,19 @@ export function usePDBInspector(
 
       // Fetch initial symbols data
       await fetchSymbols()
+
+      // If navigating from search with a target symbol, fetch it if not already loaded
+      if (mode === 'single' && targetSymbolName) {
+        await fetchSymbolByName(targetSymbolName)
+      }
+
+      // If the active tab is structs (from search navigation), fetch structs and target
+      if (activeSubTab.value === 'structs') {
+        await fetchStructs()
+        if (mode === 'single' && targetStructName) {
+          await fetchStructByName(targetStructName)
+        }
+      }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       console.error('Error initializing PDB inspector:', err)
@@ -569,8 +713,16 @@ export function usePDBInspector(
   watch(activeSubTab, async (newTab) => {
     if (newTab === 'symbols' && rawSymbols.value.length === 0) {
       await fetchSymbols()
+      // Fetch target symbol if provided from search navigation
+      if (mode === 'single' && targetSymbolName) {
+        await fetchSymbolByName(targetSymbolName)
+      }
     } else if (newTab === 'structs' && rawStructs.value.length === 0) {
       await fetchStructs()
+      // Fetch target struct if provided from search navigation
+      if (mode === 'single' && targetStructName) {
+        await fetchStructByName(targetStructName)
+      }
     }
   })
 
@@ -620,10 +772,10 @@ export function usePDBInspector(
     structsStatusFilter,
     setStructsStatusFilter,
 
-    // Highlighted symbol (for search navigation)
-    highlightedSymbolName,
-
-    // Highlighted struct (for search navigation)
-    highlightedStructName
+    // Target search state (for search navigation)
+    isSearchingForTargetSymbol,
+    targetSymbolNotFound,
+    isSearchingForTargetStruct,
+    targetStructNotFound
   }
 }
