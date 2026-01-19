@@ -28,7 +28,8 @@ const props = defineProps({
   baseCommit: { type: Object as PropType<CommitContext>, default: undefined },
   diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
   targetSymbolName: { type: String, default: '' },
-  targetPdbTab: { type: String as PropType<'symbols' | 'structs'>, default: 'symbols' }
+  targetPdbTab: { type: String as PropType<'symbols' | 'structs'>, default: 'symbols' },
+  targetStructName: { type: String, default: '' }
 })
 
 const {
@@ -59,14 +60,16 @@ const {
   setSymbolsStatusFilter,
   structsStatusFilter,
   setStructsStatusFilter,
-  highlightedSymbolName
+  highlightedSymbolName,
+  highlightedStructName
 } = usePDBInspector(
   props.mode,
   props.commit,
   props.baseCommit,
   props.diffeeCommit,
   props.targetSymbolName,
-  props.targetPdbTab
+  props.targetPdbTab,
+  props.targetStructName
 )
 
 // ============================================
@@ -90,6 +93,32 @@ watch(
   (name) => {
     if (name) {
       symbolSearchQuery.value = name
+    }
+  },
+  { immediate: true }
+)
+
+// ============================================
+// Struct Filter
+// ============================================
+
+const {
+  searchQuery: structSearchQuery,
+  filteredEntries: filteredStructs,
+  filterInputRef: structFilterInputRef,
+  clearFilter: clearStructFilter
+} = useTableFilter({
+  entries: structs as any,
+  filterKey: 'name',
+  clearOnChange: activeSubTab
+})
+
+// Initialize filter with targetStructName when navigating from search
+watch(
+  () => props.targetStructName,
+  (name) => {
+    if (name) {
+      structSearchQuery.value = name
     }
   },
   { immediate: true }
@@ -201,11 +230,23 @@ function getSymbolRowProps(row: SymbolEntry | SymbolDiffEntry) {
 }
 
 function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
+  const classes: string[] = []
+
+  // Add diff status class in comparison mode
   if (props.mode === 'comparison' && row.status) {
-    // Apply diff row styling based on status (works for both struct and field rows)
-    return { class: `diff-row-${row.status.toLowerCase()}` }
+    classes.push(`diff-row-${row.status.toLowerCase()}`)
   }
-  return {}
+
+  // Add highlight class if this is the target struct from search
+  if (
+    row.type === 'struct' &&
+    highlightedStructName.value &&
+    row.name === highlightedStructName.value
+  ) {
+    classes.push('highlighted-row')
+  }
+
+  return classes.length > 0 ? { class: classes.join(' ') } : {}
 }
 
 // ============================================
@@ -216,7 +257,7 @@ function getStructRowProps(row: StructEntry | StructDiffEntry | any) {
 const structsTableDataSingle = computed(() => {
   if (props.mode !== 'single') return []
 
-  return (structs.value as StructEntry[]).map((struct) => ({
+  return (filteredStructs.value as StructEntry[]).map((struct) => ({
     key: struct.name,
     type: 'struct',
     offset: '',
@@ -234,7 +275,7 @@ const structsTableDataComparison = computed(() => {
 
   const rows: any[] = []
 
-  ;(structs.value as StructDiffEntry[]).forEach((struct) => {
+  ;(filteredStructs.value as StructDiffEntry[]).forEach((struct) => {
     // Add struct row
     rows.push({
       key: struct.name,
@@ -511,10 +552,13 @@ const structColumns = computed(() => {
                 Page {{ symbolsCurrentPage }} of {{ totalSymbolPages }} ({{
                   filteredSymbols.length
                 }}
-                symbols<template v-if="symbolSearchQuery"> matching filter</template>, {{ totalSymbols }} total)
+                symbols<template v-if="symbolSearchQuery"> matching filter</template>,
+                {{ totalSymbols }} total)
               </template>
               <template v-else>
-                {{ filteredSymbols.length }}<template v-if="symbolSearchQuery"> matching</template> / {{ symbols.length }} loaded / {{ totalSymbols }} total symbols
+                {{ filteredSymbols.length
+                }}<template v-if="symbolSearchQuery"> matching</template> /
+                {{ symbols.length }} loaded / {{ totalSymbols }} total symbols
                 <template v-if="hasMoreSymbols && !symbolSearchQuery">(scroll for more)</template>
               </template>
             </span>
@@ -532,9 +576,29 @@ const structColumns = computed(() => {
         </NTabPane>
 
         <NTabPane name="structs" tab="Structs">
-          <!-- Filter buttons (comparison mode only) -->
-          <div v-if="mode === 'comparison'" class="filter-container">
+          <!-- Filter row with text filter and diff status filter -->
+          <div class="filter-row">
+            <!-- Struct name filter input -->
+            <div class="struct-filter">
+              <NInput
+                ref="structFilterInputRef"
+                v-model:value="structSearchQuery"
+                placeholder="Filter structs... (press / to focus, Esc to clear)"
+                clearable
+                size="small"
+              >
+                <template v-if="structSearchQuery" #suffix>
+                  <NButton text size="tiny" @click="clearStructFilter">
+                    <template #icon>
+                      <NIcon><CloseOutline /></NIcon>
+                    </template>
+                  </NButton>
+                </template>
+              </NInput>
+            </div>
+            <!-- Diff status filter buttons (comparison mode only) -->
             <DiffStatusFilter
+              v-if="mode === 'comparison'"
               v-model="structsStatusFilter"
               @update:model-value="setStructsStatusFilter"
             />
@@ -564,8 +628,14 @@ const structColumns = computed(() => {
           <!-- Total count display (no pagination) -->
           <div class="pagination-container">
             <span class="total-count">
-              {{ structs.length }} / {{ totalStructs }} structs
-              <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
+              <template v-if="structSearchQuery">
+                {{ filteredStructs.length }} matching / {{ structs.length }} loaded /
+                {{ totalStructs }} total structs
+              </template>
+              <template v-else>
+                {{ structs.length }} / {{ totalStructs }} structs
+                <template v-if="mode === 'single' && hasMoreStructs"> (scroll for more) </template>
+              </template>
             </span>
           </div>
 
@@ -674,7 +744,8 @@ const structColumns = computed(() => {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.symbol-filter {
+.symbol-filter,
+.struct-filter {
   flex: 1;
   max-width: 400px;
 }
