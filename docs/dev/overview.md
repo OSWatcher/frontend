@@ -53,7 +53,12 @@ The InspectorView replaces the old separate OSView/DiffView pattern with a singl
 **Dynamic Tabs**:
 - **Filesystem** (always available) - Browse file/directory hierarchy with breadcrumb navigation, view metadata (name, hash, type, size), download file contents
 - **Registry** (Windows only) - Navigate Windows Registry hives (HKLM, HKU, etc.), view keys and values
-- **PDB Symbols** (Windows only, if extracted, future) - Browse debug symbols, structures, and types from binaries
+- **PDB Symbols** (Windows only, if extracted) - Browse debug symbols, structures, and types from binaries
+  - Cursor-based pagination (1000 symbols, 400 structs per batch)
+  - Monaco Editor C struct visualization
+  - Filter inputs (`/` to focus, `Esc` to clear)
+  - Diff status filtering (NEW/MOD/DEL) in comparison mode
+  - Row expansion for struct fields (lazy-loaded)
 
 **Async Tab Loading**:
 - Filesystem tab displays immediately
@@ -63,13 +68,16 @@ The InspectorView replaces the old separate OSView/DiffView pattern with a singl
 
 ### 3. Global Search
 
-**Purpose**: Search across all commits for specific files, registry keys, or symbols
+**Purpose**: Search across all commits for files, registry keys, symbols, or structs
 
 **Features**:
 - Ctrl+K / Cmd+K keyboard shortcut
-- Streaming search results (progressive loading)
-- Search across filesystem in all commits
-- Jump directly to results in InspectorView
+- Multi-entity search: Filesystem, Registry, Symbol, Struct
+- Context-aware entity type selection (pre-selects based on active inspector tab)
+- Streaming results via GraphQL subscription (progressive loading)
+- Click-to-navigate for all entity types:
+  - Filesystem/Registry: Navigate to path in tree view
+  - Symbol/Struct: Navigate to PDB tab with item highlighted
 
 ## Data Model
 
@@ -201,6 +209,9 @@ Raw file contents are stored by hash and can be downloaded via the backend REST 
 - `InspectorHeader.vue` - Commit info, breadcrumbs, controls
 - `FilesystemInspector.vue` - Unified filesystem viewer (single & comparison)
 - `RegistryInspector.vue` - Unified registry viewer (single & comparison)
+- `PDBInspector.vue` - Unified PDB symbol/struct viewer with cursor pagination
+- `MonacoStructView.vue` - C struct code display (single mode)
+- `MonacoStructDiff.vue` - Side-by-side struct diff (comparison mode)
 
 ### Supporting Components
 - `CommitsTable.vue` - Displays commit history in a table
@@ -219,6 +230,8 @@ Raw file contents are stored by hash and can be downloaded via the backend REST 
 - `useFilesystemInspector.ts` - Filesystem state management
 - `useRegistryInspector.ts` - Registry state management
 - `useFetchHomeData.ts` - Branch and commit loading for HomeView
+- `usePDBInspector.ts` - PDB state management with cursor-based pagination
+- `useTableFilter.ts` - Local text filtering with keyboard shortcuts (`/` to focus, `Esc` to clear)
 
 ### Utility Modules
 - `src/utils/filesystem.ts` - Pure functions for filesystem data transformation
@@ -345,7 +358,6 @@ src/
 - Implement error boundaries
 
 ### Medium Term
-- Add PDB Inspector tab for Windows binaries
 - Implement dark mode toggle
 - Advanced search with filters (file type, size, date)
 - Export diff reports (PDF, CSV)
