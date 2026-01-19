@@ -3,10 +3,12 @@ import {
   parseSymbolEntries,
   parseSymbolDiffEntries,
   parseFieldDiffEntries,
+  parseStructFieldEntries,
   formatAddress,
   formatOffset,
   formatSize,
   sortSymbols,
+  sortByOffset,
   getStatusTagType,
   parseDataType,
   formatDataType,
@@ -625,55 +627,38 @@ describe('pdb utils', () => {
       expect(parseStructEntries([])).toEqual([])
     })
 
-    it('parses single struct with fields', () => {
+    it('parses single struct (fields loaded lazily)', () => {
       const raw = [
         {
           name: '_EPROCESS',
+          hash: 'abc123',
           size: 2048,
-          kind: 'struct',
-          fields: [
-            {
-              name: 'Pcb',
-              offset: 0,
-              data_type: { kind: 'struct', name: '_KPROCESS' }
-            },
-            {
-              name: 'Pid',
-              offset: 744,
-              data_type: {
-                kind: 'pointer',
-                subtype: { kind: 'base', name: 'void' }
-              }
-            }
-          ]
+          kind: 'struct'
         }
       ]
       const result = parseStructEntries(raw)
 
       expect(result).toHaveLength(1)
       expect(result[0].name).toBe('_EPROCESS')
+      expect(result[0].hash).toBe('abc123')
       expect(result[0].size).toBe(2048)
       expect(result[0].kind).toBe('struct')
-      expect(result[0].fields).toHaveLength(2)
-      expect(result[0].fields?.[0].name).toBe('Pcb')
-      expect(result[0].fields?.[0].offset).toBe(0)
-      expect(result[0].fields?.[0].dataType).toBe('struct _KPROCESS')
-      expect(result[0].fields?.[1].dataType).toBe('void*')
+      // Fields are not included - they are loaded lazily via FETCH_STRUCT_FIELDS
     })
 
     it('parses multiple structs', () => {
       const raw = [
         {
           name: '_EPROCESS',
+          hash: 'hash1',
           size: 2048,
-          kind: 'struct',
-          fields: []
+          kind: 'struct'
         },
         {
           name: '_KTHREAD',
+          hash: 'hash2',
           size: 1440,
-          kind: 'struct',
-          fields: []
+          kind: 'struct'
         }
       ]
       const result = parseStructEntries(raw)
@@ -683,67 +668,163 @@ describe('pdb utils', () => {
       expect(result[1].name).toBe('_KTHREAD')
     })
 
-    it('formats all data types correctly', () => {
+    it('parses union kind', () => {
       const raw = [
         {
-          name: 'TestStruct',
-          size: 100,
-          kind: 'struct',
-          fields: [
-            {
-              name: 'baseField',
-              offset: 0,
-              data_type: { kind: 'base', name: 'unsigned long' }
-            },
-            {
-              name: 'pointerField',
-              offset: 8,
-              data_type: {
-                kind: 'pointer',
-                subtype: { kind: 'base', name: 'char' }
-              }
-            },
-            {
-              name: 'arrayField',
-              offset: 16,
-              data_type: {
-                kind: 'array',
-                count: 15,
-                subtype: { kind: 'base', name: 'char' }
-              }
-            }
-          ]
+          name: '_LARGE_INTEGER',
+          hash: 'unionhash',
+          size: 8,
+          kind: 'union'
         }
       ]
       const result = parseStructEntries(raw)
 
-      expect(result[0].fields?.[0].dataType).toBe('unsigned long')
-      expect(result[0].fields?.[1].dataType).toBe('char*')
-      expect(result[0].fields?.[2].dataType).toBe('char[15]')
+      expect(result[0].kind).toBe('union')
+    })
+  })
+
+  describe('parseStructFieldEntries', () => {
+    it('parses empty array', () => {
+      expect(parseStructFieldEntries([])).toEqual([])
+    })
+
+    it('parses fields from connection edges', () => {
+      const raw = [
+        {
+          properties: { name: 'Pcb' },
+          node: { offset: 0, data_type: { kind: 'struct', name: '_KPROCESS' } }
+        },
+        {
+          properties: { name: 'Pid' },
+          node: {
+            offset: 744,
+            data_type: { kind: 'pointer', subtype: { kind: 'base', name: 'void' } }
+          }
+        }
+      ]
+      const result = parseStructFieldEntries(raw)
+
+      expect(result).toHaveLength(2)
+      expect(result[0].name).toBe('Pcb')
+      expect(result[0].offset).toBe(0)
+      expect(result[0].dataType).toBe('struct _KPROCESS')
+      expect(result[1].name).toBe('Pid')
+      expect(result[1].offset).toBe(744)
+      expect(result[1].dataType).toBe('void*')
+    })
+
+    it('sorts fields by offset (smallest to largest)', () => {
+      const raw = [
+        {
+          properties: { name: 'field3' },
+          node: { offset: 200, data_type: { kind: 'base', name: 'int' } }
+        },
+        {
+          properties: { name: 'field1' },
+          node: { offset: 0, data_type: { kind: 'base', name: 'int' } }
+        },
+        {
+          properties: { name: 'field2' },
+          node: { offset: 100, data_type: { kind: 'base', name: 'int' } }
+        }
+      ]
+      const result = parseStructFieldEntries(raw)
+
+      expect(result.map((f) => f.name)).toEqual(['field1', 'field2', 'field3'])
+      expect(result.map((f) => f.offset)).toEqual([0, 100, 200])
+    })
+
+    it('formats all data types correctly', () => {
+      const raw = [
+        {
+          properties: { name: 'baseField' },
+          node: { offset: 0, data_type: { kind: 'base', name: 'unsigned long' } }
+        },
+        {
+          properties: { name: 'pointerField' },
+          node: {
+            offset: 8,
+            data_type: { kind: 'pointer', subtype: { kind: 'base', name: 'char' } }
+          }
+        },
+        {
+          properties: { name: 'arrayField' },
+          node: {
+            offset: 16,
+            data_type: { kind: 'array', count: 15, subtype: { kind: 'base', name: 'char' } }
+          }
+        }
+      ]
+      const result = parseStructFieldEntries(raw)
+
+      expect(result[0].dataType).toBe('unsigned long')
+      expect(result[1].dataType).toBe('char*')
+      expect(result[2].dataType).toBe('char[15]')
     })
 
     it('preserves raw data_type for debugging', () => {
       const raw = [
         {
-          name: 'TestStruct',
-          size: 100,
-          kind: 'struct',
-          fields: [
-            {
-              name: 'testField',
-              offset: 0,
-              data_type: { kind: 'base', name: 'int', custom_prop: 'value' }
-            }
-          ]
+          properties: { name: 'testField' },
+          node: {
+            offset: 0,
+            data_type: { kind: 'base', name: 'int', custom_prop: 'value' }
+          }
         }
       ]
-      const result = parseStructEntries(raw)
+      const result = parseStructFieldEntries(raw)
 
-      expect(result[0].fields?.[0].dataTypeRaw).toEqual({
+      expect(result[0].dataTypeRaw).toEqual({
         kind: 'base',
         name: 'int',
         custom_prop: 'value'
       })
+    })
+  })
+
+  describe('sortByOffset', () => {
+    it('sorts empty array', () => {
+      expect(sortByOffset([])).toEqual([])
+    })
+
+    it('sorts single item', () => {
+      const items = [{ offset: 100, name: 'field' }]
+      expect(sortByOffset(items)).toEqual([{ offset: 100, name: 'field' }])
+    })
+
+    it('sorts items by offset ascending', () => {
+      const items = [
+        { offset: 200, name: 'c' },
+        { offset: 0, name: 'a' },
+        { offset: 100, name: 'b' }
+      ]
+      const sorted = sortByOffset(items)
+
+      expect(sorted.map((i) => i.offset)).toEqual([0, 100, 200])
+      expect(sorted.map((i) => i.name)).toEqual(['a', 'b', 'c'])
+    })
+
+    it('does not mutate original array', () => {
+      const items = [
+        { offset: 200, name: 'c' },
+        { offset: 0, name: 'a' }
+      ]
+      const originalOrder = [...items]
+      sortByOffset(items)
+
+      expect(items).toEqual(originalOrder)
+    })
+
+    it('handles items with same offset', () => {
+      const items = [
+        { offset: 100, name: 'b' },
+        { offset: 100, name: 'a' }
+      ]
+      const sorted = sortByOffset(items)
+
+      // With same offset, original order is preserved (stable sort)
+      expect(sorted[0].name).toBe('b')
+      expect(sorted[1].name).toBe('a')
     })
   })
 

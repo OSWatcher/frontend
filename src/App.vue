@@ -104,6 +104,14 @@ const registryResults = computed(() =>
   searchResults.value.filter((r) => r.type === EntityType.Registry)
 )
 
+const symbolResults = computed(() =>
+  searchResults.value.filter((r) => r.type === EntityType.Symbol)
+)
+
+const structResults = computed(() =>
+  searchResults.value.filter((r) => r.type === EntityType.Struct)
+)
+
 // Helper to toggle entity type
 const toggleEntityType = (type: EntityType, checked: boolean) => {
   if (checked) {
@@ -131,6 +139,10 @@ watch(showSearchModal, (show) => {
       } else if (tab === 'registry') {
         selectedEntityTypes.value = [EntityType.Registry]
         activeResultTab.value = 'registry'
+      } else if (tab === 'pdb') {
+        // PDB tab: search both symbols and structs
+        selectedEntityTypes.value = [EntityType.Symbol, EntityType.Struct]
+        activeResultTab.value = 'symbols'
       }
     } else {
       // HomeView: omnisearch all entities
@@ -224,6 +236,64 @@ const registryColumns: DataTableColumns<SearchResult> = [
       tooltip: true
     },
     render: (row) => highlightSearchTerm(row.entity_path || '', searchTerm.value)
+  }
+]
+
+// Search columns for symbol data table
+const symbolColumns: DataTableColumns<SearchResult> = [
+  {
+    title: 'Commit',
+    key: 'commit_name',
+    sorter: 'default',
+    width: 200
+  },
+  {
+    title: 'Symbol Name',
+    key: 'entity_path',
+    sorter: 'default',
+    ellipsis: {
+      tooltip: true
+    },
+    render: (row) => highlightSearchTerm(row.entity_path || '', searchTerm.value)
+  },
+  {
+    title: 'PDB File',
+    key: 'blob_path',
+    sorter: 'default',
+    ellipsis: {
+      tooltip: true
+    }
+  }
+]
+
+// Search columns for struct data table
+const structColumns: DataTableColumns<SearchResult> = [
+  {
+    title: 'Commit',
+    key: 'commit_name',
+    sorter: 'default',
+    width: 200,
+    ellipsis: {
+      tooltip: true
+    }
+  },
+  {
+    title: 'Struct Name',
+    key: 'entity_path',
+    sorter: 'default',
+    ellipsis: {
+      tooltip: true
+    },
+    render: (row) => highlightSearchTerm(row.entity_path || '', searchTerm.value)
+  },
+  {
+    title: 'PDB File',
+    key: 'blob_path',
+    sorter: 'default',
+    width: 150,
+    ellipsis: {
+      tooltip: true
+    }
   }
 ]
 
@@ -371,6 +441,30 @@ const handleRowClick = (row: SearchResult) => {
         }
       })
     }
+  } else if (row.type === EntityType.Symbol) {
+    // Navigate to PDB inspector with symbol highlighted
+    router.push({
+      path: `/inspect/${row.commit_hash}`,
+      query: {
+        tab: 'pdb',
+        pdbTab: 'symbols',
+        symbolName: row.entity_path
+      }
+    })
+  } else if (row.type === EntityType.Struct) {
+    // Navigate to PDB inspector with struct filter
+    // Extract struct name from entity_path (format: /{struct_name}/{field_name} or /{struct_name})
+    const pathParts = (row.entity_path || '').split('/').filter(Boolean)
+    const structName = pathParts[0] || ''
+
+    router.push({
+      path: `/inspect/${row.commit_hash}`,
+      query: {
+        tab: 'pdb',
+        pdbTab: 'structs',
+        structName: structName
+      }
+    })
   }
 }
 
@@ -531,6 +625,18 @@ onUnmounted(() => {
               >
                 Registry
               </NCheckbox>
+              <NCheckbox
+                :checked="selectedEntityTypes.includes(EntityType.Symbol)"
+                @update:checked="(checked) => toggleEntityType(EntityType.Symbol, checked)"
+              >
+                Symbols
+              </NCheckbox>
+              <NCheckbox
+                :checked="selectedEntityTypes.includes(EntityType.Struct)"
+                @update:checked="(checked) => toggleEntityType(EntityType.Struct, checked)"
+              >
+                Structs
+              </NCheckbox>
             </div>
             <div class="case-sensitive-option">
               <NSwitch v-model:value="caseSensitive" size="small" />
@@ -586,6 +692,60 @@ onUnmounted(() => {
                 :columns="registryColumns"
                 :data="registryResults"
                 :loading="isLoading && registryResults.length === 0"
+                :max-height="500"
+                :pagination="{
+                  page: currentPage,
+                  pageSize: pageSize,
+                  showSizePicker: true,
+                  pageSizes: [10, 20, 50, 100],
+                  onChange: (page: number) => {
+                    currentPage = page
+                  },
+                  onUpdatePageSize: (size: number) => {
+                    pageSize = size
+                  }
+                }"
+                :row-props="
+                  (row: SearchResult) => ({
+                    style: 'cursor: pointer;',
+                    onClick: () => handleRowClick(row)
+                  })
+                "
+                striped
+              />
+            </NTabPane>
+            <NTabPane name="symbols" :tab="`Symbols (${symbolResults.length})`">
+              <NDataTable
+                :columns="symbolColumns"
+                :data="symbolResults"
+                :loading="isLoading && symbolResults.length === 0"
+                :max-height="500"
+                :pagination="{
+                  page: currentPage,
+                  pageSize: pageSize,
+                  showSizePicker: true,
+                  pageSizes: [10, 20, 50, 100],
+                  onChange: (page: number) => {
+                    currentPage = page
+                  },
+                  onUpdatePageSize: (size: number) => {
+                    pageSize = size
+                  }
+                }"
+                :row-props="
+                  (row: SearchResult) => ({
+                    style: 'cursor: pointer;',
+                    onClick: () => handleRowClick(row)
+                  })
+                "
+                striped
+              />
+            </NTabPane>
+            <NTabPane name="structs" :tab="`Structs (${structResults.length})`">
+              <NDataTable
+                :columns="structColumns"
+                :data="structResults"
+                :loading="isLoading && structResults.length === 0"
                 :max-height="500"
                 :pagination="{
                   page: currentPage,
