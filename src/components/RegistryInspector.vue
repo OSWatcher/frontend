@@ -12,11 +12,18 @@ import {
   NAlert,
   NEmpty,
   NSpace,
+  NInput,
   type DataTableColumns,
   type SelectOption,
   type DropdownOption
 } from 'naive-ui'
-import { DocumentOutline, HomeOutline, FolderOutline, DownloadOutline } from '@vicons/ionicons5'
+import {
+  DocumentOutline,
+  HomeOutline,
+  FolderOutline,
+  DownloadOutline,
+  SearchOutline
+} from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
@@ -66,7 +73,7 @@ const {
 )
 
 // Table filtering
-const { searchQuery, filteredEntries } = useTableFilter({
+const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
   entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
@@ -492,6 +499,22 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
           </NBreadcrumbItem>
         </NBreadcrumb>
 
+        <!-- Filter input -->
+        <div class="filter-container">
+          <NInput
+            ref="filterInputRef"
+            v-model:value="searchQuery"
+            placeholder="Filter entries... (press / to focus)"
+            clearable
+            size="small"
+            style="width: 250px"
+          >
+            <template #prefix>
+              <NIcon :component="SearchOutline" />
+            </template>
+          </NInput>
+        </div>
+
         <!-- Filter and Export buttons (only in comparison mode) -->
         <div v-if="mode === 'comparison'" class="header-actions">
           <!-- Status Filter Buttons -->
@@ -613,6 +636,10 @@ function getRowProps(row: RegistryEntry | RegistryDiffEntry) {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+
+.filter-container {
   flex-shrink: 0;
 }
 
