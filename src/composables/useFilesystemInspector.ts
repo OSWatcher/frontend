@@ -18,6 +18,22 @@ import {
   getParentPath
 } from '@/utils/filesystem'
 
+// Type for raw filesystem entries before parsing
+type RawFilesystemEntry = {
+  name: string
+  type: TreeNodeType
+  hash: string
+  size?: number
+}
+
+// Type for raw diff entries before parsing
+type RawFilesystemDiffEntry = {
+  name: string
+  type: TreeNodeType
+  old_props?: { hash: string; size?: number } | null
+  new_props?: { hash: string; size?: number } | null
+}
+
 export function useFilesystemInspector(
   mode: InspectorMode,
   layout: InspectorLayout,
@@ -29,7 +45,7 @@ export function useFilesystemInspector(
 ) {
   const currentPath = ref<string>(targetDirectory)
   const highlightedFile = ref<string>(highlightFile)
-  const rawEntries = ref<any[]>([])
+  const rawEntries = ref<RawFilesystemEntry[] | RawFilesystemDiffEntry[]>([])
   const isLoading = ref<boolean>(false)
   const error = ref<Error | null>(null)
   const fsRootHash = ref<string>('')
@@ -42,10 +58,16 @@ export function useFilesystemInspector(
 
   const entries = computed<FilesystemEntry[] | FilesystemDiffEntry[]>(() => {
     if (mode === 'single') {
-      const parsed = parseFilesystemEntries(rawEntries.value, currentPath.value)
+      const parsed = parseFilesystemEntries(
+        rawEntries.value as RawFilesystemEntry[],
+        currentPath.value
+      )
       return sortEntries(parsed)
     } else {
-      const parsed = parseFilesystemDiffEntries(rawEntries.value, currentPath.value)
+      const parsed = parseFilesystemDiffEntries(
+        rawEntries.value as RawFilesystemDiffEntry[],
+        currentPath.value
+      )
       return sortEntries(parsed)
     }
   })
@@ -93,7 +115,7 @@ export function useFilesystemInspector(
     }
   }
 
-  async function fetchEntriesForSingleMode(treeHash: string): Promise<any[]> {
+  async function fetchEntriesForSingleMode(treeHash: string): Promise<RawFilesystemEntry[]> {
     try {
       const response = await gqlClient.query({
         query: LIST_ENTRIES_FOR_TREE,
@@ -127,10 +149,13 @@ export function useFilesystemInspector(
     baseTreeHash: string,
     diffeeTreeHash: string,
     path: string
-  ): Promise<any[]> {
+  ): Promise<RawFilesystemDiffEntry[]> {
     try {
       // Build options with optional status filter
-      const options: any = { offset: 0, limit: 1000 }
+      const options: { offset: number; limit: number; status_filter?: DiffStatus[] } = {
+        offset: 0,
+        limit: 1000
+      }
       if (statusFilter.value.length > 0) {
         options.status_filter = statusFilter.value
       }
@@ -152,12 +177,19 @@ export function useFilesystemInspector(
         return []
       }
       return (
-        diffResult.items?.map((item: any) => ({
-          name: item.path.split('/').pop(),
-          type: item.type.toLowerCase(),
-          old_props: item.old_props,
-          new_props: item.new_props
-        })) || []
+        diffResult.items?.map(
+          (item: {
+            path: string
+            type: string
+            old_props?: { hash: string; size?: number } | null
+            new_props?: { hash: string; size?: number } | null
+          }) => ({
+            name: item.path.split('/').pop() || '',
+            type: item.type.toLowerCase() === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
+            old_props: item.old_props,
+            new_props: item.new_props
+          })
+        ) || []
       )
     } catch (err) {
       console.error('Error fetching diff entries:', err)
