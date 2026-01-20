@@ -10,6 +10,7 @@ import {
   NSpin,
   NAlert,
   NEmpty,
+  NInput,
   type DataTableColumns,
   type DropdownOption
 } from 'naive-ui'
@@ -18,7 +19,8 @@ import {
   FolderOutline,
   DownloadOutline,
   HomeOutline,
-  ChevronDownOutline
+  ChevronDownOutline,
+  SearchOutline
 } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
@@ -68,7 +70,7 @@ const {
 )
 
 // Table filtering
-const { searchQuery, filteredEntries } = useTableFilter({
+const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
   entries: entries as any,
   filterKey: 'name',
   clearOnChange: currentPath
@@ -530,6 +532,22 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
         </NBreadcrumbItem>
       </NBreadcrumb>
 
+      <!-- Filter input -->
+      <div class="filter-container">
+        <NInput
+          ref="filterInputRef"
+          v-model:value="searchQuery"
+          placeholder="Filter files... (press / to focus)"
+          clearable
+          size="small"
+          style="width: 250px"
+        >
+          <template #prefix>
+            <NIcon :component="SearchOutline" />
+          </template>
+        </NInput>
+      </div>
+
       <!-- Filter and Export buttons (only in comparison mode) -->
       <div v-if="mode === 'comparison'" class="header-actions">
         <!-- Status Filter Buttons -->
@@ -635,6 +653,10 @@ function getRowProps(row: FilesystemEntry | FilesystemDiffEntry) {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+
+.filter-container {
   flex-shrink: 0;
 }
 
