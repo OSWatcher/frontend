@@ -7,12 +7,12 @@ import type {
 import { TreeNodeType } from '@/types'
 
 export function parseFilesystemEntries(
-  rawEntries: Array<{ name: string; type: string; hash: string; size?: number }>,
+  rawEntries: Array<{ name: string; type: TreeNodeType; hash: string; size?: number }>,
   currentPath: string
 ): FilesystemEntry[] {
   return rawEntries.map((entry) => ({
     name: entry.name,
-    type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
+    type: entry.type,
     hash: entry.hash,
     size: entry.size,
     path: joinPath(currentPath, entry.name)
@@ -22,7 +22,7 @@ export function parseFilesystemEntries(
 export function parseFilesystemDiffEntries(
   rawDiffEntries: Array<{
     name: string
-    type: string
+    type: TreeNodeType
     old_props?: { hash: string; size?: number } | null
     new_props?: { hash: string; size?: number } | null
   }>,
@@ -35,7 +35,7 @@ export function parseFilesystemDiffEntries(
 
     return {
       name: entry.name,
-      type: entry.type === 'blob' ? TreeNodeType.Blob : TreeNodeType.Tree,
+      type: entry.type,
       hash,
       size,
       path: joinPath(currentPath, entry.name),

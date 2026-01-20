@@ -153,7 +153,13 @@ watch(showSearchModal, (show) => {
 })
 
 // Auth0
-const { isAuthenticated, isLoading: isAuthLoading, user, logout, getAccessTokenSilently } = useAuth0()
+const {
+  isAuthenticated,
+  isLoading: isAuthLoading,
+  user,
+  logout,
+  getAccessTokenSilently
+} = useAuth0()
 
 // Set up auth token getter for Apollo Client
 onMounted(() => {
