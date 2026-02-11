@@ -93,16 +93,28 @@ export interface ParsedDataType {
 }
 
 // ============================================
-// PDB Context (for ntoskrnl resolution)
+// Symbol Blob (for blob selector)
+// ============================================
+
+export interface SymbolBlob {
+  blobHash: string
+  blobPath: string // e.g., "/Windows/System32/ntoskrnl.exe"
+  displayName: string // e.g., "ntoskrnl.exe"
+}
+
+// ============================================
+// PDB Context (resolved blob for inspection)
 // ============================================
 
 export interface PDBContext {
   blobHash: string
   blobName: string // e.g., "ntoskrnl.exe"
+  blobPath: string // e.g., "/Windows/System32/ntoskrnl.exe"
 }
 
 export interface PDBContextDiff {
   baseBlobHash: string
   diffeeBlobHash: string
   blobName: string // e.g., "ntoskrnl.exe"
+  blobPath: string // e.g., "/Windows/System32/ntoskrnl.exe"
 }

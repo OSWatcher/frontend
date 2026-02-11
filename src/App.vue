@@ -441,17 +441,18 @@ const handleRowClick = (row: SearchResult) => {
       })
     }
   } else if (row.type === EntityType.Symbol) {
-    // Navigate to PDB inspector with symbol highlighted
+    // Navigate to Debug Info inspector with symbol highlighted
     router.push({
       path: `/inspect/${row.commit_hash}`,
       query: {
         tab: 'pdb',
         pdbTab: 'symbols',
-        symbolName: row.entity_path
+        symbolName: row.entity_path,
+        blobPath: row.blob_path
       }
     })
   } else if (row.type === EntityType.Struct) {
-    // Navigate to PDB inspector with struct filter
+    // Navigate to Debug Info inspector with struct filter
     // Extract struct name from entity_path (format: /{struct_name}/{field_name} or /{struct_name})
     const pathParts = (row.entity_path || '').split('/').filter(Boolean)
     const structName = pathParts[0] || ''
@@ -461,7 +462,8 @@ const handleRowClick = (row: SearchResult) => {
       query: {
         tab: 'pdb',
         pdbTab: 'structs',
-        structName: structName
+        structName: structName,
+        blobPath: row.blob_path
       }
     })
   }
