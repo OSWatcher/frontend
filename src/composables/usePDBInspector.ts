@@ -114,6 +114,9 @@ export function usePDBInspector(
   const isSearchingForTargetStruct = ref(false)
   const targetStructNotFound = ref(false)
 
+  // Comparison mode: blob not found in diffee commit
+  const blobNotInDiffee = ref(false)
+
   // ============================================
   // Computed
   // ============================================
@@ -156,10 +159,19 @@ export function usePDBInspector(
   // ============================================
 
   async function fetchAvailableBlobs(): Promise<void> {
-    const commitHash = mode === 'single' ? commit?.hash : baseCommit?.hash
-    if (!commitHash) return
-
-    availableBlobs.value = await fetchBlobsWithSymbols(commitHash)
+    if (mode === 'single') {
+      if (!commit?.hash) return
+      availableBlobs.value = await fetchBlobsWithSymbols(commit.hash)
+    } else {
+      if (!baseCommit?.hash || !diffeeCommit?.hash) return
+      // Query both commits in parallel and intersect by blobPath
+      const [baseBlobs, diffeeBlobs] = await Promise.all([
+        fetchBlobsWithSymbols(baseCommit.hash),
+        fetchBlobsWithSymbols(diffeeCommit.hash)
+      ])
+      const diffeePaths = new Set(diffeeBlobs.map((b) => b.blobPath))
+      availableBlobs.value = baseBlobs.filter((b) => diffeePaths.has(b.blobPath))
+    }
 
     // Auto-select logic
     if (availableBlobs.value.length === 0) {
@@ -198,12 +210,17 @@ export function usePDBInspector(
     hasMoreStructs.value = true
 
     // Build context
+    blobNotInDiffee.value = false
     if (mode === 'single') {
       pdbContext.value = buildPDBContext(blob)
       pdbContextDiff.value = null
     } else if (diffeeCommit) {
       pdbContextDiff.value = await buildPDBContextDiff(blob, diffeeCommit.hash)
       pdbContext.value = null
+      if (!pdbContextDiff.value) {
+        blobNotInDiffee.value = true
+        return
+      }
     }
 
     // Fetch initial data
@@ -831,6 +848,9 @@ export function usePDBInspector(
     isSearchingForTargetSymbol,
     targetSymbolNotFound,
     isSearchingForTargetStruct,
-    targetStructNotFound
+    targetStructNotFound,
+
+    // Comparison mode warnings
+    blobNotInDiffee
   }
 }
