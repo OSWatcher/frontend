@@ -3,6 +3,7 @@
  *
  * Reactive state management for Symbols and Structs exploration.
  * Supports both single mode and comparison mode for symbols.
+ * OS-agnostic: discovers blobs with symbols via API query.
  */
 
 import { ref, computed, watch } from 'vue'
@@ -17,6 +18,7 @@ import {
 } from '@/queries'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type {
+  SymbolBlob,
   SymbolEntry,
   SymbolDiffEntry,
   StructEntry,
@@ -40,7 +42,7 @@ import {
   parseStructConnectionEdges,
   parseStructConnectionEdge
 } from '@/utils/pdb'
-import { resolvePDBContext, resolvePDBContextDiff } from '@/windows/pdb'
+import { fetchBlobsWithSymbols, buildPDBContext, buildPDBContextDiff } from '@/windows/pdb'
 import { DiffStatus } from '@/graphql-types'
 
 export function usePDBInspector(
@@ -50,7 +52,8 @@ export function usePDBInspector(
   diffeeCommit?: CommitContext,
   targetSymbolName?: string,
   targetPdbTab?: 'symbols' | 'structs',
-  targetStructName?: string
+  targetStructName?: string,
+  targetBlobPath?: string
 ) {
   // ============================================
   // State
@@ -60,7 +63,11 @@ export function usePDBInspector(
   const isLoadingContext = ref(false)
   const error = ref<Error | null>(null)
 
-  // PDB Context (resolved ntoskrnl.exe)
+  // Blob selector state
+  const availableBlobs = ref<SymbolBlob[]>([])
+  const selectedBlob = ref<SymbolBlob | null>(null)
+
+  // PDB Context (resolved from selected blob)
   const pdbContext = ref<PDBContext | null>(null)
   const pdbContextDiff = ref<PDBContextDiff | null>(null)
 
@@ -119,7 +126,7 @@ export function usePDBInspector(
     }
   })
 
-  const hasPDBData = computed(() => pdbContext.value !== null || pdbContextDiff.value !== null)
+  const hasPDBData = computed(() => availableBlobs.value.length > 0)
 
   const structs = computed<StructEntry[] | StructDiffEntry[]>(() => {
     if (mode === 'single') {
@@ -143,6 +150,78 @@ export function usePDBInspector(
 
   // Computed page count for symbols pagination (comparison mode)
   const totalSymbolPages = computed(() => Math.ceil(totalSymbols.value / symbolsPageSize))
+
+  // ============================================
+  // Blob Selection
+  // ============================================
+
+  async function fetchAvailableBlobs(): Promise<void> {
+    const commitHash = mode === 'single' ? commit?.hash : baseCommit?.hash
+    if (!commitHash) return
+
+    availableBlobs.value = await fetchBlobsWithSymbols(commitHash)
+
+    // Auto-select logic
+    if (availableBlobs.value.length === 0) {
+      selectedBlob.value = null
+      return
+    }
+
+    if (targetBlobPath) {
+      // Auto-select from search navigation
+      const match = availableBlobs.value.find((b) => b.blobPath === targetBlobPath)
+      if (match) {
+        await selectBlob(match)
+        return
+      }
+    }
+
+    if (availableBlobs.value.length === 1) {
+      // Auto-select if only one blob
+      await selectBlob(availableBlobs.value[0])
+    }
+  }
+
+  async function selectBlob(blob: SymbolBlob): Promise<void> {
+    selectedBlob.value = blob
+
+    // Reset data state
+    rawSymbols.value = []
+    rawStructs.value = []
+    totalSymbols.value = 0
+    totalStructs.value = 0
+    expandedStructNames.value = new Set()
+    structFieldsCache.value = new Map()
+    symbolsEndCursor.value = null
+    structsEndCursor.value = null
+    hasMoreSymbols.value = true
+    hasMoreStructs.value = true
+
+    // Build context
+    if (mode === 'single') {
+      pdbContext.value = buildPDBContext(blob)
+      pdbContextDiff.value = null
+    } else if (diffeeCommit) {
+      pdbContextDiff.value = await buildPDBContextDiff(blob, diffeeCommit.hash)
+      pdbContext.value = null
+    }
+
+    // Fetch initial data
+    await fetchSymbols()
+
+    // If navigating from search with a target symbol, fetch it if not already loaded
+    if (mode === 'single' && targetSymbolName) {
+      await fetchSymbolByName(targetSymbolName)
+    }
+
+    // If the active tab is structs (from search navigation), fetch structs and target
+    if (activeSubTab.value === 'structs') {
+      await fetchStructs()
+      if (mode === 'single' && targetStructName) {
+        await fetchStructByName(targetStructName)
+      }
+    }
+  }
 
   // ============================================
   // Data Fetching - Single Mode
@@ -656,41 +735,10 @@ export function usePDBInspector(
     error.value = null
 
     try {
-      if (mode === 'single' && commit) {
-        pdbContext.value = await resolvePDBContext(commit.hash)
-        pdbContextDiff.value = null
-
-        if (!pdbContext.value) {
-          console.warn('Could not resolve PDB context for commit:', commit.hash)
-          return
-        }
-      } else if (mode === 'comparison' && baseCommit && diffeeCommit) {
-        pdbContextDiff.value = await resolvePDBContextDiff(baseCommit.hash, diffeeCommit.hash)
-        pdbContext.value = null
-
-        if (!pdbContextDiff.value) {
-          console.warn('Could not resolve PDB context diff for commits')
-          return
-        }
+      if ((mode === 'single' && commit) || (mode === 'comparison' && baseCommit && diffeeCommit)) {
+        await fetchAvailableBlobs()
       } else {
         console.warn('Invalid mode or missing commits')
-        return
-      }
-
-      // Fetch initial symbols data
-      await fetchSymbols()
-
-      // If navigating from search with a target symbol, fetch it if not already loaded
-      if (mode === 'single' && targetSymbolName) {
-        await fetchSymbolByName(targetSymbolName)
-      }
-
-      // If the active tab is structs (from search navigation), fetch structs and target
-      if (activeSubTab.value === 'structs') {
-        await fetchStructs()
-        if (mode === 'single' && targetStructName) {
-          await fetchStructByName(targetStructName)
-        }
       }
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
@@ -711,6 +759,8 @@ export function usePDBInspector(
 
   // Watch for sub-tab changes
   watch(activeSubTab, async (newTab) => {
+    if (!selectedBlob.value) return
+
     if (newTab === 'symbols' && rawSymbols.value.length === 0) {
       await fetchSymbols()
       // Fetch target symbol if provided from search navigation
@@ -735,6 +785,11 @@ export function usePDBInspector(
     pdbContext,
     pdbContextDiff,
     activeSubTab,
+
+    // Blob selector
+    availableBlobs,
+    selectedBlob,
+    selectBlob,
 
     // Symbols
     symbols,
