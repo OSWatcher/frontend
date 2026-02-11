@@ -196,6 +196,16 @@ const targetStructName = computed<string>(() => {
   return (route.query.structName as string) || ''
 })
 
+/**
+ * Target Blob Path
+ *
+ * Gets target blob path from query params (e.g., ?blobPath=/Windows/System32/ntoskrnl.exe)
+ * Used to auto-select the correct binary in the Debug Info blob selector
+ */
+const targetBlobPath = computed<string>(() => {
+  return (route.query.blobPath as string) || ''
+})
+
 // ===================================================================
 // METHODS
 // ===================================================================
@@ -504,23 +514,8 @@ onMounted(() => {
             />
           </NTabPane>
 
-          <!-- PDB Tab (disabled) -->
-          <NTabPane v-if="false" name="pdb" tab="PDB">
-            <PDBInspector
-              v-if="inspectorMode === 'single' && singleCommit"
-              :mode="inspectorMode"
-              :commit="singleCommit"
-            />
-            <PDBInspector
-              v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
-              :mode="inspectorMode"
-              :base-commit="baseCommit"
-              :diffee-commit="diffeeCommit"
-            />
-          </NTabPane>
-
-          <!-- PDB Tab (only if available) -->
-          <NTabPane v-if="hasPDB" name="pdb" tab="PDB">
+          <!-- Symbols Tab (only if available) -->
+          <NTabPane v-if="hasPDB" name="pdb" tab="Symbols">
             <PDBInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
@@ -528,6 +523,7 @@ onMounted(() => {
               :target-symbol-name="targetSymbolName"
               :target-pdb-tab="targetPdbTab"
               :target-struct-name="targetStructName"
+              :target-blob-path="targetBlobPath"
             />
             <PDBInspector
               v-else-if="inspectorMode === 'comparison' && baseCommit && diffeeCommit"
@@ -537,6 +533,7 @@ onMounted(() => {
               :target-symbol-name="targetSymbolName"
               :target-pdb-tab="targetPdbTab"
               :target-struct-name="targetStructName"
+              :target-blob-path="targetBlobPath"
             />
           </NTabPane>
         </NTabs>
