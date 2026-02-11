@@ -74,7 +74,8 @@ const {
   isSearchingForTargetSymbol,
   targetSymbolNotFound,
   isSearchingForTargetStruct,
-  targetStructNotFound
+  targetStructNotFound,
+  blobNotInDiffee
 } = usePDBInspector(
   props.mode,
   props.commit,
@@ -517,8 +518,18 @@ const structColumns = computed(() => {
         </template>
       </div>
 
+      <!-- Warning: blob not found in comparison commit -->
+      <NAlert v-if="blobNotInDiffee" type="warning" style="margin-bottom: 12px">
+        This binary doesn't exist in the comparison commit. Select a different binary.
+      </NAlert>
+
       <!-- Sub-tabs: Symbols and Structs (only when a blob is selected) -->
-      <NTabs v-if="selectedBlob" v-model:value="activeSubTab" type="line" animated>
+      <NTabs
+        v-if="selectedBlob && !blobNotInDiffee"
+        v-model:value="activeSubTab"
+        type="line"
+        animated
+      >
         <NTabPane name="symbols" tab="Symbols">
           <!-- Filter row with text filter and diff status filter -->
           <div class="filter-row">
