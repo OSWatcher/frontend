@@ -305,6 +305,15 @@ const FETCH_STRUCT_BY_NAME = gql`
   }
 `
 
+const GET_BLOBS_WITH_SYMBOLS = gql`
+  query GetBlobsWithSymbols($commitHash: String!) {
+    getBlobsWithSymbols(commit_hash: $commitHash) {
+      blob_hash
+      blob_path
+    }
+  }
+`
+
 export {
   fetchBranches,
   fetchCommitHistory,
@@ -322,5 +331,6 @@ export {
   SEARCH_FS_STREAM,
   DIFF_NODES,
   FETCH_SYMBOL_BY_NAME,
-  FETCH_STRUCT_BY_NAME
+  FETCH_STRUCT_BY_NAME,
+  GET_BLOBS_WITH_SYMBOLS
 }

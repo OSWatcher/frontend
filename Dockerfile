@@ -2,6 +2,9 @@
 FROM node:21-alpine as build-stage
 ARG NODE_ENV=development
 ARG VITE_GRAPHEOS_API_URI=http://localhost:4000/
+ARG VITE_AUTH0_DOMAIN
+ARG VITE_AUTH0_CLIENT_ID
+ARG VITE_AUTH0_AUDIENCE
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -34,7 +37,7 @@ WORKDIR /app
 COPY --from=build-stage /app/dist/ dist/
 
 # Install a simple HTTP server for serving static content
-RUN npm install -g http-server
+RUN npm install -g serve
 
 # Expose the port the app runs on
 EXPOSE 8080
@@ -45,4 +48,4 @@ USER appuser
 
 
 # Serve the application using http-server
-CMD ["http-server", "dist", "-p", "8080"]
+CMD ["serve", "-s", "dist", "-l", "8080"]

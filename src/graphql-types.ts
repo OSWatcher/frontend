@@ -440,6 +440,12 @@ export type BlobWinRegKeyHas_WinregNodeAggregateSelection = {
   hash: StringAggregateSelection
 }
 
+export type BlobWithSymbols = {
+  __typename?: 'BlobWithSymbols'
+  blob_hash: Scalars['String']['output']
+  blob_path: Scalars['String']['output']
+}
+
 export type BlobsConnection = {
   __typename?: 'BlobsConnection'
   edges: Array<BlobEdge>
@@ -1627,8 +1633,7 @@ export type Query = {
   dataTypesConnection: DataTypesConnection
   diffNodesAt: DiffNodesAtResult
   fetchCommitHistory: Array<Commit>
-  fetchStructs: Array<StructFetchResult>
-  fetchSymbols: Array<SymbolFetchResult>
+  getBlobsWithSymbols: Array<BlobWithSymbols>
   getCommitExtractedDataLabels: Array<Scalars['String']['output']>
   hashables: Array<Hashable>
   hashablesAggregate: HashableAggregateSelection
@@ -1731,14 +1736,8 @@ export type QueryFetchCommitHistoryArgs = {
   direction?: InputMaybe<CommitHistoryDirection>
 }
 
-export type QueryFetchStructsArgs = {
-  blob_hash: Scalars['String']['input']
-  options?: InputMaybe<StructOptions>
-}
-
-export type QueryFetchSymbolsArgs = {
-  blob_hash: Scalars['String']['input']
-  options?: InputMaybe<SymbolOptions>
+export type QueryGetBlobsWithSymbolsArgs = {
+  commit_hash: Scalars['String']['input']
 }
 
 export type QueryGetCommitExtractedDataLabelsArgs = {
@@ -2042,14 +2041,6 @@ export type StructEdge = {
   node: Struct
 }
 
-export type StructFetchResult = {
-  __typename?: 'StructFetchResult'
-  fields: Array<StructFieldFetchResult>
-  kind: Scalars['String']['output']
-  name: Scalars['String']['output']
-  size: Scalars['Int']['output']
-}
-
 export type StructField = Hashable & {
   __typename?: 'StructField'
   data_type: Scalars['JSON']['output']
@@ -2090,13 +2081,6 @@ export type StructFieldEdge = {
   __typename?: 'StructFieldEdge'
   cursor: Scalars['String']['output']
   node: StructField
-}
-
-export type StructFieldFetchResult = {
-  __typename?: 'StructFieldFetchResult'
-  data_type: Scalars['JSON']['output']
-  name: Scalars['String']['output']
-  offset: Scalars['Int']['output']
 }
 
 export type StructFieldOptions = {
@@ -2542,12 +2526,6 @@ export type SymbolEdge = {
   __typename?: 'SymbolEdge'
   cursor: Scalars['String']['output']
   node: Symbol
-}
-
-export type SymbolFetchResult = {
-  __typename?: 'SymbolFetchResult'
-  address: Scalars['String']['output']
-  name: Scalars['String']['output']
 }
 
 export type SymbolOptions = {
@@ -3396,38 +3374,68 @@ export type ListEntriesForTreeQuery = {
   }>
 }
 
-export type FetchSymbolsQueryVariables = Exact<{
+export type ListSymbolsConnectionQueryVariables = Exact<{
   blobHash: Scalars['String']['input']
-  options?: InputMaybe<SymbolOptions>
-  where?: InputMaybe<SymbolWhere>
+  first?: InputMaybe<Scalars['Int']['input']>
+  after?: InputMaybe<Scalars['String']['input']>
 }>
 
-export type FetchSymbolsQuery = {
+export type ListSymbolsConnectionQuery = {
   __typename?: 'Query'
-  symbolsAggregate: { __typename?: 'SymbolAggregateSelection'; count: number }
-  fetchSymbols: Array<{ __typename?: 'SymbolFetchResult'; name: string; address: string }>
+  blobs: Array<{
+    __typename?: 'Blob'
+    has_symbolConnection: {
+      __typename?: 'BlobHas_symbolConnection'
+      totalCount: number
+      edges: Array<{
+        __typename?: 'BlobHas_symbolRelationship'
+        properties: { __typename?: 'HasNameRel'; name: string }
+        node: { __typename?: 'Symbol'; address: string }
+      }>
+      pageInfo: { __typename?: 'PageInfo'; hasNextPage: boolean; endCursor?: string | null }
+    }
+  }>
 }
 
 export type FetchStructsQueryVariables = Exact<{
   blobHash: Scalars['String']['input']
-  options?: InputMaybe<StructOptions>
-  where?: InputMaybe<StructWhere>
+  first?: InputMaybe<Scalars['Int']['input']>
+  after?: InputMaybe<Scalars['String']['input']>
 }>
 
 export type FetchStructsQuery = {
   __typename?: 'Query'
-  structsAggregate: { __typename?: 'StructAggregateSelection'; count: number }
-  fetchStructs: Array<{
-    __typename?: 'StructFetchResult'
-    name: string
-    size: number
-    kind: string
-    fields: Array<{
-      __typename?: 'StructFieldFetchResult'
-      name: string
-      offset: number
-      data_type: any
-    }>
+  blobs: Array<{
+    __typename?: 'Blob'
+    has_structConnection: {
+      __typename?: 'BlobHas_structConnection'
+      totalCount: number
+      edges: Array<{
+        __typename?: 'BlobHas_structRelationship'
+        properties: { __typename?: 'HasNameRel'; name: string }
+        node: { __typename?: 'Struct'; hash: string; size: number; kind: string }
+      }>
+      pageInfo: { __typename?: 'PageInfo'; hasNextPage: boolean; endCursor?: string | null }
+    }
+  }>
+}
+
+export type FetchStructFieldsQueryVariables = Exact<{
+  structHash: Scalars['String']['input']
+}>
+
+export type FetchStructFieldsQuery = {
+  __typename?: 'Query'
+  structs: Array<{
+    __typename?: 'Struct'
+    fieldsConnection: {
+      __typename?: 'StructFieldsConnection'
+      edges: Array<{
+        __typename?: 'StructFieldsRelationship'
+        properties: { __typename?: 'HasNameRel'; name: string }
+        node: { __typename?: 'StructField'; offset: number; data_type: any }
+      }>
+    }
   }>
 }
 
@@ -3491,6 +3499,59 @@ export type DiffNodesQuery = {
       new_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
     }>
   }
+}
+
+export type FetchSymbolByNameQueryVariables = Exact<{
+  blobHash: Scalars['String']['input']
+  symbolName: Scalars['String']['input']
+}>
+
+export type FetchSymbolByNameQuery = {
+  __typename?: 'Query'
+  blobs: Array<{
+    __typename?: 'Blob'
+    has_symbolConnection: {
+      __typename?: 'BlobHas_symbolConnection'
+      edges: Array<{
+        __typename?: 'BlobHas_symbolRelationship'
+        properties: { __typename?: 'HasNameRel'; name: string }
+        node: { __typename?: 'Symbol'; hash: string; address: string }
+      }>
+    }
+  }>
+}
+
+export type FetchStructByNameQueryVariables = Exact<{
+  blobHash: Scalars['String']['input']
+  structName: Scalars['String']['input']
+}>
+
+export type FetchStructByNameQuery = {
+  __typename?: 'Query'
+  blobs: Array<{
+    __typename?: 'Blob'
+    has_structConnection: {
+      __typename?: 'BlobHas_structConnection'
+      edges: Array<{
+        __typename?: 'BlobHas_structRelationship'
+        properties: { __typename?: 'HasNameRel'; name: string }
+        node: { __typename?: 'Struct'; hash: string; size: number; kind: string }
+      }>
+    }
+  }>
+}
+
+export type GetBlobsWithSymbolsQueryVariables = Exact<{
+  commitHash: Scalars['String']['input']
+}>
+
+export type GetBlobsWithSymbolsQuery = {
+  __typename?: 'Query'
+  getBlobsWithSymbols: Array<{
+    __typename?: 'BlobWithSymbols'
+    blob_hash: string
+    blob_path: string
+  }>
 }
 
 export const FetchBranchesDocument = gql`
@@ -4212,92 +4273,125 @@ export type ListEntriesForTreeQueryCompositionFunctionResult = VueApolloComposab
   ListEntriesForTreeQuery,
   ListEntriesForTreeQueryVariables
 >
-export const FetchSymbolsDocument = gql`
-  query FetchSymbols($blobHash: String!, $options: SymbolOptions, $where: SymbolWhere) {
-    symbolsAggregate(where: $where) {
-      count
-    }
-    fetchSymbols(blob_hash: $blobHash, options: $options) {
-      name
-      address
+export const ListSymbolsConnectionDocument = gql`
+  query ListSymbolsConnection($blobHash: String!, $first: Int, $after: String) {
+    blobs(where: { hash: $blobHash }) {
+      has_symbolConnection(first: $first, after: $after) {
+        totalCount
+        edges {
+          properties {
+            name
+          }
+          node {
+            address
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
     }
   }
 `
 
 /**
- * __useFetchSymbolsQuery__
+ * __useListSymbolsConnectionQuery__
  *
- * To run a query within a Vue component, call `useFetchSymbolsQuery` and pass it any options that fit your needs.
- * When your component renders, `useFetchSymbolsQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * To run a query within a Vue component, call `useListSymbolsConnectionQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListSymbolsConnectionQuery` returns an object from Apollo Client that contains result, loading and error properties
  * you can use to render your UI.
  *
  * @param variables that will be passed into the query
  * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
  *
  * @example
- * const { result, loading, error } = useFetchSymbolsQuery({
+ * const { result, loading, error } = useListSymbolsConnectionQuery({
  *   blobHash: // value for 'blobHash'
- *   options: // value for 'options'
- *   where: // value for 'where'
+ *   first: // value for 'first'
+ *   after: // value for 'after'
  * });
  */
-export function useFetchSymbolsQuery(
+export function useListSymbolsConnectionQuery(
   variables:
-    | FetchSymbolsQueryVariables
-    | VueCompositionApi.Ref<FetchSymbolsQueryVariables>
-    | ReactiveFunction<FetchSymbolsQueryVariables>,
+    | ListSymbolsConnectionQueryVariables
+    | VueCompositionApi.Ref<ListSymbolsConnectionQueryVariables>
+    | ReactiveFunction<ListSymbolsConnectionQueryVariables>,
   options:
-    | VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+    | VueApolloComposable.UseQueryOptions<
+        ListSymbolsConnectionQuery,
+        ListSymbolsConnectionQueryVariables
+      >
     | VueCompositionApi.Ref<
-        VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+        VueApolloComposable.UseQueryOptions<
+          ListSymbolsConnectionQuery,
+          ListSymbolsConnectionQueryVariables
+        >
       >
     | ReactiveFunction<
-        VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+        VueApolloComposable.UseQueryOptions<
+          ListSymbolsConnectionQuery,
+          ListSymbolsConnectionQueryVariables
+        >
       > = {}
 ) {
-  return VueApolloComposable.useQuery<FetchSymbolsQuery, FetchSymbolsQueryVariables>(
-    FetchSymbolsDocument,
-    variables,
-    options
-  )
+  return VueApolloComposable.useQuery<
+    ListSymbolsConnectionQuery,
+    ListSymbolsConnectionQueryVariables
+  >(ListSymbolsConnectionDocument, variables, options)
 }
-export function useFetchSymbolsLazyQuery(
+export function useListSymbolsConnectionLazyQuery(
   variables?:
-    | FetchSymbolsQueryVariables
-    | VueCompositionApi.Ref<FetchSymbolsQueryVariables>
-    | ReactiveFunction<FetchSymbolsQueryVariables>,
+    | ListSymbolsConnectionQueryVariables
+    | VueCompositionApi.Ref<ListSymbolsConnectionQueryVariables>
+    | ReactiveFunction<ListSymbolsConnectionQueryVariables>,
   options:
-    | VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+    | VueApolloComposable.UseQueryOptions<
+        ListSymbolsConnectionQuery,
+        ListSymbolsConnectionQueryVariables
+      >
     | VueCompositionApi.Ref<
-        VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+        VueApolloComposable.UseQueryOptions<
+          ListSymbolsConnectionQuery,
+          ListSymbolsConnectionQueryVariables
+        >
       >
     | ReactiveFunction<
-        VueApolloComposable.UseQueryOptions<FetchSymbolsQuery, FetchSymbolsQueryVariables>
+        VueApolloComposable.UseQueryOptions<
+          ListSymbolsConnectionQuery,
+          ListSymbolsConnectionQueryVariables
+        >
       > = {}
 ) {
-  return VueApolloComposable.useLazyQuery<FetchSymbolsQuery, FetchSymbolsQueryVariables>(
-    FetchSymbolsDocument,
-    variables,
-    options
-  )
+  return VueApolloComposable.useLazyQuery<
+    ListSymbolsConnectionQuery,
+    ListSymbolsConnectionQueryVariables
+  >(ListSymbolsConnectionDocument, variables, options)
 }
-export type FetchSymbolsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
-  FetchSymbolsQuery,
-  FetchSymbolsQueryVariables
->
+export type ListSymbolsConnectionQueryCompositionFunctionResult =
+  VueApolloComposable.UseQueryReturn<
+    ListSymbolsConnectionQuery,
+    ListSymbolsConnectionQueryVariables
+  >
 export const FetchStructsDocument = gql`
-  query FetchStructs($blobHash: String!, $options: StructOptions, $where: StructWhere) {
-    structsAggregate(where: $where) {
-      count
-    }
-    fetchStructs(blob_hash: $blobHash, options: $options) {
-      name
-      size
-      kind
-      fields {
-        name
-        offset
-        data_type
+  query FetchStructs($blobHash: String!, $first: Int, $after: String) {
+    blobs(where: { hash: $blobHash }) {
+      has_structConnection(first: $first, after: $after) {
+        totalCount
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            size
+            kind
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }
@@ -4316,8 +4410,8 @@ export const FetchStructsDocument = gql`
  * @example
  * const { result, loading, error } = useFetchStructsQuery({
  *   blobHash: // value for 'blobHash'
- *   options: // value for 'options'
- *   where: // value for 'where'
+ *   first: // value for 'first'
+ *   after: // value for 'after'
  * });
  */
 export function useFetchStructsQuery(
@@ -4363,6 +4457,83 @@ export function useFetchStructsLazyQuery(
 export type FetchStructsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
   FetchStructsQuery,
   FetchStructsQueryVariables
+>
+export const FetchStructFieldsDocument = gql`
+  query FetchStructFields($structHash: String!) {
+    structs(where: { hash: $structHash }) {
+      fieldsConnection {
+        edges {
+          properties {
+            name
+          }
+          node {
+            offset
+            data_type
+          }
+        }
+      }
+    }
+  }
+`
+
+/**
+ * __useFetchStructFieldsQuery__
+ *
+ * To run a query within a Vue component, call `useFetchStructFieldsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFetchStructFieldsQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useFetchStructFieldsQuery({
+ *   structHash: // value for 'structHash'
+ * });
+ */
+export function useFetchStructFieldsQuery(
+  variables:
+    | FetchStructFieldsQueryVariables
+    | VueCompositionApi.Ref<FetchStructFieldsQueryVariables>
+    | ReactiveFunction<FetchStructFieldsQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useQuery<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>(
+    FetchStructFieldsDocument,
+    variables,
+    options
+  )
+}
+export function useFetchStructFieldsLazyQuery(
+  variables?:
+    | FetchStructFieldsQueryVariables
+    | VueCompositionApi.Ref<FetchStructFieldsQueryVariables>
+    | ReactiveFunction<FetchStructFieldsQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useLazyQuery<FetchStructFieldsQuery, FetchStructFieldsQueryVariables>(
+    FetchStructFieldsDocument,
+    variables,
+    options
+  )
+}
+export type FetchStructFieldsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  FetchStructFieldsQuery,
+  FetchStructFieldsQueryVariables
 >
 export const SearchFsDocument = gql`
   query SearchFs($input: SearchInput!) {
@@ -4600,4 +4771,246 @@ export function useDiffNodesLazyQuery(
 export type DiffNodesQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
   DiffNodesQuery,
   DiffNodesQueryVariables
+>
+export const FetchSymbolByNameDocument = gql`
+  query FetchSymbolByName($blobHash: String!, $symbolName: String!) {
+    blobs(where: { hash: $blobHash }) {
+      has_symbolConnection(where: { edge: { name: $symbolName } }) {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            address
+          }
+        }
+      }
+    }
+  }
+`
+
+/**
+ * __useFetchSymbolByNameQuery__
+ *
+ * To run a query within a Vue component, call `useFetchSymbolByNameQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFetchSymbolByNameQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useFetchSymbolByNameQuery({
+ *   blobHash: // value for 'blobHash'
+ *   symbolName: // value for 'symbolName'
+ * });
+ */
+export function useFetchSymbolByNameQuery(
+  variables:
+    | FetchSymbolByNameQueryVariables
+    | VueCompositionApi.Ref<FetchSymbolByNameQueryVariables>
+    | ReactiveFunction<FetchSymbolByNameQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useQuery<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>(
+    FetchSymbolByNameDocument,
+    variables,
+    options
+  )
+}
+export function useFetchSymbolByNameLazyQuery(
+  variables?:
+    | FetchSymbolByNameQueryVariables
+    | VueCompositionApi.Ref<FetchSymbolByNameQueryVariables>
+    | ReactiveFunction<FetchSymbolByNameQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useLazyQuery<FetchSymbolByNameQuery, FetchSymbolByNameQueryVariables>(
+    FetchSymbolByNameDocument,
+    variables,
+    options
+  )
+}
+export type FetchSymbolByNameQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  FetchSymbolByNameQuery,
+  FetchSymbolByNameQueryVariables
+>
+export const FetchStructByNameDocument = gql`
+  query FetchStructByName($blobHash: String!, $structName: String!) {
+    blobs(where: { hash: $blobHash }) {
+      has_structConnection(where: { edge: { name: $structName } }) {
+        edges {
+          properties {
+            name
+          }
+          node {
+            hash
+            size
+            kind
+          }
+        }
+      }
+    }
+  }
+`
+
+/**
+ * __useFetchStructByNameQuery__
+ *
+ * To run a query within a Vue component, call `useFetchStructByNameQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFetchStructByNameQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useFetchStructByNameQuery({
+ *   blobHash: // value for 'blobHash'
+ *   structName: // value for 'structName'
+ * });
+ */
+export function useFetchStructByNameQuery(
+  variables:
+    | FetchStructByNameQueryVariables
+    | VueCompositionApi.Ref<FetchStructByNameQueryVariables>
+    | ReactiveFunction<FetchStructByNameQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useQuery<FetchStructByNameQuery, FetchStructByNameQueryVariables>(
+    FetchStructByNameDocument,
+    variables,
+    options
+  )
+}
+export function useFetchStructByNameLazyQuery(
+  variables?:
+    | FetchStructByNameQueryVariables
+    | VueCompositionApi.Ref<FetchStructByNameQueryVariables>
+    | ReactiveFunction<FetchStructByNameQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<FetchStructByNameQuery, FetchStructByNameQueryVariables>
+      > = {}
+) {
+  return VueApolloComposable.useLazyQuery<FetchStructByNameQuery, FetchStructByNameQueryVariables>(
+    FetchStructByNameDocument,
+    variables,
+    options
+  )
+}
+export type FetchStructByNameQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  FetchStructByNameQuery,
+  FetchStructByNameQueryVariables
+>
+export const GetBlobsWithSymbolsDocument = gql`
+  query GetBlobsWithSymbols($commitHash: String!) {
+    getBlobsWithSymbols(commit_hash: $commitHash) {
+      blob_hash
+      blob_path
+    }
+  }
+`
+
+/**
+ * __useGetBlobsWithSymbolsQuery__
+ *
+ * To run a query within a Vue component, call `useGetBlobsWithSymbolsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetBlobsWithSymbolsQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useGetBlobsWithSymbolsQuery({
+ *   commitHash: // value for 'commitHash'
+ * });
+ */
+export function useGetBlobsWithSymbolsQuery(
+  variables:
+    | GetBlobsWithSymbolsQueryVariables
+    | VueCompositionApi.Ref<GetBlobsWithSymbolsQueryVariables>
+    | ReactiveFunction<GetBlobsWithSymbolsQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<
+        GetBlobsWithSymbolsQuery,
+        GetBlobsWithSymbolsQueryVariables
+      >
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<
+          GetBlobsWithSymbolsQuery,
+          GetBlobsWithSymbolsQueryVariables
+        >
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<
+          GetBlobsWithSymbolsQuery,
+          GetBlobsWithSymbolsQueryVariables
+        >
+      > = {}
+) {
+  return VueApolloComposable.useQuery<GetBlobsWithSymbolsQuery, GetBlobsWithSymbolsQueryVariables>(
+    GetBlobsWithSymbolsDocument,
+    variables,
+    options
+  )
+}
+export function useGetBlobsWithSymbolsLazyQuery(
+  variables?:
+    | GetBlobsWithSymbolsQueryVariables
+    | VueCompositionApi.Ref<GetBlobsWithSymbolsQueryVariables>
+    | ReactiveFunction<GetBlobsWithSymbolsQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<
+        GetBlobsWithSymbolsQuery,
+        GetBlobsWithSymbolsQueryVariables
+      >
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseQueryOptions<
+          GetBlobsWithSymbolsQuery,
+          GetBlobsWithSymbolsQueryVariables
+        >
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseQueryOptions<
+          GetBlobsWithSymbolsQuery,
+          GetBlobsWithSymbolsQueryVariables
+        >
+      > = {}
+) {
+  return VueApolloComposable.useLazyQuery<
+    GetBlobsWithSymbolsQuery,
+    GetBlobsWithSymbolsQueryVariables
+  >(GetBlobsWithSymbolsDocument, variables, options)
+}
+export type GetBlobsWithSymbolsQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  GetBlobsWithSymbolsQuery,
+  GetBlobsWithSymbolsQueryVariables
 >

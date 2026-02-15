@@ -10,13 +10,20 @@ import {
   NInput,
   NButton,
   NIcon,
+  NSelect,
   type DataTableColumns
 } from 'naive-ui'
 import { CloseOutline } from '@vicons/ionicons5'
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
-import type { SymbolEntry, SymbolDiffEntry, StructEntry, StructDiffEntry } from '@/types/pdb'
+import type {
+  SymbolEntry,
+  SymbolDiffEntry,
+  StructEntry,
+  StructDiffEntry,
+  SymbolBlob
+} from '@/types/pdb'
 import { formatOffset, formatSize } from '@/utils/pdb'
 import DiffStatusFilter from './DiffStatusFilter.vue'
 import MonacoStructDiff from './MonacoStructDiff.vue'
@@ -29,7 +36,8 @@ const props = defineProps({
   diffeeCommit: { type: Object as PropType<CommitContext>, default: undefined },
   targetSymbolName: { type: String, default: '' },
   targetPdbTab: { type: String as PropType<'symbols' | 'structs'>, default: 'symbols' },
-  targetStructName: { type: String, default: '' }
+  targetStructName: { type: String, default: '' },
+  targetBlobPath: { type: String, default: '' }
 })
 
 const {
@@ -40,6 +48,9 @@ const {
   pdbContext: _pdbContext,
   pdbContextDiff: _pdbContextDiff,
   activeSubTab,
+  availableBlobs,
+  selectedBlob,
+  selectBlob,
   symbols,
   totalSymbols,
   hasMoreSymbols,
@@ -63,7 +74,8 @@ const {
   isSearchingForTargetSymbol,
   targetSymbolNotFound,
   isSearchingForTargetStruct,
-  targetStructNotFound
+  targetStructNotFound,
+  blobNotInDiffee
 } = usePDBInspector(
   props.mode,
   props.commit,
@@ -71,8 +83,30 @@ const {
   props.diffeeCommit,
   props.targetSymbolName,
   props.targetPdbTab,
-  props.targetStructName
+  props.targetStructName,
+  props.targetBlobPath
 )
+
+// ============================================
+// Blob Selector
+// ============================================
+
+const blobSelectOptions = computed(() =>
+  availableBlobs.value.map((blob: SymbolBlob) => ({
+    label: blob.blobPath,
+    value: blob.blobPath
+  }))
+)
+
+const selectedBlobPath = computed({
+  get: () => selectedBlob.value?.blobPath || null,
+  set: (path: string | null) => {
+    if (path) {
+      const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (blob) selectBlob(blob)
+    }
+  }
+})
 
 // ============================================
 // Symbol Filter
@@ -445,28 +479,57 @@ const structColumns = computed(() => {
     <!-- Loading Context State -->
     <div v-if="isLoadingContext" class="loading-container">
       <NSpin size="large" />
-      <p class="loading-text">Resolving ntoskrnl.exe...</p>
+      <p class="loading-text">Loading available symbols...</p>
     </div>
 
     <!-- No PDB Data -->
-    <NAlert v-else-if="!hasPDBData" type="warning" title="No PDB Data">
-      This commit does not contain PDB symbol data for ntoskrnl.exe.
+    <NAlert v-else-if="!hasPDBData" type="warning" title="No Debug Info">
+      This commit does not contain any symbol or struct data.
     </NAlert>
 
     <!-- Error State -->
-    <NAlert v-else-if="error" type="error" title="Error Loading PDB Data">
+    <NAlert v-else-if="error" type="error" title="Error Loading Debug Info">
       {{ error.message }}
     </NAlert>
 
     <!-- Main Content -->
     <div v-else class="pdb-content">
-      <!-- Header showing ntoskrnl.exe -->
+      <!-- Header with blob selector -->
       <div class="pdb-header">
-        <span class="pdb-file-name">ntoskrnl.exe</span>
+        <!-- Multiple blobs: show dropdown -->
+        <template v-if="availableBlobs.length > 1">
+          <span class="pdb-header-label">Binary:</span>
+          <NSelect
+            :value="selectedBlobPath"
+            :options="blobSelectOptions"
+            size="small"
+            style="min-width: 300px; flex: 1"
+            @update:value="selectedBlobPath = $event"
+          />
+        </template>
+        <!-- Single blob: show name and path -->
+        <template v-else-if="selectedBlob">
+          <span class="pdb-file-name">{{ selectedBlob.displayName }}</span>
+          <span class="pdb-file-path">{{ selectedBlob.blobPath }}</span>
+        </template>
+        <!-- No selection yet -->
+        <template v-else>
+          <span class="pdb-header-label">Select a binary to inspect</span>
+        </template>
       </div>
 
-      <!-- Sub-tabs: Symbols and Structs -->
-      <NTabs v-model:value="activeSubTab" type="line" animated>
+      <!-- Warning: blob not found in comparison commit -->
+      <NAlert v-if="blobNotInDiffee" type="warning" style="margin-bottom: 12px">
+        This binary doesn't exist in the comparison commit. Select a different binary.
+      </NAlert>
+
+      <!-- Sub-tabs: Symbols and Structs (only when a blob is selected) -->
+      <NTabs
+        v-if="selectedBlob && !blobNotInDiffee"
+        v-model:value="activeSubTab"
+        type="line"
+        animated
+      >
         <NTabPane name="symbols" tab="Symbols">
           <!-- Filter row with text filter and diff status filter -->
           <div class="filter-row">
@@ -504,7 +567,8 @@ const structColumns = computed(() => {
 
           <!-- Target symbol not found alert -->
           <NAlert v-if="targetSymbolNotFound" type="warning" closable style="margin-bottom: 12px">
-            Symbol "{{ props.targetSymbolName }}" not found in this PDB file.
+            Symbol "{{ props.targetSymbolName }}" not found in
+            {{ selectedBlob?.displayName || 'this binary' }}.
           </NAlert>
 
           <!-- Top pagination (comparison mode only) -->
@@ -605,7 +669,8 @@ const structColumns = computed(() => {
 
           <!-- Target struct not found alert -->
           <NAlert v-if="targetStructNotFound" type="warning" closable style="margin-bottom: 12px">
-            Struct "{{ props.targetStructName }}" not found in this PDB file.
+            Struct "{{ props.targetStructName }}" not found in
+            {{ selectedBlob?.displayName || 'this binary' }}.
           </NAlert>
 
           <!-- Structs Table -->
@@ -690,16 +755,31 @@ const structColumns = computed(() => {
 }
 
 .pdb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 12px 16px;
   background: #f9fafb;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
 }
 
+.pdb-header-label {
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
 .pdb-file-name {
   font-weight: 600;
   font-family: monospace;
   color: #374151;
+}
+
+.pdb-file-path {
+  font-family: monospace;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .loading-container {
