@@ -49,8 +49,11 @@ const {
   pdbContextDiff: _pdbContextDiff,
   activeSubTab,
   availableBlobs,
+  diffeeAvailableBlobs,
   selectedBlob,
+  selectedDiffeeBlob,
   selectBlob,
+  selectDiffeeBlob,
   symbols,
   totalSymbols,
   hasMoreSymbols,
@@ -75,7 +78,7 @@ const {
   targetSymbolNotFound,
   isSearchingForTargetStruct,
   targetStructNotFound,
-  blobNotInDiffee
+  allBlobsUnchanged
 } = usePDBInspector(
   props.mode,
   props.commit,
@@ -91,19 +94,36 @@ const {
 // Blob Selector
 // ============================================
 
-const blobSelectOptions = computed(() =>
+const baseBlobSelectOptions = computed(() =>
   availableBlobs.value.map((blob: SymbolBlob) => ({
     label: blob.blobPath,
     value: blob.blobPath
   }))
 )
 
-const selectedBlobPath = computed({
+const diffeeBlobSelectOptions = computed(() =>
+  diffeeAvailableBlobs.value.map((blob: SymbolBlob) => ({
+    label: blob.blobPath,
+    value: blob.blobPath
+  }))
+)
+
+const selectedBaseBlobPath = computed({
   get: () => selectedBlob.value?.blobPath || null,
   set: (path: string | null) => {
     if (path) {
       const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
       if (blob) selectBlob(blob)
+    }
+  }
+})
+
+const selectedDiffeeBlobPath = computed({
+  get: () => selectedDiffeeBlob.value?.blobPath || null,
+  set: (path: string | null) => {
+    if (path) {
+      const blob = diffeeAvailableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (blob) selectDiffeeBlob(blob)
     }
   }
 })
@@ -483,6 +503,10 @@ const structColumns = computed(() => {
     </div>
 
     <!-- No PDB Data -->
+    <NAlert v-else-if="allBlobsUnchanged" type="info" title="No Symbol Changes">
+      All binaries with symbols are identical between the two commits. No differences to display.
+    </NAlert>
+
     <NAlert v-else-if="!hasPDBData" type="warning" title="No Debug Info">
       This commit does not contain any symbol or struct data.
     </NAlert>
@@ -496,19 +520,37 @@ const structColumns = computed(() => {
     <div v-else class="pdb-content">
       <!-- Header with blob selector -->
       <div class="pdb-header">
-        <!-- Multiple blobs: show dropdown -->
-        <template v-if="availableBlobs.length > 1">
-          <span class="pdb-header-label">Binary:</span>
+        <template v-if="mode === 'comparison'">
+          <span class="pdb-header-label">Base Binary:</span>
           <NSelect
-            :value="selectedBlobPath"
-            :options="blobSelectOptions"
+            :value="selectedBaseBlobPath"
+            :options="baseBlobSelectOptions"
             size="small"
-            style="min-width: 300px; flex: 1"
-            @update:value="selectedBlobPath = $event"
+            style="min-width: 280px; flex: 1"
+            @update:value="selectedBaseBlobPath = $event"
+          />
+          <span class="pdb-header-label">New Binary:</span>
+          <NSelect
+            :value="selectedDiffeeBlobPath"
+            :options="diffeeBlobSelectOptions"
+            size="small"
+            style="min-width: 280px; flex: 1"
+            @update:value="selectedDiffeeBlobPath = $event"
           />
         </template>
-        <!-- Single blob: show name and path -->
-        <template v-else-if="selectedBlob">
+        <!-- Single mode: multiple blobs -->
+        <template v-else-if="availableBlobs.length > 1">
+          <span class="pdb-header-label">Binary:</span>
+          <NSelect
+            :value="selectedBaseBlobPath"
+            :options="baseBlobSelectOptions"
+            size="small"
+            style="min-width: 300px; flex: 1"
+            @update:value="selectedBaseBlobPath = $event"
+          />
+        </template>
+        <!-- Single mode: selected blob -->
+        <template v-else-if="mode === 'single' && selectedBlob">
           <span class="pdb-file-name">{{ selectedBlob.displayName }}</span>
           <span class="pdb-file-path">{{ selectedBlob.blobPath }}</span>
         </template>
@@ -518,14 +560,9 @@ const structColumns = computed(() => {
         </template>
       </div>
 
-      <!-- Warning: blob not found in comparison commit -->
-      <NAlert v-if="blobNotInDiffee" type="warning" style="margin-bottom: 12px">
-        This binary doesn't exist in the comparison commit. Select a different binary.
-      </NAlert>
-
       <!-- Sub-tabs: Symbols and Structs (only when a blob is selected) -->
       <NTabs
-        v-if="selectedBlob && !blobNotInDiffee"
+        v-if="mode === 'single' ? !!selectedBlob : !!selectedBlob && !!selectedDiffeeBlob"
         v-model:value="activeSubTab"
         type="line"
         animated
@@ -757,6 +794,7 @@ const structColumns = computed(() => {
 .pdb-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 12px 16px;
   background: #f9fafb;
