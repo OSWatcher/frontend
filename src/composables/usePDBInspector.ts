@@ -42,7 +42,7 @@ import {
   parseStructConnectionEdges,
   parseStructConnectionEdge
 } from '@/utils/pdb'
-import { fetchBlobsWithSymbols, buildPDBContext, buildPDBContextDiff } from '@/windows/pdb'
+import { fetchBlobsWithSymbols, buildPDBContext } from '@/windows/pdb'
 import { DiffStatus } from '@/graphql-types'
 
 export function usePDBInspector(
@@ -65,7 +65,9 @@ export function usePDBInspector(
 
   // Blob selector state
   const availableBlobs = ref<SymbolBlob[]>([])
+  const diffeeAvailableBlobs = ref<SymbolBlob[]>([])
   const selectedBlob = ref<SymbolBlob | null>(null)
+  const selectedDiffeeBlob = ref<SymbolBlob | null>(null)
 
   // PDB Context (resolved from selected blob)
   const pdbContext = ref<PDBContext | null>(null)
@@ -129,7 +131,13 @@ export function usePDBInspector(
     }
   })
 
-  const hasPDBData = computed(() => availableBlobs.value.length > 0)
+  const hasPDBData = computed(() => {
+    if (mode === 'single') {
+      return availableBlobs.value.length > 0
+    }
+    return availableBlobs.value.length > 0 && diffeeAvailableBlobs.value.length > 0
+  })
+  const allBlobsUnchanged = ref(false)
 
   const structs = computed<StructEntry[] | StructDiffEntry[]>(() => {
     if (mode === 'single') {
@@ -159,27 +167,50 @@ export function usePDBInspector(
   // ============================================
 
   async function fetchAvailableBlobs(): Promise<void> {
+    allBlobsUnchanged.value = false
+    blobNotInDiffee.value = false
+
     if (mode === 'single') {
       if (!commit?.hash) return
       availableBlobs.value = await fetchBlobsWithSymbols(commit.hash)
+      diffeeAvailableBlobs.value = []
     } else {
       if (!baseCommit?.hash || !diffeeCommit?.hash) return
-      // Query both commits in parallel and intersect by blobPath
+      // Filter unchanged entries by exact path+hash identity
       const [baseBlobs, diffeeBlobs] = await Promise.all([
         fetchBlobsWithSymbols(baseCommit.hash),
         fetchBlobsWithSymbols(diffeeCommit.hash)
       ])
-      const diffeePaths = new Set(diffeeBlobs.map((b) => b.blobPath))
-      availableBlobs.value = baseBlobs.filter((b) => diffeePaths.has(b.blobPath))
+
+      const makeIdentity = (blob: SymbolBlob) => `${blob.blobPath}::${blob.blobHash}`
+      const baseIdentities = new Set(baseBlobs.map(makeIdentity))
+      const diffeeIdentities = new Set(diffeeBlobs.map(makeIdentity))
+
+      availableBlobs.value = baseBlobs.filter((b) => !diffeeIdentities.has(makeIdentity(b)))
+      diffeeAvailableBlobs.value = diffeeBlobs.filter((b) => !baseIdentities.has(makeIdentity(b)))
+
+      allBlobsUnchanged.value =
+        baseBlobs.length > 0 &&
+        diffeeBlobs.length > 0 &&
+        availableBlobs.value.length === 0 &&
+        diffeeAvailableBlobs.value.length === 0
     }
 
     // Auto-select logic
-    if (availableBlobs.value.length === 0) {
+    if (mode === 'single' && availableBlobs.value.length === 0) {
       selectedBlob.value = null
       return
     }
+    if (
+      mode === 'comparison' &&
+      (availableBlobs.value.length === 0 || diffeeAvailableBlobs.value.length === 0)
+    ) {
+      selectedBlob.value = null
+      selectedDiffeeBlob.value = null
+      return
+    }
 
-    if (targetBlobPath) {
+    if (mode === 'single' && targetBlobPath) {
       // Auto-select from search navigation
       const match = availableBlobs.value.find((b) => b.blobPath === targetBlobPath)
       if (match) {
@@ -188,15 +219,22 @@ export function usePDBInspector(
       }
     }
 
-    if (availableBlobs.value.length === 1) {
+    if (mode === 'single' && availableBlobs.value.length === 1) {
       // Auto-select if only one blob
       await selectBlob(availableBlobs.value[0])
     }
+
+    if (mode === 'comparison') {
+      const initialBaseBlob =
+        availableBlobs.value.find((b) => b.blobPath === targetBlobPath) || availableBlobs.value[0]
+      const initialDiffeeBlob =
+        diffeeAvailableBlobs.value.find((b) => b.blobPath === targetBlobPath) ||
+        diffeeAvailableBlobs.value[0]
+      await selectComparisonBlobs(initialBaseBlob, initialDiffeeBlob)
+    }
   }
 
-  async function selectBlob(blob: SymbolBlob): Promise<void> {
-    selectedBlob.value = blob
-
+  function resetLoadedData(): void {
     // Reset data state
     rawSymbols.value = []
     rawStructs.value = []
@@ -208,19 +246,50 @@ export function usePDBInspector(
     structsEndCursor.value = null
     hasMoreSymbols.value = true
     hasMoreStructs.value = true
+  }
+
+  async function selectComparisonBlobs(
+    baseBlob: SymbolBlob,
+    diffeeBlob: SymbolBlob
+  ): Promise<void> {
+    selectedBlob.value = baseBlob
+    selectedDiffeeBlob.value = diffeeBlob
+    resetLoadedData()
+
+    pdbContext.value = null
+    pdbContextDiff.value = {
+      baseBlobHash: baseBlob.blobHash,
+      diffeeBlobHash: diffeeBlob.blobHash,
+      blobName: baseBlob.displayName,
+      blobPath: baseBlob.blobPath
+    }
+    blobNotInDiffee.value = false
+
+    await fetchSymbols()
+    if (activeSubTab.value === 'structs') {
+      await fetchStructs()
+    }
+  }
+
+  async function selectBlob(blob: SymbolBlob): Promise<void> {
+    selectedBlob.value = blob
+    resetLoadedData()
 
     // Build context
     blobNotInDiffee.value = false
     if (mode === 'single') {
       pdbContext.value = buildPDBContext(blob)
       pdbContextDiff.value = null
-    } else if (diffeeCommit) {
-      pdbContextDiff.value = await buildPDBContextDiff(blob, diffeeCommit.hash)
+    } else if (selectedDiffeeBlob.value) {
+      await selectComparisonBlobs(blob, selectedDiffeeBlob.value)
+      return
+    } else if (diffeeAvailableBlobs.value.length > 0) {
+      await selectComparisonBlobs(blob, diffeeAvailableBlobs.value[0])
+      return
+    } else {
       pdbContext.value = null
-      if (!pdbContextDiff.value) {
-        blobNotInDiffee.value = true
-        return
-      }
+      pdbContextDiff.value = null
+      return
     }
 
     // Fetch initial data
@@ -238,6 +307,18 @@ export function usePDBInspector(
         await fetchStructByName(targetStructName)
       }
     }
+  }
+
+  async function selectDiffeeBlob(blob: SymbolBlob): Promise<void> {
+    selectedDiffeeBlob.value = blob
+    if (mode !== 'comparison') return
+    if (!selectedBlob.value) {
+      if (availableBlobs.value.length > 0) {
+        await selectComparisonBlobs(availableBlobs.value[0], blob)
+      }
+      return
+    }
+    await selectComparisonBlobs(selectedBlob.value, blob)
   }
 
   // ============================================
@@ -777,6 +858,7 @@ export function usePDBInspector(
   // Watch for sub-tab changes
   watch(activeSubTab, async (newTab) => {
     if (!selectedBlob.value) return
+    if (mode === 'comparison' && !selectedDiffeeBlob.value) return
 
     if (newTab === 'symbols' && rawSymbols.value.length === 0) {
       await fetchSymbols()
@@ -799,14 +881,18 @@ export function usePDBInspector(
     isLoadingContext,
     error,
     hasPDBData,
+    allBlobsUnchanged,
     pdbContext,
     pdbContextDiff,
     activeSubTab,
 
     // Blob selector
     availableBlobs,
+    diffeeAvailableBlobs,
     selectedBlob,
+    selectedDiffeeBlob,
     selectBlob,
+    selectDiffeeBlob,
 
     // Symbols
     symbols,
