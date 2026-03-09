@@ -33,6 +33,8 @@ import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
 import { useSearchContextStore } from '@/stores/searchContext'
+import { useBranchSelectionStore } from '@/stores/branchSelection'
+import { useAuth0 } from '@auth0/auth0-vue'
 
 // ===================================================================
 // ROUTING
@@ -41,6 +43,14 @@ import { useSearchContextStore } from '@/stores/searchContext'
 const route = useRoute()
 const router = useRouter()
 const searchContext = useSearchContextStore()
+const branchSelection = useBranchSelectionStore()
+const { isAuthenticated } = useAuth0()
+
+const isWindowsRestricted = computed(
+  () =>
+    (branchSelection.selectedBranchName === 'windows' || branchName.value === 'windows') &&
+    !isAuthenticated.value
+)
 
 // ===================================================================
 // STATE
@@ -82,7 +92,12 @@ const branchName = ref<string>('')
  * Active tab name
  * Initialized from query params or defaults to filesystem
  */
-const activeTab = ref<string>((route.query.tab as string) || 'filesystem')
+const activeTab = ref<string>(
+  (route.query.tab as string) ||
+    (route.query.branch === 'windows' || branchSelection.selectedBranchName === 'windows'
+      ? 'pdb'
+      : 'filesystem')
+)
 
 /**
  * Available capabilities (filesystem, registry, pdb)
@@ -286,6 +301,11 @@ async function initializeInspector() {
     // Get branch name from query params
     branchName.value = (route.query.branch as string) || ''
 
+    // Force pdb tab for Windows branch if no explicit tab was requested
+    if (!route.query.tab && isWindowsRestricted.value) {
+      activeTab.value = 'pdb'
+    }
+
     if (inspectorMode.value === 'single') {
       // Single mode: fetch one commit
       const commitHash = route.params.commitHash as string
@@ -459,7 +479,9 @@ onMounted(() => {
         :base-commit="baseCommit"
         :diffee-commit="diffeeCommit"
         :branch-name="branchName"
-        :active-tab="activeTab === 'filesystem' ? 'Filesystem' : 'Registry'"
+        :active-tab="
+          activeTab === 'filesystem' ? 'Filesystem' : activeTab === 'pdb' ? 'Symbols' : 'Registry'
+        "
         @add-comparison="handleAddComparison"
         @remove-comparison="handleRemoveComparison"
       />
@@ -475,7 +497,7 @@ onMounted(() => {
             </div>
           </template>
           <!-- Filesystem Tab -->
-          <NTabPane name="filesystem" tab="Filesystem">
+          <NTabPane v-if="!isWindowsRestricted" name="filesystem" tab="Filesystem">
             <FilesystemInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
@@ -494,7 +516,7 @@ onMounted(() => {
           </NTabPane>
 
           <!-- Registry Tab (only if available) -->
-          <NTabPane v-if="hasRegistry" name="registry" tab="Registry">
+          <NTabPane v-if="hasRegistry && !isWindowsRestricted" name="registry" tab="Registry">
             <RegistryInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
