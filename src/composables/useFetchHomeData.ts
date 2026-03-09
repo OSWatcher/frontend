@@ -1,5 +1,4 @@
 import { computed, effectScope, ref, watch, type ComputedRef, type Ref } from 'vue'
-import { useAuth0 } from '@auth0/auth0-vue'
 import {
   useFetchBranchesQuery,
   useFetchCommitHistoryQuery,
@@ -22,13 +21,7 @@ export interface BranchWithCommits {
 }
 
 function useBranchesData() {
-  const { isAuthenticated } = useAuth0()
-
-  // Filter branches based on authentication status
-  // Unauthenticated users only see ubuntu-server
-  const mainBranches = computed(() =>
-    isAuthenticated.value ? ['ubuntu-server', 'windows'] : ['ubuntu-server']
-  )
+  const mainBranches = computed(() => ['ubuntu-server', 'windows'])
 
   return effectScope().run(() => {
     const {
