@@ -35,7 +35,6 @@
     "pinia": "^3.0.4",
     "posthog-js": "^1.184.2",
     "process": "^0.11.10",
-    "vite-plugin-monaco-editor": "^1.1.0",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5"
   },
