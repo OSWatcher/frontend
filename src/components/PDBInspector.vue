@@ -53,7 +53,7 @@ const {
   selectedBlob,
   selectedDiffeeBlob,
   selectBlob,
-  selectDiffeeBlob,
+  selectComparisonBlobs,
   symbols,
   totalSymbols,
   hasMoreSymbols,
@@ -101,29 +101,29 @@ const baseBlobSelectOptions = computed(() =>
   }))
 )
 
-const diffeeBlobSelectOptions = computed(() =>
-  diffeeAvailableBlobs.value.map((blob: SymbolBlob) => ({
-    label: blob.blobPath,
-    value: blob.blobPath
-  }))
-)
-
-const selectedBaseBlobPath = computed({
-  get: () => selectedBlob.value?.blobPath || null,
-  set: (path: string | null) => {
-    if (path) {
-      const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
-      if (blob) selectBlob(blob)
-    }
-  }
+// Unified blob selector for comparison mode: list of changed binary paths
+const comparisonBlobSelectOptions = computed(() => {
+  const paths = new Set<string>()
+  availableBlobs.value.forEach((b: SymbolBlob) => paths.add(b.blobPath))
+  diffeeAvailableBlobs.value.forEach((b: SymbolBlob) => paths.add(b.blobPath))
+  return Array.from(paths)
+    .sort()
+    .map((path) => ({ label: path, value: path }))
 })
 
-const selectedDiffeeBlobPath = computed({
-  get: () => selectedDiffeeBlob.value?.blobPath || null,
+const selectedBlobPath = computed({
+  get: () => selectedBlob.value?.blobPath || selectedDiffeeBlob.value?.blobPath || null,
   set: (path: string | null) => {
-    if (path) {
-      const blob = diffeeAvailableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
-      if (blob) selectDiffeeBlob(blob)
+    if (!path) return
+    if (props.mode === 'comparison') {
+      const baseBlob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      const diffeeBlob = diffeeAvailableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (baseBlob && diffeeBlob) {
+        selectComparisonBlobs(baseBlob, diffeeBlob)
+      }
+    } else {
+      const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (blob) selectBlob(blob)
     }
   }
 })
@@ -325,24 +325,7 @@ const structsTableDataComparison = computed(() => {
       struct: struct
     })
 
-    // Add field rows if expanded
-    if (expandedStructNames.value.has(struct.name) && struct.fields) {
-      struct.fields.forEach((field) => {
-        rows.push({
-          key: `${struct.name}-${field.name}`,
-          type: 'field',
-          name: field.name,
-          status: field.status,
-          offset: field.offset,
-          dataType: field.dataType,
-          baseOffset: field.baseOffset,
-          diffeeOffset: field.diffeeOffset,
-          baseDataType: field.baseDataType,
-          diffeeDataType: field.diffeeDataType,
-          parentStruct: struct.name
-        })
-      })
-    }
+    // Field-level details are shown in the Monaco diff editor below the table
   })
 
   return rows
@@ -419,37 +402,19 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
 
 const structColumnsComparison = computed<DataTableColumns<any>>(() => [
   {
-    key: 'offset',
-    title: 'Offset',
-    width: 100,
-    render: (row) => {
-      if (row.type === 'field') {
-        return formatOffset(row.offset)
-      }
-      return ''
-    }
-  },
-  {
     key: 'name',
     title: 'Name',
     ellipsis: { tooltip: true },
     minWidth: 200,
     render: (row) => {
-      if (row.type === 'struct') {
-        return h(
-          'div',
-          {
-            class: 'struct-name-row',
-            onClick: () => toggleStructExpansion(row.key)
-          },
-          [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
-        )
-      } else {
-        return h('div', { class: 'field-name-row' }, [
-          h('span', { class: 'field-indent' }, '└─ '),
-          h('span', row.name)
-        ])
-      }
+      return h(
+        'div',
+        {
+          class: 'struct-name-row',
+          onClick: () => toggleStructExpansion(row.key)
+        },
+        [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
+      )
     }
   },
   {
@@ -457,23 +422,17 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
     title: 'Type',
     minWidth: 200,
     ellipsis: { tooltip: true },
-    render: (row) => {
-      if (row.type === 'field') {
-        return row.dataType
-      } else {
-        return row.kind
-      }
-    }
+    render: (row) => row.kind
   },
   {
     key: 'baseSize',
     title: 'Base Size',
     width: 120,
     render: (row) => {
-      if (row.type === 'struct' && row.baseSize !== undefined) {
+      if (row.baseSize !== undefined) {
         return formatSize(row.baseSize)
       }
-      return row.type === 'struct' ? '-' : ''
+      return '-'
     }
   },
   {
@@ -481,10 +440,10 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
     title: 'New Size',
     width: 120,
     render: (row) => {
-      if (row.type === 'struct' && row.diffeeSize !== undefined) {
+      if (row.diffeeSize !== undefined) {
         return formatSize(row.diffeeSize)
       }
-      return row.type === 'struct' ? '-' : ''
+      return '-'
     }
   }
 ])
@@ -520,33 +479,14 @@ const structColumns = computed(() => {
     <div v-else class="pdb-content">
       <!-- Header with blob selector -->
       <div class="pdb-header">
-        <template v-if="mode === 'comparison'">
-          <span class="pdb-header-label">Base Binary:</span>
-          <NSelect
-            :value="selectedBaseBlobPath"
-            :options="baseBlobSelectOptions"
-            size="small"
-            style="min-width: 280px; flex: 1"
-            @update:value="selectedBaseBlobPath = $event"
-          />
-          <span class="pdb-header-label">New Binary:</span>
-          <NSelect
-            :value="selectedDiffeeBlobPath"
-            :options="diffeeBlobSelectOptions"
-            size="small"
-            style="min-width: 280px; flex: 1"
-            @update:value="selectedDiffeeBlobPath = $event"
-          />
-        </template>
-        <!-- Single mode: multiple blobs -->
-        <template v-else-if="availableBlobs.length > 1">
+        <template v-if="mode === 'comparison' || availableBlobs.length > 1">
           <span class="pdb-header-label">Binary:</span>
           <NSelect
-            :value="selectedBaseBlobPath"
-            :options="baseBlobSelectOptions"
+            :value="selectedBlobPath"
+            :options="mode === 'comparison' ? comparisonBlobSelectOptions : baseBlobSelectOptions"
             size="small"
             style="min-width: 300px; flex: 1"
-            @update:value="selectedBaseBlobPath = $event"
+            @update:value="selectedBlobPath = $event"
           />
         </template>
         <!-- Single mode: selected blob -->

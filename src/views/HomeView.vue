@@ -53,6 +53,8 @@ const branchOptions = computed<DropdownOption[]>(() =>
 
 function handleBranchSelect(key: string) {
   selectedBranch.value = key
+  // Clear commit selection when switching branches
+  commitSelection.clear()
   // Update global branch selection store
   const branch = branchesWithCommits.value.find((b) => b?.branch.name === key)
   if (branch) {

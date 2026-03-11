@@ -893,6 +893,7 @@ export function usePDBInspector(
     selectedDiffeeBlob,
     selectBlob,
     selectDiffeeBlob,
+    selectComparisonBlobs,
 
     // Symbols
     symbols,
