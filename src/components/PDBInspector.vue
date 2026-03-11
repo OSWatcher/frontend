@@ -325,24 +325,7 @@ const structsTableDataComparison = computed(() => {
       struct: struct
     })
 
-    // Add field rows if expanded
-    if (expandedStructNames.value.has(struct.name) && struct.fields) {
-      struct.fields.forEach((field) => {
-        rows.push({
-          key: `${struct.name}-${field.name}`,
-          type: 'field',
-          name: field.name,
-          status: field.status,
-          offset: field.offset,
-          dataType: field.dataType,
-          baseOffset: field.baseOffset,
-          diffeeOffset: field.diffeeOffset,
-          baseDataType: field.baseDataType,
-          diffeeDataType: field.diffeeDataType,
-          parentStruct: struct.name
-        })
-      })
-    }
+    // Field-level details are shown in the Monaco diff editor below the table
   })
 
   return rows
@@ -419,37 +402,19 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
 
 const structColumnsComparison = computed<DataTableColumns<any>>(() => [
   {
-    key: 'offset',
-    title: 'Offset',
-    width: 100,
-    render: (row) => {
-      if (row.type === 'field') {
-        return formatOffset(row.offset)
-      }
-      return ''
-    }
-  },
-  {
     key: 'name',
     title: 'Name',
     ellipsis: { tooltip: true },
     minWidth: 200,
     render: (row) => {
-      if (row.type === 'struct') {
-        return h(
-          'div',
-          {
-            class: 'struct-name-row',
-            onClick: () => toggleStructExpansion(row.key)
-          },
-          [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
-        )
-      } else {
-        return h('div', { class: 'field-name-row' }, [
-          h('span', { class: 'field-indent' }, '└─ '),
-          h('span', row.name)
-        ])
-      }
+      return h(
+        'div',
+        {
+          class: 'struct-name-row',
+          onClick: () => toggleStructExpansion(row.key)
+        },
+        [h('span', { class: 'expand-icon' }, row.isExpanded ? '▼ ' : '▶ '), h('span', row.name)]
+      )
     }
   },
   {
@@ -457,23 +422,17 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
     title: 'Type',
     minWidth: 200,
     ellipsis: { tooltip: true },
-    render: (row) => {
-      if (row.type === 'field') {
-        return row.dataType
-      } else {
-        return row.kind
-      }
-    }
+    render: (row) => row.kind
   },
   {
     key: 'baseSize',
     title: 'Base Size',
     width: 120,
     render: (row) => {
-      if (row.type === 'struct' && row.baseSize !== undefined) {
+      if (row.baseSize !== undefined) {
         return formatSize(row.baseSize)
       }
-      return row.type === 'struct' ? '-' : ''
+      return '-'
     }
   },
   {
@@ -481,10 +440,10 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
     title: 'New Size',
     width: 120,
     render: (row) => {
-      if (row.type === 'struct' && row.diffeeSize !== undefined) {
+      if (row.diffeeSize !== undefined) {
         return formatSize(row.diffeeSize)
       }
-      return row.type === 'struct' ? '-' : ''
+      return '-'
     }
   }
 ])
