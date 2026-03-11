@@ -53,7 +53,7 @@ const {
   selectedBlob,
   selectedDiffeeBlob,
   selectBlob,
-  selectDiffeeBlob,
+  selectComparisonBlobs,
   symbols,
   totalSymbols,
   hasMoreSymbols,
@@ -101,29 +101,29 @@ const baseBlobSelectOptions = computed(() =>
   }))
 )
 
-const diffeeBlobSelectOptions = computed(() =>
-  diffeeAvailableBlobs.value.map((blob: SymbolBlob) => ({
-    label: blob.blobPath,
-    value: blob.blobPath
-  }))
-)
-
-const selectedBaseBlobPath = computed({
-  get: () => selectedBlob.value?.blobPath || null,
-  set: (path: string | null) => {
-    if (path) {
-      const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
-      if (blob) selectBlob(blob)
-    }
-  }
+// Unified blob selector for comparison mode: list of changed binary paths
+const comparisonBlobSelectOptions = computed(() => {
+  const paths = new Set<string>()
+  availableBlobs.value.forEach((b: SymbolBlob) => paths.add(b.blobPath))
+  diffeeAvailableBlobs.value.forEach((b: SymbolBlob) => paths.add(b.blobPath))
+  return Array.from(paths)
+    .sort()
+    .map((path) => ({ label: path, value: path }))
 })
 
-const selectedDiffeeBlobPath = computed({
-  get: () => selectedDiffeeBlob.value?.blobPath || null,
+const selectedBlobPath = computed({
+  get: () => selectedBlob.value?.blobPath || selectedDiffeeBlob.value?.blobPath || null,
   set: (path: string | null) => {
-    if (path) {
-      const blob = diffeeAvailableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
-      if (blob) selectDiffeeBlob(blob)
+    if (!path) return
+    if (props.mode === 'comparison') {
+      const baseBlob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      const diffeeBlob = diffeeAvailableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (baseBlob && diffeeBlob) {
+        selectComparisonBlobs(baseBlob, diffeeBlob)
+      }
+    } else {
+      const blob = availableBlobs.value.find((b: SymbolBlob) => b.blobPath === path)
+      if (blob) selectBlob(blob)
     }
   }
 })
@@ -479,33 +479,14 @@ const structColumns = computed(() => {
     <div v-else class="pdb-content">
       <!-- Header with blob selector -->
       <div class="pdb-header">
-        <template v-if="mode === 'comparison'">
-          <span class="pdb-header-label">Base Binary:</span>
-          <NSelect
-            :value="selectedBaseBlobPath"
-            :options="baseBlobSelectOptions"
-            size="small"
-            style="min-width: 280px; flex: 1"
-            @update:value="selectedBaseBlobPath = $event"
-          />
-          <span class="pdb-header-label">New Binary:</span>
-          <NSelect
-            :value="selectedDiffeeBlobPath"
-            :options="diffeeBlobSelectOptions"
-            size="small"
-            style="min-width: 280px; flex: 1"
-            @update:value="selectedDiffeeBlobPath = $event"
-          />
-        </template>
-        <!-- Single mode: multiple blobs -->
-        <template v-else-if="availableBlobs.length > 1">
+        <template v-if="mode === 'comparison' || availableBlobs.length > 1">
           <span class="pdb-header-label">Binary:</span>
           <NSelect
-            :value="selectedBaseBlobPath"
-            :options="baseBlobSelectOptions"
+            :value="selectedBlobPath"
+            :options="mode === 'comparison' ? comparisonBlobSelectOptions : baseBlobSelectOptions"
             size="small"
             style="min-width: 300px; flex: 1"
-            @update:value="selectedBaseBlobPath = $event"
+            @update:value="selectedBlobPath = $event"
           />
         </template>
         <!-- Single mode: selected blob -->
