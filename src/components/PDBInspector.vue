@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, watch, type PropType } from 'vue'
+import { computed, h, inject, watch, type PropType } from 'vue'
 import {
   NTabs,
   NTabPane,
@@ -13,7 +13,7 @@ import {
   NSelect,
   type DataTableColumns
 } from 'naive-ui'
-import { CloseOutline } from '@vicons/ionicons5'
+import { CloseOutline, TimeOutline } from '@vicons/ionicons5'
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
@@ -89,6 +89,52 @@ const {
   props.targetStructName,
   props.targetBlobPath
 )
+
+// ============================================
+// Git Log
+// ============================================
+
+const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
+
+function getPeFilename(): string {
+  return selectedBlob.value?.displayName || ''
+}
+
+function renderSymbolHistoryButton(symbolName: string) {
+  const pe = getPeFilename()
+  if (!pe) return null
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(`/${pe}/${symbolName}`, 'SYMBOL')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
+
+function renderStructHistoryButton(structName: string) {
+  const pe = getPeFilename()
+  if (!pe) return null
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(`/${pe}/${structName}`, 'STRUCT')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
 
 // ============================================
 // Blob Selector
@@ -215,6 +261,12 @@ const symbolColumnsSingle = computed<DataTableColumns<SymbolEntry>>(() => [
     key: 'address',
     title: 'Address',
     width: 180
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderSymbolHistoryButton(row.name)
   }
 ])
 
@@ -257,6 +309,12 @@ const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() =
         delta.formatted
       )
     }
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderSymbolHistoryButton(row.name)
   }
 ])
 
@@ -397,6 +455,17 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
     key: 'size',
     title: 'Size',
     width: 100
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => {
+      if (row.type === 'struct') {
+        return renderStructHistoryButton(row.name)
+      }
+      return null
+    }
   }
 ])
 
@@ -445,6 +514,12 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
       }
       return '-'
     }
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderStructHistoryButton(row.name)
   }
 ])
 
