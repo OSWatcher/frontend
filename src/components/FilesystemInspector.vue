@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref, type PropType } from 'vue'
+import { computed, h, inject, ref, type PropType } from 'vue'
 import {
   NDataTable,
   NBreadcrumb,
@@ -20,7 +20,8 @@ import {
   DownloadOutline,
   HomeOutline,
   ChevronDownOutline,
-  SearchOutline
+  SearchOutline,
+  TimeOutline
 } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
@@ -80,6 +81,26 @@ const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
 const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 const isExporting = ref(false)
 const downloadingHash = ref<string | null>(null)
+
+// Git log
+const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
+
+function renderHistoryButton(rowName: string) {
+  const fullPath = currentPath.value === '/' ? `/${rowName}` : `${currentPath.value}/${rowName}`
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(fullPath, 'FILESYSTEM')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
 
 // Helper to generate download filename with commit name and hash
 function getDownloadFilename(name: string, commitName: string, hash: string): string {
@@ -269,30 +290,32 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
   {
     key: 'actions',
     title: 'Actions',
-    width: 100,
+    width: 120,
     render: (row) => {
+      const buttons = [renderHistoryButton(row.name)]
       if (row.type === TreeNodeType.Blob) {
-        return h(
-          NButton,
-          {
-            size: 'small',
-            type: 'primary',
-            onClick: async (e: Event) => {
-              e.stopPropagation()
-              try {
-                // Pass getAccessTokenSilently only if user is authenticated
-                const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
-                await downloadBlob(row.hash, row.name, tokenGetter)
-              } catch (error) {
-                console.error('Download failed:', error)
-                alert(error instanceof Error ? error.message : 'Download failed')
+        buttons.push(
+          h(
+            NButton,
+            {
+              size: 'small',
+              type: 'primary',
+              onClick: async (e: Event) => {
+                e.stopPropagation()
+                try {
+                  const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
+                  await downloadBlob(row.hash, row.name, tokenGetter)
+                } catch (error) {
+                  console.error('Download failed:', error)
+                  alert(error instanceof Error ? error.message : 'Download failed')
+                }
               }
-            }
-          },
-          { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
+            },
+            { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
+          )
         )
       }
-      return null
+      return h('div', { style: { display: 'flex', gap: '4px' } }, buttons)
     }
   }
 ])
@@ -326,9 +349,12 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
   {
     key: 'actions',
     title: 'Actions',
-    width: 80,
+    width: 120,
     render: (row) => {
-      if (row.type !== TreeNodeType.Blob) return null
+      const historyBtn = renderHistoryButton(row.name)
+      if (row.type !== TreeNodeType.Blob) {
+        return h('div', { style: { display: 'flex', gap: '4px' } }, [historyBtn])
+      }
 
       const handleDownload = async (hash: string, commitName: string) => {
         downloadingHash.value = hash
@@ -364,7 +390,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
             }
           }
         ]
-        return h(
+        const downloadBtn = h(
           NDropdown,
           { options: dropdownOptions, trigger: 'click', disabled: isLoading },
           {
@@ -385,6 +411,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
               )
           }
         )
+        return h('div', { style: { display: 'flex', gap: '4px' } }, [historyBtn, downloadBtn])
       }
 
       // For NEW, DELETED, UNCHANGED: direct download
@@ -394,7 +421,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
         : props.baseCommit?.name || 'old'
       const isLoading = downloadingHash.value === hash
 
-      return h(
+      const downloadBtn = h(
         NButton,
         {
           size: 'small',
@@ -407,6 +434,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
         },
         isLoading ? undefined : { icon: () => h(NIcon, { size: 18 }, () => h(DownloadOutline)) }
       )
+      return h('div', { style: { display: 'flex', gap: '4px' } }, [historyBtn, downloadBtn])
     }
   }
 ])

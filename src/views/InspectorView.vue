@@ -21,17 +21,19 @@
  * @component
  */
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NSpin, NAlert, NTabs, NTabPane } from 'naive-ui'
 import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
 import PDBInspector from '@/components/PDBInspector.vue'
+import GitLogPanel from '@/components/GitLogPanel.vue'
 import gqlClient from '@/graphql-client'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
+import type { EntityType } from '@/graphql-types'
 import { useSearchContextStore } from '@/stores/searchContext'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 import { useAuth0 } from '@auth0/auth0-vue'
@@ -109,6 +111,27 @@ const hasPDB = ref<boolean>(false)
  * Loading state for capabilities check
  */
 const isLoadingCapabilities = ref<boolean>(false)
+
+// ===================================================================
+// GIT LOG
+// ===================================================================
+
+const showGitLog = ref(false)
+const gitLogPath = ref('')
+const gitLogEntityType = ref<EntityType | null>(null)
+
+function openGitLog(path: string, entityType: EntityType) {
+  gitLogPath.value = path
+  gitLogEntityType.value = entityType
+  showGitLog.value = true
+}
+
+const gitLogBranch = computed(() => {
+  return branchName.value || branchSelection.selectedBranchName || ''
+})
+
+// Provide openGitLog to child inspector components
+provide('openGitLog', openGitLog)
 
 // ===================================================================
 // COMPUTED
@@ -561,6 +584,15 @@ onMounted(() => {
         </NTabs>
       </div>
     </div>
+
+    <!-- Git Log Panel -->
+    <GitLogPanel
+      v-if="gitLogEntityType"
+      v-model:show="showGitLog"
+      :path="gitLogPath"
+      :entity-type="gitLogEntityType"
+      :branch="gitLogBranch"
+    />
   </div>
 </template>
 
