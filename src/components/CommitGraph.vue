@@ -354,7 +354,7 @@ function createViewButton(
     .text('View')
     .on('click', function (event) {
       event.stopPropagation()
-      router.push({ name: 'InspectorSingle', params: { commitHash } })
+      router.push({ name: 'InspectorSingle', params: { commitHash }, query: { branch: props.selectedBranch } })
     })
     .on('mouseenter', function () {
       d3.select(this).style('background', CONFIG.viewButton.hoverBgColor)
