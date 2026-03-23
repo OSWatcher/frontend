@@ -193,6 +193,23 @@ export function normalizeHiveName(hiveName: string): string {
 }
 
 /**
+ * Extract the canonical hive token expected by backend registry APIs.
+ * Example: "HKEY_LOCAL_MACHINE/SOFTWARE" -> "SOFTWARE"
+ */
+export function getCanonicalHiveName(mountPath: string): string {
+  const segments = splitRegistryPath(mountPath)
+  const leaf = segments[segments.length - 1] || ''
+
+  // The UI displays the default user hive as ".Default", while backend
+  // path resolution matches the underlying hive filename "DEFAULT".
+  if (leaf === '.Default') {
+    return 'DEFAULT'
+  }
+
+  return leaf
+}
+
+/**
  * Match hive by mount path (handles /config/SOFTWARE vs SOFTWARE)
  * Returns true if the hive name matches any path segment in the mount path
  */
