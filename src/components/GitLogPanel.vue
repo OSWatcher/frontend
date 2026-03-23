@@ -43,7 +43,10 @@ function handleAfterLeave() {
 
 function navigateToDiff(baseHash: string, diffeeHash: string) {
   emit('update:show', false)
-  router.push(`/inspect/${baseHash}/vs/${diffeeHash}`)
+  router.push({
+    path: `/inspect/${baseHash}/vs/${diffeeHash}`,
+    query: { branch: props.branch }
+  })
 }
 
 const entityLabel = computed(() => {
@@ -62,6 +65,9 @@ const entityLabel = computed(() => {
 })
 
 const title = computed(() => `History: ${props.path}`)
+
+// Display newest at top, oldest at bottom (visual timeline grows upward)
+const displayEntries = computed(() => [...entries.value].reverse())
 </script>
 
 <template>
@@ -93,7 +99,7 @@ const title = computed(() => `History: ${props.path}`)
     <!-- Timeline -->
     <div v-else class="git-log-timeline">
       <div
-        v-for="(entry, index) in entries"
+        v-for="(entry, index) in displayEntries"
         :key="index"
         class="timeline-entry"
         @click="

@@ -24,6 +24,9 @@ export function useGitLog() {
         startRef: branch,
         direction: 'BACKWARD',
         include_updates: false
+      },
+      options: {
+        order: 'ASC'
       }
     }
 
