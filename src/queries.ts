@@ -322,12 +322,7 @@ const GIT_LOG = gql`
     $commitRange: CommitRange!
     $options: GitLogOptions
   ) {
-    gitLog(
-      path: $path
-      context: $context
-      commit_range: $commitRange
-      options: $options
-    ) {
+    gitLog(path: $path, context: $context, commit_range: $commitRange, options: $options) {
       total_count
       has_more
       entries {
@@ -366,12 +361,7 @@ const GIT_LOG_STREAM = gql`
     $commitRange: CommitRange!
     $options: GitLogOptions
   ) {
-    gitLogStream(
-      path: $path
-      context: $context
-      commit_range: $commitRange
-      options: $options
-    ) {
+    gitLogStream(path: $path, context: $context, commit_range: $commitRange, options: $options) {
       base_commit {
         hash
         name

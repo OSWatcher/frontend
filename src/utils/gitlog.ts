@@ -51,7 +51,7 @@ export function formatPropertyChange(
       const oldOffset = oldProps.properties.offset
       const newOffset = newProps.properties.offset
       if (oldOffset !== newOffset) {
-        parts.push(`offset: ${oldOffset} → ${newOffset}`)
+        parts.push(`offset: ${formatOffset(oldOffset)} → ${formatOffset(newOffset)}`)
       }
       const oldType = parseDataType(oldProps.properties.data_type)
       const newType = parseDataType(newProps.properties.data_type)
@@ -80,7 +80,7 @@ function formatSingleProps(
     case 'Struct':
       return `size: ${props.properties.size}`
     case 'StructField':
-      return `offset: ${props.properties.offset}`
+      return `offset: ${formatOffset(props.properties.offset)}`
     case 'Symbol':
       return formatAddress(props.properties.address)
     case 'WinRegValue':
@@ -103,6 +103,19 @@ function formatAddress(address: unknown): string {
     return address
   }
   return String(address)
+}
+
+function formatOffset(offset: unknown): string {
+  if (typeof offset === 'number' && Number.isInteger(offset) && offset >= 0) {
+    return `0x${offset.toString(16).toUpperCase()}`
+  }
+
+  if (typeof offset === 'string' && /^\d+$/.test(offset)) {
+    const num = parseInt(offset, 10)
+    return `0x${num.toString(16).toUpperCase()}`
+  }
+
+  return String(offset)
 }
 
 function parseDataType(dataType: unknown): string {

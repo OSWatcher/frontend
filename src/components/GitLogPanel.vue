@@ -110,25 +110,17 @@ const displayEntries = computed(() => [...entries.value].reverse())
         :class="{ clickable: entry.base_commit !== null }"
       >
         <!-- Timeline dot -->
-        <div
-          class="timeline-dot"
-          :style="{ backgroundColor: statusColor(entry.diff.status) }"
-        />
+        <div class="timeline-dot" :style="{ backgroundColor: statusColor(entry.diff.status) }" />
 
         <!-- Card -->
         <div class="timeline-card">
           <div class="card-header">
             <span class="commit-name">{{ entry.diffee_commit.name }}</span>
-            <span
-              class="status-badge"
-              :style="statusBadgeStyle(entry.diff.status)"
-            >
+            <span class="status-badge" :style="statusBadgeStyle(entry.diff.status)">
               {{ entry.diff.status }}
             </span>
           </div>
-          <div class="card-from" v-if="entry.base_commit">
-            from {{ entry.base_commit.name }}
-          </div>
+          <div class="card-from" v-if="entry.base_commit">from {{ entry.base_commit.name }}</div>
           <div class="card-from" v-else>first appearance</div>
           <div class="card-details">
             {{ formatPropertyChange(entry.diff.type, entry.diff.old_props, entry.diff.new_props) }}
@@ -146,9 +138,7 @@ const displayEntries = computed(() => [...entries.value].reverse())
         <span v-else class="result-count">
           {{ entries.length }} change{{ entries.length !== 1 ? 's' : '' }} found
         </span>
-        <span class="branch-info">
-          branch: {{ branch }}
-        </span>
+        <span class="branch-info"> branch: {{ branch }} </span>
       </NSpace>
     </template>
   </NModal>
@@ -211,7 +201,9 @@ const displayEntries = computed(() => [...entries.value].reverse())
   border: 1px solid #eee;
   border-radius: 6px;
   padding: 10px 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .card-header {

@@ -103,9 +103,7 @@ function getSelectedBlobPath(): string {
 function buildStructGitLogPath(structName: string, fieldPath?: string): string {
   const blobPath = getSelectedBlobPath()
   if (!blobPath) return ''
-  return fieldPath
-    ? `${blobPath}::${structName}/${fieldPath}`
-    : `${blobPath}::${structName}`
+  return fieldPath ? `${blobPath}::${structName}/${fieldPath}` : `${blobPath}::${structName}`
 }
 
 function buildSymbolGitLogPath(symbolName: string): string {
