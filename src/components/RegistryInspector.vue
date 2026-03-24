@@ -30,7 +30,7 @@ import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
-import { DiffStatus } from '@/graphql-types'
+import { DiffStatus, type EntityType } from '@/graphql-types'
 import { formatRegistryValue, getCanonicalHiveName } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
@@ -81,7 +81,7 @@ const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
 })
 
 // Git log
-const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
+const openGitLog = inject<(path: string, entityType: EntityType) => void>('openGitLog')
 
 function renderHistoryButton(rowName: string) {
   const hiveName = getCanonicalHiveName(selectedHive.value?.mountPath || '')

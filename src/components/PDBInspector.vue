@@ -25,6 +25,7 @@ import type {
   SymbolBlob
 } from '@/types/pdb'
 import { formatSize } from '@/utils/pdb'
+import type { EntityType } from '@/graphql-types'
 import DiffStatusFilter from './DiffStatusFilter.vue'
 import MonacoStructDiff from './MonacoStructDiff.vue'
 import MonacoStructView from './MonacoStructView.vue'
@@ -94,7 +95,7 @@ const {
 // Git Log
 // ============================================
 
-const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
+const openGitLog = inject<(path: string, entityType: EntityType) => void>('openGitLog')
 
 function getSelectedBlobPath(): string {
   return selectedBlob.value?.blobPath || ''
