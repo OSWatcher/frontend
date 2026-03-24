@@ -24,7 +24,7 @@ import type {
   StructDiffEntry,
   SymbolBlob
 } from '@/types/pdb'
-import { formatOffset, formatSize } from '@/utils/pdb'
+import { formatSize } from '@/utils/pdb'
 import DiffStatusFilter from './DiffStatusFilter.vue'
 import MonacoStructDiff from './MonacoStructDiff.vue'
 import MonacoStructView from './MonacoStructView.vue'
@@ -96,13 +96,27 @@ const {
 
 const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
 
-function getPeFilename(): string {
-  return selectedBlob.value?.displayName || ''
+function getSelectedBlobPath(): string {
+  return selectedBlob.value?.blobPath || ''
+}
+
+function buildStructGitLogPath(structName: string, fieldPath?: string): string {
+  const blobPath = getSelectedBlobPath()
+  if (!blobPath) return ''
+  return fieldPath
+    ? `${blobPath}::${structName}/${fieldPath}`
+    : `${blobPath}::${structName}`
+}
+
+function buildSymbolGitLogPath(symbolName: string): string {
+  const blobPath = getSelectedBlobPath()
+  if (!blobPath) return ''
+  return `${blobPath}::${symbolName}`
 }
 
 function renderSymbolHistoryButton(symbolName: string) {
-  const pe = getPeFilename()
-  if (!pe) return null
+  const path = buildSymbolGitLogPath(symbolName)
+  if (!path) return null
   return h(
     NButton,
     {
@@ -111,7 +125,7 @@ function renderSymbolHistoryButton(symbolName: string) {
       title: 'Show history',
       onClick: (e: Event) => {
         e.stopPropagation()
-        openGitLog?.(`/${pe}/${symbolName}`, 'SYMBOL')
+        openGitLog?.(path, 'SYMBOL')
       }
     },
     { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
@@ -119,8 +133,8 @@ function renderSymbolHistoryButton(symbolName: string) {
 }
 
 function renderStructHistoryButton(structName: string) {
-  const pe = getPeFilename()
-  if (!pe) return null
+  const path = buildStructGitLogPath(structName)
+  if (!path) return null
   return h(
     NButton,
     {
@@ -129,11 +143,17 @@ function renderStructHistoryButton(structName: string) {
       title: 'Show history',
       onClick: (e: Event) => {
         e.stopPropagation()
-        openGitLog?.(`/${pe}/${structName}`, 'STRUCT')
+        openGitLog?.(path, 'STRUCT')
       }
     },
     { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
   )
+}
+
+function handleStructFieldHistory(payload: { structName: string; fieldPath: string }) {
+  const path = buildStructGitLogPath(payload.structName, payload.fieldPath)
+  if (!path) return
+  openGitLog?.(path, 'STRUCT')
 }
 
 // ============================================
@@ -773,7 +793,7 @@ const structColumns = computed(() => {
               <div class="monaco-panel-header">
                 <h4>{{ struct.name }}</h4>
               </div>
-              <MonacoStructView :struct="struct" />
+              <MonacoStructView :struct="struct" @open-field-history="handleStructFieldHistory" />
             </div>
           </div>
 
@@ -790,7 +810,7 @@ const structColumns = computed(() => {
               <div class="monaco-panel-header">
                 <h4>{{ struct.name }} - Diff View</h4>
               </div>
-              <MonacoStructDiff :struct="struct" />
+              <MonacoStructDiff :struct="struct" @open-field-history="handleStructFieldHistory" />
             </div>
           </div>
         </NTabPane>

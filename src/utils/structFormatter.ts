@@ -6,6 +6,60 @@
 
 import type { StructFieldEntry, StructFieldDiffEntry } from '@/types/pdb'
 
+export interface StructFieldHistoryTarget {
+  lineNumber: number
+  fieldName: string
+  fieldPath: string
+}
+
+export interface StructRenderModel {
+  code: string
+  fieldTargets: StructFieldHistoryTarget[]
+}
+
+interface RenderableField {
+  name: string
+  offset: number
+  dataType: string
+  fieldPath: string
+}
+
+function getStructNames(structName: string) {
+  return {
+    structTag: structName.startsWith('_') ? structName : `_${structName}`,
+    typedefName: structName.startsWith('_') ? structName.slice(1) : structName
+  }
+}
+
+function buildStructRenderModel(
+  structName: string,
+  structSize: number,
+  fields: RenderableField[]
+): StructRenderModel {
+  const { structTag, typedefName } = getStructNames(structName)
+  const lines: string[] = [`typedef struct ${structTag} {`]
+  const fieldTargets: StructFieldHistoryTarget[] = []
+
+  for (const field of fields) {
+    const offsetHex = `0x${field.offset.toString(16).toUpperCase().padStart(4, '0')}`
+    const lineNumber = lines.length + 1
+    lines.push(`    /* ${offsetHex} */ ${field.dataType} ${field.name};`)
+    fieldTargets.push({
+      lineNumber,
+      fieldName: field.name,
+      fieldPath: field.fieldPath
+    })
+  }
+
+  const sizeHex = `0x${structSize.toString(16).toUpperCase()}`
+  lines.push(`} ${typedefName}; /* size: ${sizeHex} */`)
+
+  return {
+    code: lines.join('\n'),
+    fieldTargets
+  }
+}
+
 /**
  * Generate C struct definition from field entries for diff display
  *
@@ -43,24 +97,26 @@ export function generateStructText(
   fields: StructFieldDiffEntry[],
   version: 'base' | 'diffee'
 ): string {
+  return generateStructRenderModel(structName, structSize, fields, version).code
+}
+
+export function generateStructRenderModel(
+  structName: string,
+  structSize: number,
+  fields: StructFieldDiffEntry[],
+  version: 'base' | 'diffee'
+): StructRenderModel {
   // Validate inputs
   if (structSize < 0) {
     throw new Error(`Invalid struct size: ${structSize}. Size must be non-negative.`)
   }
 
-  const lines: string[] = []
+  const renderableFields: RenderableField[] = []
 
-  // Struct header - avoid double underscore if name already starts with _
-  const structTag = structName.startsWith('_') ? structName : `_${structName}`
-  lines.push(`typedef struct ${structTag} {`)
-
-  // Generate field lines
   for (const field of fields) {
-    // Skip fields that don't exist in this version
     if (version === 'base' && field.status === 'NEW') continue
     if (version === 'diffee' && field.status === 'DEL') continue
 
-    // Get version-specific offset and type
     const offset =
       version === 'base' ? field.baseOffset ?? field.offset : field.diffeeOffset ?? field.offset
     const dataType =
@@ -68,17 +124,15 @@ export function generateStructText(
         ? field.baseDataType ?? field.dataType
         : field.diffeeDataType ?? field.dataType
 
-    // Format: "    /* 0x0010 */ unsigned long FieldName;"
-    const offsetHex = `0x${offset.toString(16).toUpperCase().padStart(4, '0')}`
-    lines.push(`    /* ${offsetHex} */ ${dataType} ${field.name};`)
+    renderableFields.push({
+      name: field.name,
+      offset,
+      dataType,
+      fieldPath: field.name
+    })
   }
 
-  // Struct footer with size
-  const sizeHex = `0x${structSize.toString(16).toUpperCase()}`
-  const typedefName = structName.startsWith('_') ? structName.slice(1) : structName
-  lines.push(`} ${typedefName}; /* size: ${sizeHex} */`)
-
-  return lines.join('\n')
+  return buildStructRenderModel(structName, structSize, renderableFields)
 }
 
 /**
@@ -113,28 +167,27 @@ export function generateStructTextSingle(
   structSize: number,
   fields: StructFieldEntry[]
 ): string {
+  return generateStructRenderModelSingle(structName, structSize, fields).code
+}
+
+export function generateStructRenderModelSingle(
+  structName: string,
+  structSize: number,
+  fields: StructFieldEntry[]
+): StructRenderModel {
   // Validate inputs
   if (structSize < 0) {
     throw new Error(`Invalid struct size: ${structSize}. Size must be non-negative.`)
   }
 
-  const lines: string[] = []
-
-  // Struct header - avoid double underscore if name already starts with _
-  const structTag = structName.startsWith('_') ? structName : `_${structName}`
-  lines.push(`typedef struct ${structTag} {`)
-
-  // Generate field lines
-  for (const field of fields) {
-    // Format: "    /* 0x0010 */ unsigned long FieldName;"
-    const offsetHex = `0x${field.offset.toString(16).toUpperCase().padStart(4, '0')}`
-    lines.push(`    /* ${offsetHex} */ ${field.dataType} ${field.name};`)
-  }
-
-  // Struct footer with size
-  const sizeHex = `0x${structSize.toString(16).toUpperCase()}`
-  const typedefName = structName.startsWith('_') ? structName.slice(1) : structName
-  lines.push(`} ${typedefName}; /* size: ${sizeHex} */`)
-
-  return lines.join('\n')
+  return buildStructRenderModel(
+    structName,
+    structSize,
+    fields.map((field) => ({
+      name: field.name,
+      offset: field.offset,
+      dataType: field.dataType,
+      fieldPath: field.name
+    }))
+  )
 }
