@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, watch, type PropType } from 'vue'
+import { computed, h, inject, watch, type PropType } from 'vue'
 import {
   NTabs,
   NTabPane,
@@ -13,7 +13,7 @@ import {
   NSelect,
   type DataTableColumns
 } from 'naive-ui'
-import { CloseOutline } from '@vicons/ionicons5'
+import { CloseOutline, TimeOutline } from '@vicons/ionicons5'
 import { usePDBInspector } from '@/composables/usePDBInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
@@ -24,7 +24,8 @@ import type {
   StructDiffEntry,
   SymbolBlob
 } from '@/types/pdb'
-import { formatOffset, formatSize } from '@/utils/pdb'
+import { formatSize } from '@/utils/pdb'
+import type { EntityType } from '@/graphql-types'
 import DiffStatusFilter from './DiffStatusFilter.vue'
 import MonacoStructDiff from './MonacoStructDiff.vue'
 import MonacoStructView from './MonacoStructView.vue'
@@ -89,6 +90,70 @@ const {
   props.targetStructName,
   props.targetBlobPath
 )
+
+// ============================================
+// Git Log
+// ============================================
+
+const openGitLog = inject<(path: string, entityType: EntityType) => void>('openGitLog')
+
+function getSelectedBlobPath(): string {
+  return selectedBlob.value?.blobPath || ''
+}
+
+function buildStructGitLogPath(structName: string, fieldPath?: string): string {
+  const blobPath = getSelectedBlobPath()
+  if (!blobPath) return ''
+  return fieldPath ? `${blobPath}::${structName}/${fieldPath}` : `${blobPath}::${structName}`
+}
+
+function buildSymbolGitLogPath(symbolName: string): string {
+  const blobPath = getSelectedBlobPath()
+  if (!blobPath) return ''
+  return `${blobPath}::${symbolName}`
+}
+
+function renderSymbolHistoryButton(symbolName: string) {
+  const path = buildSymbolGitLogPath(symbolName)
+  if (!path) return null
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(path, 'SYMBOL')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
+
+function renderStructHistoryButton(structName: string) {
+  const path = buildStructGitLogPath(structName)
+  if (!path) return null
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(path, 'STRUCT')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
+
+function handleStructFieldHistory(payload: { structName: string; fieldPath: string }) {
+  const path = buildStructGitLogPath(payload.structName, payload.fieldPath)
+  if (!path) return
+  openGitLog?.(path, 'STRUCT')
+}
 
 // ============================================
 // Blob Selector
@@ -215,6 +280,12 @@ const symbolColumnsSingle = computed<DataTableColumns<SymbolEntry>>(() => [
     key: 'address',
     title: 'Address',
     width: 180
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderSymbolHistoryButton(row.name)
   }
 ])
 
@@ -257,6 +328,12 @@ const symbolColumnsComparison = computed<DataTableColumns<SymbolDiffEntry>>(() =
         delta.formatted
       )
     }
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderSymbolHistoryButton(row.name)
   }
 ])
 
@@ -397,6 +474,17 @@ const structColumnsSingle = computed<DataTableColumns<any>>(() => [
     key: 'size',
     title: 'Size',
     width: 100
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => {
+      if (row.type === 'struct') {
+        return renderStructHistoryButton(row.name)
+      }
+      return null
+    }
   }
 ])
 
@@ -445,6 +533,12 @@ const structColumnsComparison = computed<DataTableColumns<any>>(() => [
       }
       return '-'
     }
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderStructHistoryButton(row.name)
   }
 ])
 
@@ -698,7 +792,7 @@ const structColumns = computed(() => {
               <div class="monaco-panel-header">
                 <h4>{{ struct.name }}</h4>
               </div>
-              <MonacoStructView :struct="struct" />
+              <MonacoStructView :struct="struct" @open-field-history="handleStructFieldHistory" />
             </div>
           </div>
 
@@ -715,7 +809,7 @@ const structColumns = computed(() => {
               <div class="monaco-panel-header">
                 <h4>{{ struct.name }} - Diff View</h4>
               </div>
-              <MonacoStructDiff :struct="struct" />
+              <MonacoStructDiff :struct="struct" @open-field-history="handleStructFieldHistory" />
             </div>
           </div>
         </NTabPane>

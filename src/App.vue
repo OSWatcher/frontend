@@ -423,6 +423,7 @@ const handleRowClick = (row: SearchResult) => {
     router.push({
       path: `/inspect/${row.commit_hash}`,
       query: {
+        branch: branchSelection.selectedBranchName,
         directory: directory,
         highlight: filename
       }
@@ -435,6 +436,7 @@ const handleRowClick = (row: SearchResult) => {
       router.push({
         path: `/inspect/${row.commit_hash}`,
         query: {
+          branch: branchSelection.selectedBranchName,
           tab: 'registry',
           regHive: parsed.hiveName,
           regPath: parsed.parentPath,
@@ -446,6 +448,7 @@ const handleRowClick = (row: SearchResult) => {
       router.push({
         path: `/inspect/${row.commit_hash}`,
         query: {
+          branch: branchSelection.selectedBranchName,
           tab: 'registry'
         }
       })
@@ -455,6 +458,7 @@ const handleRowClick = (row: SearchResult) => {
     router.push({
       path: `/inspect/${row.commit_hash}`,
       query: {
+        branch: branchSelection.selectedBranchName,
         tab: 'pdb',
         pdbTab: 'symbols',
         symbolName: row.entity_path,
@@ -470,6 +474,7 @@ const handleRowClick = (row: SearchResult) => {
     router.push({
       path: `/inspect/${row.commit_hash}`,
       query: {
+        branch: branchSelection.selectedBranchName,
         tab: 'pdb',
         pdbTab: 'structs',
         structName: structName,

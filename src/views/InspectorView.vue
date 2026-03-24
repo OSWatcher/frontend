@@ -21,17 +21,19 @@
  * @component
  */
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NSpin, NAlert, NTabs, NTabPane } from 'naive-ui'
 import InspectorHeader from '@/components/InspectorHeader.vue'
 import FilesystemInspector from '@/components/FilesystemInspector.vue'
 import RegistryInspector from '@/components/RegistryInspector.vue'
 import PDBInspector from '@/components/PDBInspector.vue'
+import GitLogPanel from '@/components/GitLogPanel.vue'
 import gqlClient from '@/graphql-client'
 import type { InspectorMode, CommitContext } from '@/types/inspector'
 import type { FetchCommitDetailsQuery, GetCommitCapabilitiesQuery } from '@/graphql-types'
 import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/graphql-types'
+import type { EntityType } from '@/graphql-types'
 import { useSearchContextStore } from '@/stores/searchContext'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
 import { useAuth0 } from '@auth0/auth0-vue'
@@ -50,6 +52,10 @@ const isWindowsRestricted = computed(
   () =>
     (branchSelection.selectedBranchName === 'windows' || branchName.value === 'windows') &&
     !isAuthenticated.value
+)
+
+const hasNoAvailableTabs = computed(
+  () => isWindowsRestricted.value && !hasPDB.value && !isLoadingCapabilities.value
 )
 
 // ===================================================================
@@ -109,6 +115,27 @@ const hasPDB = ref<boolean>(false)
  * Loading state for capabilities check
  */
 const isLoadingCapabilities = ref<boolean>(false)
+
+// ===================================================================
+// GIT LOG
+// ===================================================================
+
+const showGitLog = ref(false)
+const gitLogPath = ref('')
+const gitLogEntityType = ref<EntityType | null>(null)
+
+function openGitLog(path: string, entityType: EntityType) {
+  gitLogPath.value = path
+  gitLogEntityType.value = entityType
+  showGitLog.value = true
+}
+
+const gitLogBranch = computed(() => {
+  return branchName.value || branchSelection.selectedBranchName || ''
+})
+
+// Provide openGitLog to child inspector components
+provide('openGitLog', openGitLog)
 
 // ===================================================================
 // COMPUTED
@@ -301,9 +328,13 @@ async function initializeInspector() {
     // Get branch name from query params
     branchName.value = (route.query.branch as string) || ''
 
-    // Force pdb tab for Windows branch if no explicit tab was requested
-    if (!route.query.tab && isWindowsRestricted.value) {
-      activeTab.value = 'pdb'
+    // Set default tab based on context (unless explicit tab in query params)
+    if (!route.query.tab) {
+      if (isWindowsRestricted.value) {
+        activeTab.value = 'pdb'
+      } else {
+        activeTab.value = 'filesystem'
+      }
     }
 
     if (inspectorMode.value === 'single') {
@@ -450,6 +481,20 @@ watch(
 )
 
 /**
+ * Fall back to filesystem tab when capabilities finish loading
+ * and the current active tab turns out to be unavailable
+ */
+watch(isLoadingCapabilities, (loading) => {
+  if (!loading) {
+    if (activeTab.value === 'pdb' && !hasPDB.value) {
+      activeTab.value = 'filesystem'
+    } else if (activeTab.value === 'registry' && !hasRegistry.value) {
+      activeTab.value = 'filesystem'
+    }
+  }
+})
+
+/**
  * Set inspector view flag on mount
  */
 onMounted(() => {
@@ -488,7 +533,11 @@ onMounted(() => {
 
       <!-- Tabs -->
       <div class="inspector-body">
-        <NTabs v-model:value="activeTab" type="line" animated>
+        <NAlert v-if="hasNoAvailableTabs" type="info" title="No data available">
+          This commit does not have any data available for unauthenticated users. Please log in to
+          access the full inspector.
+        </NAlert>
+        <NTabs v-else v-model:value="activeTab" type="line" animated>
           <template #suffix>
             <!-- Loading indicator for additional tabs -->
             <div v-if="isLoadingCapabilities" class="capabilities-loading">
@@ -561,6 +610,15 @@ onMounted(() => {
         </NTabs>
       </div>
     </div>
+
+    <!-- Git Log Panel -->
+    <GitLogPanel
+      v-if="gitLogEntityType"
+      v-model:show="showGitLog"
+      :path="gitLogPath"
+      :entity-type="gitLogEntityType"
+      :branch="gitLogBranch"
+    />
   </div>
 </template>
 

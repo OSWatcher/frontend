@@ -314,6 +314,81 @@ const GET_BLOBS_WITH_SYMBOLS = gql`
   }
 `
 
+// git log
+const GIT_LOG = gql`
+  query GitLog(
+    $path: String!
+    $context: EntityType!
+    $commitRange: CommitRange!
+    $options: GitLogOptions
+  ) {
+    gitLog(path: $path, context: $context, commit_range: $commitRange, options: $options) {
+      total_count
+      has_more
+      entries {
+        base_commit {
+          hash
+          name
+          date
+        }
+        diffee_commit {
+          hash
+          name
+          date
+        }
+        diff {
+          path
+          status
+          type
+          old_props {
+            hash
+            properties
+          }
+          new_props {
+            hash
+            properties
+          }
+        }
+      }
+    }
+  }
+`
+
+const GIT_LOG_STREAM = gql`
+  subscription GitLogStream(
+    $path: String!
+    $context: EntityType!
+    $commitRange: CommitRange!
+    $options: GitLogOptions
+  ) {
+    gitLogStream(path: $path, context: $context, commit_range: $commitRange, options: $options) {
+      base_commit {
+        hash
+        name
+        date
+      }
+      diffee_commit {
+        hash
+        name
+        date
+      }
+      diff {
+        path
+        status
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
+      }
+    }
+  }
+`
+
 export {
   fetchBranches,
   fetchCommitHistory,
@@ -332,5 +407,7 @@ export {
   DIFF_NODES,
   FETCH_SYMBOL_BY_NAME,
   FETCH_STRUCT_BY_NAME,
-  GET_BLOBS_WITH_SYMBOLS
+  GET_BLOBS_WITH_SYMBOLS,
+  GIT_LOG,
+  GIT_LOG_STREAM
 }

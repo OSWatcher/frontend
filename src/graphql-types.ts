@@ -1427,6 +1427,27 @@ export enum EntityType {
   Symbol = 'SYMBOL'
 }
 
+export type GitLogEntry = {
+  __typename?: 'GitLogEntry'
+  base_commit?: Maybe<Commit>
+  diff: DiffItem
+  diffee_commit: Commit
+}
+
+export type GitLogOptions = {
+  direction?: InputMaybe<CommitHistoryDirection>
+  limit?: InputMaybe<Scalars['Int']['input']>
+  offset?: InputMaybe<Scalars['Int']['input']>
+  status_filter?: InputMaybe<Array<DiffStatus>>
+}
+
+export type GitLogResult = {
+  __typename?: 'GitLogResult'
+  entries: Array<GitLogEntry>
+  has_more: Scalars['Boolean']['output']
+  total_count: Scalars['Int']['output']
+}
+
 /**
  * The edge properties for the following fields:
  * * Tree.child_blobs
@@ -1635,6 +1656,7 @@ export type Query = {
   fetchCommitHistory: Array<Commit>
   getBlobsWithSymbols: Array<BlobWithSymbols>
   getCommitExtractedDataLabels: Array<Scalars['String']['output']>
+  gitLog: GitLogResult
   hashables: Array<Hashable>
   hashablesAggregate: HashableAggregateSelection
   hashablesConnection: HashablesConnection
@@ -1742,6 +1764,13 @@ export type QueryGetBlobsWithSymbolsArgs = {
 
 export type QueryGetCommitExtractedDataLabelsArgs = {
   commit_hash: Scalars['String']['input']
+}
+
+export type QueryGitLogArgs = {
+  commit_range: CommitRange
+  context: EntityType
+  options?: InputMaybe<GitLogOptions>
+  path: Scalars['String']['input']
 }
 
 export type QueryHashablesArgs = {
@@ -2402,7 +2431,15 @@ export type StructsConnection = {
 
 export type Subscription = {
   __typename?: 'Subscription'
+  gitLogStream: GitLogEntry
   searchStream: SearchResult
+}
+
+export type SubscriptionGitLogStreamArgs = {
+  commit_range: CommitRange
+  context: EntityType
+  options?: InputMaybe<GitLogOptions>
+  path: Scalars['String']['input']
 }
 
 export type SubscriptionSearchStreamArgs = {
@@ -3552,6 +3589,59 @@ export type GetBlobsWithSymbolsQuery = {
     blob_hash: string
     blob_path: string
   }>
+}
+
+export type GitLogQueryVariables = Exact<{
+  path: Scalars['String']['input']
+  context: EntityType
+  commitRange: CommitRange
+  options?: InputMaybe<GitLogOptions>
+}>
+
+export type GitLogQuery = {
+  __typename?: 'Query'
+  gitLog: {
+    __typename?: 'GitLogResult'
+    total_count: number
+    has_more: boolean
+    entries: Array<{
+      __typename?: 'GitLogEntry'
+      base_commit?: { __typename?: 'Commit'; hash: string; name: string; date: any } | null
+      diffee_commit: { __typename?: 'Commit'; hash: string; name: string; date: any }
+      diff: {
+        __typename?: 'DiffItem'
+        path: string
+        status: DiffStatus
+        type: NodeType
+        old_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+        new_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+      }
+    }>
+  }
+}
+
+export type GitLogStreamSubscriptionVariables = Exact<{
+  path: Scalars['String']['input']
+  context: EntityType
+  commitRange: CommitRange
+  options?: InputMaybe<GitLogOptions>
+}>
+
+export type GitLogStreamSubscription = {
+  __typename?: 'Subscription'
+  gitLogStream: {
+    __typename?: 'GitLogEntry'
+    base_commit?: { __typename?: 'Commit'; hash: string; name: string; date: any } | null
+    diffee_commit: { __typename?: 'Commit'; hash: string; name: string; date: any }
+    diff: {
+      __typename?: 'DiffItem'
+      path: string
+      status: DiffStatus
+      type: NodeType
+      old_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+      new_props?: { __typename?: 'HashableNodeProps'; hash: string; properties: any } | null
+    }
+  }
 }
 
 export const FetchBranchesDocument = gql`
@@ -5014,3 +5104,182 @@ export type GetBlobsWithSymbolsQueryCompositionFunctionResult = VueApolloComposa
   GetBlobsWithSymbolsQuery,
   GetBlobsWithSymbolsQueryVariables
 >
+export const GitLogDocument = gql`
+  query GitLog(
+    $path: String!
+    $context: EntityType!
+    $commitRange: CommitRange!
+    $options: GitLogOptions
+  ) {
+    gitLog(path: $path, context: $context, commit_range: $commitRange, options: $options) {
+      total_count
+      has_more
+      entries {
+        base_commit {
+          hash
+          name
+          date
+        }
+        diffee_commit {
+          hash
+          name
+          date
+        }
+        diff {
+          path
+          status
+          type
+          old_props {
+            hash
+            properties
+          }
+          new_props {
+            hash
+            properties
+          }
+        }
+      }
+    }
+  }
+`
+
+/**
+ * __useGitLogQuery__
+ *
+ * To run a query within a Vue component, call `useGitLogQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGitLogQuery` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the query
+ * @param options that will be passed into the query, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/query.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useGitLogQuery({
+ *   path: // value for 'path'
+ *   context: // value for 'context'
+ *   commitRange: // value for 'commitRange'
+ *   options: // value for 'options'
+ * });
+ */
+export function useGitLogQuery(
+  variables:
+    | GitLogQueryVariables
+    | VueCompositionApi.Ref<GitLogQueryVariables>
+    | ReactiveFunction<GitLogQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>
+    | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>>
+    | ReactiveFunction<VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>> = {}
+) {
+  return VueApolloComposable.useQuery<GitLogQuery, GitLogQueryVariables>(
+    GitLogDocument,
+    variables,
+    options
+  )
+}
+export function useGitLogLazyQuery(
+  variables?:
+    | GitLogQueryVariables
+    | VueCompositionApi.Ref<GitLogQueryVariables>
+    | ReactiveFunction<GitLogQueryVariables>,
+  options:
+    | VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>
+    | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>>
+    | ReactiveFunction<VueApolloComposable.UseQueryOptions<GitLogQuery, GitLogQueryVariables>> = {}
+) {
+  return VueApolloComposable.useLazyQuery<GitLogQuery, GitLogQueryVariables>(
+    GitLogDocument,
+    variables,
+    options
+  )
+}
+export type GitLogQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<
+  GitLogQuery,
+  GitLogQueryVariables
+>
+export const GitLogStreamDocument = gql`
+  subscription GitLogStream(
+    $path: String!
+    $context: EntityType!
+    $commitRange: CommitRange!
+    $options: GitLogOptions
+  ) {
+    gitLogStream(path: $path, context: $context, commit_range: $commitRange, options: $options) {
+      base_commit {
+        hash
+        name
+        date
+      }
+      diffee_commit {
+        hash
+        name
+        date
+      }
+      diff {
+        path
+        status
+        type
+        old_props {
+          hash
+          properties
+        }
+        new_props {
+          hash
+          properties
+        }
+      }
+    }
+  }
+`
+
+/**
+ * __useGitLogStreamSubscription__
+ *
+ * To run a query within a Vue component, call `useGitLogStreamSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useGitLogStreamSubscription` returns an object from Apollo Client that contains result, loading and error properties
+ * you can use to render your UI.
+ *
+ * @param variables that will be passed into the subscription
+ * @param options that will be passed into the subscription, supported options are listed on: https://v4.apollo.vuejs.org/guide-composable/subscription.html#options;
+ *
+ * @example
+ * const { result, loading, error } = useGitLogStreamSubscription({
+ *   path: // value for 'path'
+ *   context: // value for 'context'
+ *   commitRange: // value for 'commitRange'
+ *   options: // value for 'options'
+ * });
+ */
+export function useGitLogStreamSubscription(
+  variables:
+    | GitLogStreamSubscriptionVariables
+    | VueCompositionApi.Ref<GitLogStreamSubscriptionVariables>
+    | ReactiveFunction<GitLogStreamSubscriptionVariables>,
+  options:
+    | VueApolloComposable.UseSubscriptionOptions<
+        GitLogStreamSubscription,
+        GitLogStreamSubscriptionVariables
+      >
+    | VueCompositionApi.Ref<
+        VueApolloComposable.UseSubscriptionOptions<
+          GitLogStreamSubscription,
+          GitLogStreamSubscriptionVariables
+        >
+      >
+    | ReactiveFunction<
+        VueApolloComposable.UseSubscriptionOptions<
+          GitLogStreamSubscription,
+          GitLogStreamSubscriptionVariables
+        >
+      > = {}
+) {
+  return VueApolloComposable.useSubscription<
+    GitLogStreamSubscription,
+    GitLogStreamSubscriptionVariables
+  >(GitLogStreamDocument, variables, options)
+}
+export type GitLogStreamSubscriptionCompositionFunctionResult =
+  VueApolloComposable.UseSubscriptionReturn<
+    GitLogStreamSubscription,
+    GitLogStreamSubscriptionVariables
+  >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, ref, type PropType } from 'vue'
+import { computed, h, inject, ref, type PropType } from 'vue'
 import {
   NDataTable,
   NBreadcrumb,
@@ -22,15 +22,16 @@ import {
   HomeOutline,
   FolderOutline,
   DownloadOutline,
-  SearchOutline
+  SearchOutline,
+  TimeOutline
 } from '@vicons/ionicons5'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
 import type { RegistryEntry, RegistryDiffEntry } from '@/types/registry'
-import { DiffStatus } from '@/graphql-types'
-import { formatRegistryValue } from '@/utils/registry'
+import { DiffStatus, type EntityType } from '@/graphql-types'
+import { formatRegistryValue, getCanonicalHiveName } from '@/utils/registry'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
 import gqlClient from '@/graphql-client'
 import { DIFF_NODES } from '@/queries'
@@ -78,6 +79,28 @@ const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
   filterKey: 'name',
   clearOnChange: currentPath
 })
+
+// Git log
+const openGitLog = inject<(path: string, entityType: EntityType) => void>('openGitLog')
+
+function renderHistoryButton(rowName: string) {
+  const hiveName = getCanonicalHiveName(selectedHive.value?.mountPath || '')
+  const keyPath = currentPath.value === '/' ? '' : currentPath.value
+  const fullPath = `/${hiveName}${keyPath}/${rowName}`
+  return h(
+    NButton,
+    {
+      size: 'small',
+      quaternary: true,
+      title: 'Show history',
+      onClick: (e: Event) => {
+        e.stopPropagation()
+        openGitLog?.(fullPath, 'REGISTRY')
+      }
+    },
+    { icon: () => h(NIcon, { size: 18 }, () => h(TimeOutline)) }
+  )
+}
 
 // Authentication for full export
 const { isAuthenticated } = useAuth0()
@@ -279,6 +302,12 @@ const singleModeColumns = computed<DataTableColumns<RegistryEntry>>(() => [
         { style: { fontFamily: 'monospace', fontSize: '12px' } },
         formatRegistryValue(row.value, 200)
       )
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderHistoryButton(row.name)
   }
 ])
 
@@ -323,6 +352,12 @@ const comparisonModeColumns = computed<DataTableColumns<RegistryDiffEntry>>(() =
         { style: { fontFamily: 'monospace', fontSize: '12px' } },
         formatRegistryValue(row.value, 200)
       )
+  },
+  {
+    key: 'actions',
+    title: 'Actions',
+    width: 60,
+    render: (row) => renderHistoryButton(row.name)
   }
 ])
 

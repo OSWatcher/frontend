@@ -64,7 +64,10 @@ function handleBranchSelect(key: string) {
 
 function handleCompare() {
   if (commitSelection.diffLink) {
-    router.push(commitSelection.diffLink)
+    router.push({
+      path: commitSelection.diffLink,
+      query: { branch: branchSelection.selectedBranchName }
+    })
   }
 }
 </script>

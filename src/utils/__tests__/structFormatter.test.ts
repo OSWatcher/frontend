@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { generateStructText } from '../structFormatter'
-import type { StructFieldDiffEntry } from '@/types/pdb'
+import {
+  generateStructRenderModel,
+  generateStructRenderModelSingle,
+  generateStructText
+} from '../structFormatter'
+import type { StructFieldEntry, StructFieldDiffEntry } from '@/types/pdb'
 
 describe('generateStructText', () => {
   it('should generate C struct text for base version', () => {
@@ -408,5 +412,102 @@ describe('generateStructText - edge cases', () => {
     expect(result).not.toContain('newField2')
     // Should only have header and footer
     expect(result.split('\n')).toHaveLength(2)
+  })
+})
+
+describe('generateStructRenderModel', () => {
+  it('should track rendered field lines for single structs', () => {
+    const fields: StructFieldEntry[] = [
+      {
+        name: 'FirstField',
+        offset: 0,
+        dataType: 'unsigned long'
+      },
+      {
+        name: 'SecondField',
+        offset: 8,
+        dataType: 'void*'
+      }
+    ]
+
+    const result = generateStructRenderModelSingle('TEST_STRUCT', 16, fields)
+
+    expect(result.code.split('\n')).toEqual([
+      'typedef struct _TEST_STRUCT {',
+      '    /* 0x0000 */ unsigned long FirstField;',
+      '    /* 0x0008 */ void* SecondField;',
+      '} TEST_STRUCT; /* size: 0x10 */'
+    ])
+    expect(result.fieldTargets).toEqual([
+      {
+        lineNumber: 2,
+        fieldName: 'FirstField',
+        fieldPath: 'FirstField'
+      },
+      {
+        lineNumber: 3,
+        fieldName: 'SecondField',
+        fieldPath: 'SecondField'
+      }
+    ])
+  })
+
+  it('should only track field lines that exist in the selected diff version', () => {
+    const fields: StructFieldDiffEntry[] = [
+      {
+        name: 'DeletedField',
+        status: 'DEL',
+        offset: 0,
+        dataType: 'int',
+        baseOffset: 0,
+        baseDataType: 'int'
+      },
+      {
+        name: 'MovedField',
+        status: 'MOD',
+        offset: 16,
+        dataType: 'unsigned long',
+        baseOffset: 8,
+        diffeeOffset: 16,
+        baseDataType: 'unsigned int',
+        diffeeDataType: 'unsigned long'
+      },
+      {
+        name: 'NewField',
+        status: 'NEW',
+        offset: 24,
+        dataType: 'void*',
+        diffeeOffset: 24,
+        diffeeDataType: 'void*'
+      }
+    ]
+
+    const baseModel = generateStructRenderModel('TEST_STRUCT', 32, fields, 'base')
+    const diffeeModel = generateStructRenderModel('TEST_STRUCT', 40, fields, 'diffee')
+
+    expect(baseModel.fieldTargets).toEqual([
+      {
+        lineNumber: 2,
+        fieldName: 'DeletedField',
+        fieldPath: 'DeletedField'
+      },
+      {
+        lineNumber: 3,
+        fieldName: 'MovedField',
+        fieldPath: 'MovedField'
+      }
+    ])
+    expect(diffeeModel.fieldTargets).toEqual([
+      {
+        lineNumber: 2,
+        fieldName: 'MovedField',
+        fieldPath: 'MovedField'
+      },
+      {
+        lineNumber: 3,
+        fieldName: 'NewField',
+        fieldPath: 'NewField'
+      }
+    ])
   })
 })
