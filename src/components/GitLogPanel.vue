@@ -99,15 +99,15 @@ const displayEntries = computed(() => [...entries.value].reverse())
     <!-- Timeline -->
     <div v-else class="git-log-timeline">
       <div
-        v-for="(entry, index) in displayEntries"
-        :key="index"
+        v-for="entry in displayEntries"
+        :key="entry.diffee_commit.hash + '-' + (entry.base_commit ? entry.base_commit.hash : 'root')"
         class="timeline-entry"
         @click="
           entry.base_commit
             ? navigateToDiff(entry.base_commit.hash, entry.diffee_commit.hash)
             : undefined
         "
-        :class="{ clickable: entry.base_commit !== null }"
+        :class="{ clickable: !!entry.base_commit }"
       >
         <!-- Timeline dot -->
         <div class="timeline-dot" :style="{ backgroundColor: statusColor(entry.diff.status) }" />

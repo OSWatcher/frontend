@@ -36,6 +36,7 @@ import type {
 import { TreeNodeType, treeNodeTypeToString } from '@/types'
 import { downloadBlob } from '@/utils/filesystem'
 import { downloadJsonFile, generateExportFilename } from '@/utils/exportDiff'
+import type { EntityType } from '@/graphql-types'
 import gqlClient from '@/graphql-client'
 import { GET_FS_ROOT, DIFF_NODES } from '@/queries'
 import DiffStatusFilter from './DiffStatusFilter.vue'
@@ -83,7 +84,7 @@ const isExporting = ref(false)
 const downloadingHash = ref<string | null>(null)
 
 // Git log
-const openGitLog = inject<(path: string, entityType: string) => void>('openGitLog')
+const openGitLog = inject<(path: string, entityType: EntityType) => void>('openGitLog')
 
 function renderHistoryButton(rowName: string) {
   const fullPath = currentPath.value === '/' ? `/${rowName}` : `${currentPath.value}/${rowName}`
