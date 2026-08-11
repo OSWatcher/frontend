@@ -145,14 +145,9 @@ watch(showSearchModal, (show) => {
         activeResultTab.value = 'symbols'
       }
     } else {
-      // HomeView: omnisearch - adjust based on branch and auth
-      if (branchSelection.selectedBranchName === 'windows' && !isAuthenticated.value) {
-        selectedEntityTypes.value = [EntityType.Symbol, EntityType.Struct]
-        activeResultTab.value = 'symbols'
-      } else {
-        selectedEntityTypes.value = [EntityType.Filesystem, EntityType.Registry]
-        activeResultTab.value = 'filesystem'
-      }
+      // HomeView: omnisearch
+      selectedEntityTypes.value = [EntityType.Filesystem, EntityType.Registry]
+      activeResultTab.value = 'filesystem'
     }
   }
 })
@@ -165,11 +160,6 @@ const {
   logout,
   getAccessTokenSilently
 } = useAuth0()
-
-// Windows branch restricted to symbols-only for unauthenticated users
-const isWindowsRestricted = computed(
-  () => branchSelection.selectedBranchName === 'windows' && !isAuthenticated.value
-)
 
 // Set up auth token getter for Apollo Client
 onMounted(() => {
@@ -630,14 +620,12 @@ onUnmounted(() => {
             <div class="entity-type-selectors">
               <span class="search-section-label">Search in:</span>
               <NCheckbox
-                v-if="!isWindowsRestricted"
                 :checked="selectedEntityTypes.includes(EntityType.Filesystem)"
                 @update:checked="(checked) => toggleEntityType(EntityType.Filesystem, checked)"
               >
                 Filesystem
               </NCheckbox>
               <NCheckbox
-                v-if="!isWindowsRestricted"
                 :checked="selectedEntityTypes.includes(EntityType.Registry)"
                 @update:checked="(checked) => toggleEntityType(EntityType.Registry, checked)"
               >
@@ -679,7 +667,6 @@ onUnmounted(() => {
             animated
           >
             <NTabPane
-              v-if="!isWindowsRestricted"
               name="filesystem"
               :tab="`Filesystem (${filesystemResults.length})`"
             >
@@ -710,7 +697,6 @@ onUnmounted(() => {
               />
             </NTabPane>
             <NTabPane
-              v-if="!isWindowsRestricted"
               name="registry"
               :tab="`Registry (${registryResults.length})`"
             >

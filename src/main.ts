@@ -12,7 +12,6 @@ import { createAuth0 } from '@auth0/auth0-vue'
 
 import App from './App.vue'
 import router from './router'
-import posthogPlugin from './plugins/posthog'
 import { provideApolloClient } from '@vue/apollo-composable'
 import gqlClient from './graphql-client'
 
@@ -39,9 +38,5 @@ app.use(
     cacheLocation: 'localstorage'
   })
 )
-
-if (import.meta.env.PROD) {
-  app.use(posthogPlugin)
-}
 
 app.mount('#app')

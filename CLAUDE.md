@@ -73,7 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Environment Configuration
 
 #### Required Environment Variables
-- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint URL (used for Apollo Client, PostHog events, and blob downloads via REST API `/blob/:hash`)
+- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint URL (used for Apollo Client and blob downloads via REST API `/blob/:hash`)
 
 #### Optional Environment Variables (Auth0)
 - `VITE_AUTH0_DOMAIN` - Auth0 tenant domain (e.g., your-tenant.us.auth0.com)
@@ -90,10 +90,10 @@ Authentication is optional and not enforced by default. When configured, the app
 1. Copy `.env.example` to `.env` and configure required variables
 2. The `.env` file contains backend service configuration (Neo4j, MinIO, etc.) for local development
 3. Frontend-specific variables must be prefixed with `VITE_` to be accessible in the browser
+4. This frontend is not meant to run standalone against a self-hosted backend: point it at a `grapheos-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO). `.env` is conventionally a symlink to `../grapheos-deploy/.env` when both repos are checked out as siblings.
 
 #### Build Configuration
-- Production base path set to `/frontend/` in Vite config
-- PostHog analytics enabled only in production builds
+- Production base path set to `/frontend/` in Vite config (assumes deployment behind `grapheos-deploy`'s reverse proxy)
 
 ### Documentation Structure
 The project includes comprehensive technical reference documentation:

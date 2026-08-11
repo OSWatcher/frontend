@@ -73,7 +73,6 @@ src/
 - **GraphQL Client**: Apollo Client for API communication
 - **Router**: Vue Router 4 for navigation
 - **Testing**: Vitest for unit and integration testing
-- **Analytics**: PostHog for user tracking (production only)
 
 ### Design Patterns
 
@@ -569,11 +568,6 @@ Parsing and formatting utilities for PDB data:
 - **File Downloads**: Direct access to binary data
 - **Hash-Based URLs**: Content-addressed file access
 - **CDN Integration**: Fast global distribution
-
-### 3. Analytics
-- **PostHog**: User behavior tracking
-- **Custom Events**: Application-specific metrics
-- **Privacy**: GDPR-compliant data collection
 
 ## Error Handling Architecture
 

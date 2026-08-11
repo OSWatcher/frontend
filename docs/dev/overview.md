@@ -195,9 +195,6 @@ Raw file contents are stored by hash and can be downloaded via the backend REST 
 - **Prettier 3.2** - Code formatting
 - **VitePress 1.0** - Documentation site generator
 
-### Analytics
-- **PostHog** - Product analytics (production only)
-
 ## Component Architecture
 
 ### Views (Route-based)

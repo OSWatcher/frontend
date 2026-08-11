@@ -4,13 +4,16 @@ Vue.js application for exploring operating system analysis data with commit hist
 
 ## Quick Start
 
+This frontend is not meant to run standalone against a self-hosted backend: it expects a `grapheos-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO) running alongside it. Clone `grapheos-deploy` as a sibling directory and follow its setup first.
+
 ```bash
 # Install dependencies
 npm install
 
 # Copy environment variables
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env to point at your grapheos-deploy stack
+# (conventionally a symlink to ../grapheos-deploy/.env)
 
 # Start development server
 npm run dev

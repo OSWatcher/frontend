@@ -36,7 +36,6 @@ import { FetchCommitDetailsDocument, GetCommitCapabilitiesDocument } from '@/gra
 import type { EntityType } from '@/graphql-types'
 import { useSearchContextStore } from '@/stores/searchContext'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
-import { useAuth0 } from '@auth0/auth0-vue'
 
 // ===================================================================
 // ROUTING
@@ -46,17 +45,6 @@ const route = useRoute()
 const router = useRouter()
 const searchContext = useSearchContextStore()
 const branchSelection = useBranchSelectionStore()
-const { isAuthenticated } = useAuth0()
-
-const isWindowsRestricted = computed(
-  () =>
-    (branchSelection.selectedBranchName === 'windows' || branchName.value === 'windows') &&
-    !isAuthenticated.value
-)
-
-const hasNoAvailableTabs = computed(
-  () => isWindowsRestricted.value && !hasPDB.value && !isLoadingCapabilities.value
-)
 
 // ===================================================================
 // STATE
@@ -98,12 +86,7 @@ const branchName = ref<string>('')
  * Active tab name
  * Initialized from query params or defaults to filesystem
  */
-const activeTab = ref<string>(
-  (route.query.tab as string) ||
-    (route.query.branch === 'windows' || branchSelection.selectedBranchName === 'windows'
-      ? 'pdb'
-      : 'filesystem')
-)
+const activeTab = ref<string>((route.query.tab as string) || 'filesystem')
 
 /**
  * Available capabilities (filesystem, registry, pdb)
@@ -330,11 +313,7 @@ async function initializeInspector() {
 
     // Set default tab based on context (unless explicit tab in query params)
     if (!route.query.tab) {
-      if (isWindowsRestricted.value) {
-        activeTab.value = 'pdb'
-      } else {
-        activeTab.value = 'filesystem'
-      }
+      activeTab.value = 'filesystem'
     }
 
     if (inspectorMode.value === 'single') {
@@ -533,11 +512,7 @@ onMounted(() => {
 
       <!-- Tabs -->
       <div class="inspector-body">
-        <NAlert v-if="hasNoAvailableTabs" type="info" title="No data available">
-          This commit does not have any data available for unauthenticated users. Please log in to
-          access the full inspector.
-        </NAlert>
-        <NTabs v-else v-model:value="activeTab" type="line" animated>
+        <NTabs v-model:value="activeTab" type="line" animated>
           <template #suffix>
             <!-- Loading indicator for additional tabs -->
             <div v-if="isLoadingCapabilities" class="capabilities-loading">
@@ -546,7 +521,7 @@ onMounted(() => {
             </div>
           </template>
           <!-- Filesystem Tab -->
-          <NTabPane v-if="!isWindowsRestricted" name="filesystem" tab="Filesystem">
+          <NTabPane name="filesystem" tab="Filesystem">
             <FilesystemInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"
@@ -565,7 +540,7 @@ onMounted(() => {
           </NTabPane>
 
           <!-- Registry Tab (only if available) -->
-          <NTabPane v-if="hasRegistry && !isWindowsRestricted" name="registry" tab="Registry">
+          <NTabPane v-if="hasRegistry" name="registry" tab="Registry">
             <RegistryInspector
               v-if="inspectorMode === 'single' && singleCommit"
               :mode="inspectorMode"

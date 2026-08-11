@@ -12,7 +12,6 @@ This document provides a complete reference for all environment variables used i
 
 **Usage:**
 - Used by Apollo Client to establish GraphQL connection (appends `/graphql` path)
-- Used by PostHog for event tracking (API domain extraction)
 - Used for blob downloads via REST API endpoint `/blob/:hash`
 
 **Example Values:**
@@ -100,13 +99,11 @@ VITE_AUTH0_AUDIENCE=https://your-api.example.com
 **Backend Integration:**
 The backend Neo4j GraphQL server must be configured to verify Auth0 JWT tokens using the JWKS endpoint.
 
-### PostHog Configuration
-
-PostHog analytics is automatically configured based on production builds and uses the GraphQL API domain for event tracking. No additional environment variables are required for PostHog.
-
-**File Location:** `src/plugins/posthog.ts`
-
 ## Environment File Setup
+
+### Standalone vs. Grapheos Deploy
+
+This frontend does not run standalone against a self-hosted backend. It is meant to be pointed at a `grapheos-deploy` stack (the Docker Compose orchestration that provides the GraphQL API, Neo4j, and MinIO). When both repos are checked out as siblings, `.env` is conventionally a symlink to `../grapheos-deploy/.env`.
 
 ### Development Environment
 
