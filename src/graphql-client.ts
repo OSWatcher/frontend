@@ -13,9 +13,9 @@ import { createClient } from 'graphql-ws'
 import { getMainDefinition } from '@apollo/client/utilities'
 
 // Define the API URL through an environment variable
-const apiUri = import.meta.env.VITE_GRAPHEOS_API_URI
+const apiUri = import.meta.env.VITE_OSWATCHER_API_URI
 if (!apiUri) {
-  throw new Error('VITE_GRAPHEOS_API_URI environment variable is required')
+  throw new Error('VITE_OSWATCHER_API_URI environment variable is required')
 }
 
 // Global token getter and auth checker - will be set by App.vue

@@ -558,7 +558,7 @@ The Apollo Client is configured in `src/graphql-client.ts` with the following fe
 - **Default Options**: Cache-and-network fetch policy
 
 ### Environment Variables
-- `VITE_GRAPHEOS_API_URI`: Required GraphQL API endpoint URL
+- `VITE_OSWATCHER_API_URI`: Required GraphQL API endpoint URL
 
 ### Error Handling
 The client includes comprehensive error handling for:

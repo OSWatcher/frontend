@@ -100,9 +100,9 @@ export async function downloadBlob(
   filename: string,
   getAccessToken?: () => Promise<string>
 ): Promise<void> {
-  const apiUri = import.meta.env.VITE_GRAPHEOS_API_URI
+  const apiUri = import.meta.env.VITE_OSWATCHER_API_URI
   if (!apiUri) {
-    throw new Error('VITE_GRAPHEOS_API_URI not configured')
+    throw new Error('VITE_OSWATCHER_API_URI not configured')
   }
 
   const url = new URL(`/blob/${hash}`, apiUri)

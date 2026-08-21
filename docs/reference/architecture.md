@@ -352,7 +352,7 @@ Frontend Display:
 ```
 
 **Implementation Files:**
-- Java Procedure: `/grapheos-procedures/src/main/java/example/TreeDiffRecursiveProcedure.java`
+- Java Procedure: `/oswatcher-procedures/src/main/java/io/oswatcher/TreeDiffRecursiveProcedure.java`
 - GraphQL API: `/graphql-api/src/diff/diff.ts`
 - Frontend Components: `/src/components/diff/TreeDiffExplorer.vue`
 

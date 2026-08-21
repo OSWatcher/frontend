@@ -112,7 +112,7 @@ WinRegKey → child_keys (subkeys)
 - **Client Setup**: `src/graphql-client.ts` - Apollo Client configuration
 
 #### Apollo Client Setup
-- Endpoint from `VITE_GRAPHEOS_API_URI` environment variable
+- Endpoint from `VITE_OSWATCHER_API_URI` environment variable
 - Default fetch policy: `cache-and-network`
 - Global error handling for GraphQL and network errors
 - InMemoryCache with TypedTypePolicies support
@@ -162,7 +162,7 @@ WinRegKey → child_keys (subkeys)
 
 ### Blob Downloads
 
-Raw file contents are stored by hash and can be downloaded via the backend REST API endpoint `/blob/:hash` using the base URL configured in `VITE_GRAPHEOS_API_URI`.
+Raw file contents are stored by hash and can be downloaded via the backend REST API endpoint `/blob/:hash` using the base URL configured in `VITE_OSWATCHER_API_URI`.
 
 ## Technology Stack
 

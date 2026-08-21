@@ -4,7 +4,7 @@ Vue.js application for exploring operating system analysis data with commit hist
 
 ## Quick Start
 
-This frontend is not meant to run standalone against a self-hosted backend: it expects a `grapheos-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO) running alongside it. Clone `grapheos-deploy` as a sibling directory and follow its setup first.
+This frontend is not meant to run standalone against a self-hosted backend: it expects an `oswatcher-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO) running alongside it. Clone `oswatcher-deploy` as a sibling directory and follow its setup first.
 
 ```bash
 # Install dependencies
@@ -12,8 +12,8 @@ npm install
 
 # Copy environment variables
 cp .env.example .env
-# Edit .env to point at your grapheos-deploy stack
-# (conventionally a symlink to ../grapheos-deploy/.env)
+# Edit .env to point at your oswatcher-deploy stack
+# (conventionally a symlink to ../oswatcher-deploy/.env)
 
 # Start development server
 npm run dev
@@ -42,7 +42,7 @@ npm run docs:build  # Build documentation
 
 ### Required Environment Variables
 
-- `VITE_GRAPHEOS_API_URI` - GraphQL API endpoint (also used for blob downloads via `/blob/:hash`)
+- `VITE_OSWATCHER_API_URI` - GraphQL API endpoint (also used for blob downloads via `/blob/:hash`)
 
 ### Optional: Auth0 Authentication
 
