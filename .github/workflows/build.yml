@@ -1,0 +1,42 @@
+# Verifies the frontend still compiles. Publishes nothing.
+#
+# This replaces a GitHub Pages deployment that served a demo against
+# api.oswatcher.com, a domain that no longer resolves. The Pages site was
+# unpublished, so the deploy step could only fail.
+#
+# The frontend is deliberately not published as a container image: it is a Vue
+# SPA whose API URI and Auth0 configuration are baked in at build time via
+# VITE_* build args, so one image cannot serve more than a single deployment.
+# compose.prod.yml therefore builds it from source with per-deployment args.
+name: Build
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install deps
+        run: npm install
+
+      - name: Build
+        run: npm run build-only
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --openssl-legacy-provider
