@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",
-    "@auth0/auth0-vue": "^2.4.0",
     "@guolao/vue-monaco-editor": "^1.6.0",
     "@vicons/ionicons5": "^0.13.0",
     "@vue/apollo-composable": "^4.2.1",

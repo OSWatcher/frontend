@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, onMounted, computed, watch } from 'vue'
+import { ref, h, computed, watch } from 'vue'
 import {
   NConfigProvider,
   NLayout,
@@ -14,20 +14,16 @@ import {
   NGradientText,
   NIcon,
   NSpin,
-  NDropdown,
-  NAvatar,
   NSwitch,
   NTabs,
   NTabPane,
   NCheckbox,
-  type DataTableColumns,
-  type DropdownOption
+  type DataTableColumns
 } from 'naive-ui'
-import { SearchOutline, PersonCircleOutline, LogOutOutline } from '@vicons/ionicons5'
+import { SearchOutline } from '@vicons/ionicons5'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { onUnmounted } from 'vue'
-import { useAuth0 } from '@auth0/auth0-vue'
-import gqlClient, { setAuthTokenGetter } from '@/graphql-client'
+import gqlClient from '@/graphql-client'
 import { SEARCH_FS_STREAM, fetchCommitDetails } from '@/queries'
 import { CommitHistoryDirection, EntityType } from '@/graphql-types'
 import { useBranchSelectionStore } from '@/stores/branchSelection'
@@ -151,38 +147,6 @@ watch(showSearchModal, (show) => {
     }
   }
 })
-
-// Auth0
-const {
-  isAuthenticated,
-  isLoading: isAuthLoading,
-  user,
-  logout,
-  getAccessTokenSilently
-} = useAuth0()
-
-// Set up auth token getter for Apollo Client
-onMounted(() => {
-  setAuthTokenGetter(
-    () => getAccessTokenSilently(),
-    () => isAuthenticated.value
-  )
-})
-
-// User dropdown options
-const userDropdownOptions: DropdownOption[] = [
-  {
-    label: 'Logout',
-    key: 'logout',
-    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
-  }
-]
-
-const handleUserDropdownSelect = (key: string) => {
-  if (key === 'logout') {
-    logout({ logoutParams: { returnTo: window.location.origin + import.meta.env.BASE_URL } })
-  }
-}
 
 // Store subscription to clean up on unmount
 let searchSubscription: any = null
@@ -342,7 +306,7 @@ const performSearch = () => {
       }
       startRef = branchSelection.selectedBranchHash
       direction = CommitHistoryDirection.Backward
-      includeUpdates = isAuthenticated.value
+      includeUpdates = true
     }
 
     const commitRange: {
@@ -522,48 +486,6 @@ onUnmounted(() => {
               {{ isInspectorSingleMode ? `Search in ${inspectorCommitName}` : 'Search' }}
               <kbd class="kbd">⌘K</kbd>
             </NButton>
-
-            <!-- Auth: Login/User Dropdown -->
-            <div v-if="!isAuthLoading">
-              <!-- Login Button -->
-              <NButton
-                v-if="!isAuthenticated"
-                type="info"
-                @click="() => router.push('/login')"
-                class="login-button"
-              >
-                <template #icon>
-                  <NIcon>
-                    <PersonCircleOutline />
-                  </NIcon>
-                </template>
-                Login
-              </NButton>
-
-              <!-- User Dropdown -->
-              <NDropdown
-                v-else
-                :options="userDropdownOptions"
-                @select="handleUserDropdownSelect"
-                trigger="click"
-              >
-                <div class="user-profile">
-                  <NAvatar
-                    v-if="user?.picture"
-                    round
-                    :size="32"
-                    :src="user.picture"
-                    :fallback-src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.email || 'User')}`"
-                  />
-                  <NAvatar v-else round :size="32">
-                    <NIcon>
-                      <PersonCircleOutline />
-                    </NIcon>
-                  </NAvatar>
-                  <span class="user-name">{{ user?.name || user?.email || 'User' }}</span>
-                </div>
-              </NDropdown>
-            </div>
           </div>
         </div>
       </NLayoutHeader>
@@ -666,10 +588,7 @@ onUnmounted(() => {
             type="line"
             animated
           >
-            <NTabPane
-              name="filesystem"
-              :tab="`Filesystem (${filesystemResults.length})`"
-            >
+            <NTabPane name="filesystem" :tab="`Filesystem (${filesystemResults.length})`">
               <NDataTable
                 :columns="filesystemColumns"
                 :data="filesystemResults"
@@ -696,10 +615,7 @@ onUnmounted(() => {
                 striped
               />
             </NTabPane>
-            <NTabPane
-              name="registry"
-              :tab="`Registry (${registryResults.length})`"
-            >
+            <NTabPane name="registry" :tab="`Registry (${registryResults.length})`">
               <NDataTable
                 :columns="registryColumns"
                 :data="registryResults"

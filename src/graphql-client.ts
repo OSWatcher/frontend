@@ -6,7 +6,6 @@ import {
   split,
   type TypePolicies
 } from '@apollo/client/core'
-import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
@@ -18,43 +17,6 @@ if (!apiUri) {
   throw new Error('VITE_OSWATCHER_API_URI environment variable is required')
 }
 
-// Global token getter and auth checker - will be set by App.vue
-let getAccessTokenSilently: (() => Promise<string>) | null = null
-let isAuthenticated: (() => boolean) | null = null
-
-export function setAuthTokenGetter(getter: () => Promise<string>, authChecker: () => boolean) {
-  getAccessTokenSilently = getter
-  isAuthenticated = authChecker
-}
-
-// Auth Link: adds Bearer token to requests if user is authenticated
-const authLink = setContext(async (_, { headers }) => {
-  try {
-    // If no token getter is set up yet, proceed without token
-    if (!getAccessTokenSilently || !isAuthenticated) {
-      return { headers }
-    }
-
-    // Check if user is authenticated before trying to get token
-    if (!isAuthenticated()) {
-      return { headers }
-    }
-
-    const token = await getAccessTokenSilently()
-
-    return {
-      headers: {
-        ...headers,
-        authorization: token ? `Bearer ${token}` : ''
-      }
-    }
-  } catch (error) {
-    // If token retrieval fails (e.g., user not authenticated), proceed without token
-    console.debug('No auth token available:', error)
-    return { headers }
-  }
-})
-
 // HTTP Link for queries and mutations
 const httpLink = new HttpLink({
   uri: new URL('graphql', apiUri).toString()
@@ -64,27 +26,7 @@ const httpLink = new HttpLink({
 const wsUri = apiUri.replace(/^http/, 'ws')
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: new URL('graphql', wsUri).toString(),
-    connectionParams: async () => {
-      try {
-        if (!getAccessTokenSilently || !isAuthenticated) {
-          return {}
-        }
-
-        // Check if user is authenticated before trying to get token
-        if (!isAuthenticated()) {
-          return {}
-        }
-
-        const token = await getAccessTokenSilently()
-        return {
-          authorization: token ? `Bearer ${token}` : ''
-        }
-      } catch (error) {
-        console.debug('No auth token available for WebSocket:', error)
-        return {}
-      }
-    }
+    url: new URL('graphql', wsUri).toString()
   })
 )
 
@@ -123,7 +65,7 @@ const splitLink = split(
 
 // Apollo Client instance
 const gqlClient = new ApolloClient({
-  link: from([errorLink, authLink, splitLink]), // Link chain: error handling, auth, then split link
+  link: from([errorLink, splitLink]), // Link chain: error handling, then split link
   cache: new InMemoryCache({ typePolicies }),
   connectToDevTools: import.meta.env.DEV, // Enable Apollo DevTools in development mode
   defaultOptions: {
