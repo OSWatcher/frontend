@@ -29,7 +29,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Technology Stack
 - **Frontend**: Vue 3 with Composition API and TypeScript
 - **UI Framework**: Naive UI component library
-- **Authentication**: Auth0 (optional, configured via environment variables)
 - **GraphQL**: Apollo Client for API communication
 - **Build Tool**: Vite with Vue plugin
 - **Styling**: CSS with scoped component styles
@@ -39,7 +38,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/components/` - Reusable Vue components organized by feature
 - `src/router/` - Vue Router configuration
 - `src/queries.ts` - GraphQL queries and mutations
-- `src/graphql-client.ts` - Apollo Client setup and configuration with Auth0 token injection
+- `src/graphql-client.ts` - Apollo Client setup and configuration
 - `src/graphql-types.ts` - Auto-generated TypeScript types from GraphQL schema
 - `docs/reference/` - Technical reference documentation (VitePress)
 
@@ -52,7 +51,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - **Single Mode**: View a single commit's data (filesystem, registry, symbols)
    - **Comparison Mode**: Compare two commits showing differences
    - Supports both unified and side-by-side layouts
-3. **Authentication** (`CallbackView`): Auth0 integration for user authentication (optional, not enforced by default)
 
 ### GraphQL Integration
 - Schema located at `schema.graphql` defines the data model
@@ -75,16 +73,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 #### Required Environment Variables
 - `VITE_OSWATCHER_API_URI` - GraphQL API endpoint URL (used for Apollo Client and blob downloads via REST API `/blob/:hash`)
 
-#### Optional Environment Variables (Auth0)
-- `VITE_AUTH0_DOMAIN` - Auth0 tenant domain (e.g., your-tenant.us.auth0.com)
-- `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
-- `VITE_AUTH0_AUDIENCE` - Auth0 API identifier for access tokens
-
-Authentication is optional and not enforced by default. When configured, the application will:
-- Display login/logout UI in the header
-- Automatically include Bearer tokens in GraphQL requests
-- Support social login (Google, GitHub) and email/password authentication
-- Use localStorage with refresh tokens for persistent sessions
+The frontend is unauthenticated. Auth0 was removed once the deployment became
+public; there is no login flow and no token injection.
 
 #### Development Setup
 1. Copy `.env.example` to `.env` and configure required variables
@@ -113,8 +103,6 @@ The project includes comprehensive technical reference documentation:
 ### Development Notes
 - **Search functionality**: Global filesystem search available via Ctrl+K (streams results from GraphQL)
 - **Backend**: Expects Neo4j-backed GraphQL API serving commit, filesystem, registry, and PDB data
-- **Authentication**: Auth0 integration is optional and can be enabled via environment variables
 - **UI Library**: Naive UI provides consistent component design and theming
 - **Type Safety**: Enforced through TypeScript and auto-generated GraphQL types
-- **Token Management**: Apollo Client automatically injects Auth0 Bearer tokens when available
 - **Routing**: Uses Vue Router with support for single and comparison inspector modes

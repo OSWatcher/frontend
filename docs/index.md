@@ -10,7 +10,6 @@ OSWatcher Frontend is a Vue.js application for exploring operating system analys
 
 - **Frontend**: Vue 3 with Composition API and TypeScript
 - **UI Framework**: Naive UI component library
-- **Authentication**: Auth0 (optional)
 - **GraphQL**: Apollo Client for API communication
 - **Build Tool**: Vite with Vue plugin
 - **Styling**: CSS with scoped component styles

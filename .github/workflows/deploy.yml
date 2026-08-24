@@ -3,7 +3,7 @@
 # The image is built WITHOUT VITE_* build args on purpose. Vite resolves
 # import.meta.env.* at build time, so the bundle is baked with the sentinel
 # defaults from the Dockerfile and docker-entrypoint.sh substitutes the real
-# API URI and Auth0 configuration when the container starts. That is what lets
+# API URI when the container starts. That is what lets
 # a single published image serve any deployment.
 name: Deploy to GHCR
 

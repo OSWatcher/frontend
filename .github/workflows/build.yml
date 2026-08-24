@@ -4,10 +4,9 @@
 # api.oswatcher.com, a domain that no longer resolves. The Pages site was
 # unpublished, so the deploy step could only fail.
 #
-# The frontend is deliberately not published as a container image: it is a Vue
-# SPA whose API URI and Auth0 configuration are baked in at build time via
-# VITE_* build args, so one image cannot serve more than a single deployment.
-# compose.prod.yml therefore builds it from source with per-deployment args.
+# Publishing is handled by deploy.yml, which pushes the image to GHCR. The
+# bundle is built with a placeholder API URI that docker-entrypoint.sh
+# substitutes at container start, so one image serves any deployment.
 name: Build
 
 on:
