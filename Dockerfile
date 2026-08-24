@@ -1,10 +1,15 @@
 # Base image with a specific node version, using an alpine variant for smaller size
 FROM node:21-alpine as build-stage
 ARG NODE_ENV=development
-ARG VITE_OSWATCHER_API_URI=http://localhost:4000/
-ARG VITE_AUTH0_DOMAIN
-ARG VITE_AUTH0_CLIENT_ID
-ARG VITE_AUTH0_AUDIENCE
+# Defaults are sentinels, not real values. Vite resolves import.meta.env.* at
+# build time, so an image built without these args bakes the placeholders and
+# docker-entrypoint.sh substitutes the real configuration at container start.
+# Passing the args explicitly still bakes real values, which keeps local and
+# development builds working exactly as before.
+ARG VITE_OSWATCHER_API_URI=__OSW_API_URI__
+ARG VITE_AUTH0_DOMAIN=__OSW_AUTH0_DOMAIN__
+ARG VITE_AUTH0_CLIENT_ID=__OSW_AUTH0_CLIENT_ID__
+ARG VITE_AUTH0_AUDIENCE=__OSW_AUTH0_AUDIENCE__
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -42,10 +47,16 @@ RUN npm install -g serve
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application with a non-root user for security
-RUN adduser -D appuser
+# Substitutes runtime configuration into the bundle before serving
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Run the application with a non-root user for security.
+# dist/ must be writable so the entrypoint can substitute configuration.
+RUN adduser -D appuser && chown -R appuser:appuser /app/dist
 USER appuser
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Serve the application using http-server
 CMD ["serve", "-s", "dist", "-l", "8080"]

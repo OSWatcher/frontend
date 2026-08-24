@@ -40,3 +40,11 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
+
+      # Builds the image the way production does. `npm run build-only` above
+      # cannot catch NODE_ENV-dependent packaging bugs, because devDependencies
+      # are already installed by then. A production Docker build previously
+      # failed with "vite: not found" while this job stayed green.
+      - name: Docker build (production args)
+        run: docker build --build-arg NODE_ENV=production -t frontend-ci-check .
+          NODE_OPTIONS: --openssl-legacy-provider
