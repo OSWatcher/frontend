@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --include=dev
 
 # Copy TypeScript, Vue, ESLint, and other configuration files
 COPY tsconfig.json tsconfig.node.json tsconfig.app.json .eslintrc.cjs vue.config.js vite.config.ts ./
