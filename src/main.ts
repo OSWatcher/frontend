@@ -7,7 +7,6 @@ import { createPinia } from 'pinia'
 // Naive UI
 import naive from 'naive-ui'
 
-
 import App from './App.vue'
 import router from './router'
 import { provideApolloClient } from '@vue/apollo-composable'

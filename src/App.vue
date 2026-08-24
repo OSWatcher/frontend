@@ -486,7 +486,6 @@ onUnmounted(() => {
               {{ isInspectorSingleMode ? `Search in ${inspectorCommitName}` : 'Search' }}
               <kbd class="kbd">⌘K</kbd>
             </NButton>
-
           </div>
         </div>
       </NLayoutHeader>
@@ -589,10 +588,7 @@ onUnmounted(() => {
             type="line"
             animated
           >
-            <NTabPane
-              name="filesystem"
-              :tab="`Filesystem (${filesystemResults.length})`"
-            >
+            <NTabPane name="filesystem" :tab="`Filesystem (${filesystemResults.length})`">
               <NDataTable
                 :columns="filesystemColumns"
                 :data="filesystemResults"
@@ -619,10 +615,7 @@ onUnmounted(() => {
                 striped
               />
             </NTabPane>
-            <NTabPane
-              name="registry"
-              :tab="`Registry (${registryResults.length})`"
-            >
+            <NTabPane name="registry" :tab="`Registry (${registryResults.length})`">
               <NDataTable
                 :columns="registryColumns"
                 :data="registryResults"
