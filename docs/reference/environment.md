@@ -34,71 +34,6 @@ if (!apiUri) {
 
 **File Location:** `src/graphql-client.ts:6-8`, `src/download.ts`, `src/utils/filesystem.ts`
 
-## Optional Environment Variables
-
-### Auth0 Configuration
-
-Auth0 authentication is integrated but optional. If not configured, the application will still function but authentication features will not work.
-
-#### `VITE_AUTH0_DOMAIN`
-
-**Type:** `string`
-**Required:** No (for authentication features)
-**Description:** Your Auth0 tenant domain.
-
-**Example Values:**
-```bash
-VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
-```
-
-**How to obtain:**
-1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
-2. Navigate to your Application settings
-3. Copy the "Domain" field
-
-**File Location:** `src/main.ts`
-
-#### `VITE_AUTH0_CLIENT_ID`
-
-**Type:** `string`
-**Required:** No (for authentication features)
-**Description:** Your Auth0 application client ID.
-
-**Example Values:**
-```bash
-VITE_AUTH0_CLIENT_ID=abc123xyz789
-```
-
-**How to obtain:**
-1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
-2. Navigate to Applications > Applications
-3. Select your SPA application
-4. Copy the "Client ID" field
-
-**File Location:** `src/main.ts`
-
-#### `VITE_AUTH0_AUDIENCE`
-
-**Type:** `string`
-**Required:** No (for API authentication)
-**Description:** Your Auth0 API identifier (audience). Required for obtaining access tokens for the GraphQL API.
-
-**Example Values:**
-```bash
-VITE_AUTH0_AUDIENCE=https://your-api.example.com
-```
-
-**How to obtain:**
-1. Log in to [Auth0 Dashboard](https://manage.auth0.com/)
-2. Navigate to Applications > APIs
-3. Create or select your API
-4. Copy the "Identifier" field
-
-**File Location:** `src/main.ts`
-
-**Backend Integration:**
-The backend Neo4j GraphQL server must be configured to verify Auth0 JWT tokens using the JWKS endpoint.
-
 ## Environment File Setup
 
 ### Standalone vs. OSWatcher Deploy
@@ -113,10 +48,6 @@ Create a `.env` file in the project root:
 # Backend API endpoint (GraphQL and blob downloads)
 VITE_OSWATCHER_API_URI=http://localhost:4000
 
-# Auth0 Configuration (optional)
-VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
-VITE_AUTH0_CLIENT_ID=your_client_id_here
-VITE_AUTH0_AUDIENCE=https://your-api.example.com
 ```
 
 ### Production Environment
@@ -127,10 +58,6 @@ Environment variables should be set through your deployment platform:
 # Backend API endpoint (GraphQL and blob downloads)
 VITE_OSWATCHER_API_URI=https://api.oswatcher.com
 
-# Auth0 Configuration (optional)
-VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
-VITE_AUTH0_CLIENT_ID=your_production_client_id
-VITE_AUTH0_AUDIENCE=https://api.oswatcher.com
 ```
 
 ## Variable Naming Convention
@@ -189,9 +116,6 @@ Environment variable types are defined in `env.d.ts`:
 ```typescript
 interface ImportMetaEnv {
   readonly VITE_OSWATCHER_API_URI: string
-  readonly VITE_AUTH0_DOMAIN: string
-  readonly VITE_AUTH0_CLIENT_ID: string
-  readonly VITE_AUTH0_AUDIENCE: string
 }
 ```
 
@@ -213,7 +137,7 @@ interface ImportMetaEnv {
 3. **File Download Failures**
    - Verify `VITE_OSWATCHER_API_URI` is correctly configured
    - Check that the backend REST API `/blob/:hash` endpoint is accessible
-   - Ensure proper authentication/access permissions
+   - Ensure the blob exists in object storage
 
 ### Debugging
 

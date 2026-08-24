@@ -28,8 +28,7 @@ This document provides a complete technical reference for the OSWatcher Frontend
 src/
 ├── views/                   # Main application views
 │   ├── HomeView.vue        # Commit history view
-│   ├── InspectorView.vue   # Unified inspector (single/comparison modes)
-│   └── CallbackView.vue    # Auth0 callback handler
+│   └── InspectorView.vue   # Unified inspector (single/comparison modes)
 ├── components/             # Reusable components
 │   ├── FilesystemInspector.vue  # Filesystem inspector (single/comparison)
 │   ├── RegistryInspector.vue    # Registry inspector (single/comparison)
