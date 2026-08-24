@@ -44,12 +44,6 @@ npm run docs:build  # Build documentation
 
 - `VITE_OSWATCHER_API_URI` - GraphQL API endpoint (also used for blob downloads via `/blob/:hash`)
 
-### Optional: Auth0 Authentication
-
-- `VITE_AUTH0_DOMAIN` - Your Auth0 tenant domain
-- `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
-- `VITE_AUTH0_AUDIENCE` - Auth0 API identifier
-
 See `.env.example` for configuration details.
 
 ## Tech Stack
@@ -57,7 +51,6 @@ See `.env.example` for configuration details.
 - Vue 3 + TypeScript + Composition API
 - Naive UI component library
 - Apollo Client (GraphQL)
-- Auth0 (optional authentication)
 - Vite build tool
 - D3.js for visualizations
 
