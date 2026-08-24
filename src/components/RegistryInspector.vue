@@ -25,7 +25,6 @@ import {
   SearchOutline,
   TimeOutline
 } from '@vicons/ionicons5'
-import { useAuth0 } from '@auth0/auth0-vue'
 import { useRegistryInspector } from '@/composables/useRegistryInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type { InspectorMode, InspectorLayout, CommitContext } from '@/types/inspector'
@@ -103,7 +102,6 @@ function renderHistoryButton(rowName: string) {
 }
 
 // Authentication for full export
-const { isAuthenticated } = useAuth0()
 const isExporting = ref(false)
 
 // Export local diff (current registry key level only)
@@ -145,7 +143,7 @@ async function exportLocalDiff() {
 
 // Export full diff (recursive)
 async function exportFullDiff() {
-  if (!isAuthenticated.value || !selectedHive.value) return
+  if (!selectedHive.value) return
 
   isExporting.value = true
   try {
@@ -219,27 +217,12 @@ const exportOptions = computed<DropdownOption[]>(() => [
   {
     label: 'Export Full Hive',
     key: 'full',
-    disabled: !isAuthenticated.value || isExporting.value,
+    disabled: isExporting.value,
     props: {
       onClick: () => {
-        if (isAuthenticated.value) {
-          exportFullDiff()
-        }
+        exportFullDiff()
       }
-    },
-    children: !isAuthenticated.value
-      ? [
-          {
-            type: 'render',
-            render: () =>
-              h(
-                'div',
-                { style: { padding: '8px 12px', fontSize: '12px', color: '#999' } },
-                '🔒 Login required'
-              )
-          }
-        ]
-      : undefined
+    }
   }
 ])
 

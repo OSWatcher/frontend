@@ -92,14 +92,9 @@ export function generateBreadcrumbs(path: string, includeHome = true): Breadcrum
 }
 
 /**
- * Download a blob with authentication
- * Uses fetch with Authorization header to download restricted blobs
+ * Download a blob by hash.
  */
-export async function downloadBlob(
-  hash: string,
-  filename: string,
-  getAccessToken?: () => Promise<string>
-): Promise<void> {
+export async function downloadBlob(hash: string, filename: string): Promise<void> {
   const apiUri = import.meta.env.VITE_OSWATCHER_API_URI
   if (!apiUri) {
     throw new Error('VITE_OSWATCHER_API_URI not configured')
@@ -107,20 +102,7 @@ export async function downloadBlob(
 
   const url = new URL(`/blob/${hash}`, apiUri)
 
-  // Build headers with optional auth token
-  const headers: HeadersInit = {}
-  if (getAccessToken) {
-    try {
-      const token = await getAccessToken()
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-    } catch (error) {
-      console.debug('No auth token available for blob download:', error)
-    }
-  }
-
-  const response = await fetch(url.toString(), { headers })
+  const response = await fetch(url.toString())
 
   if (!response.ok) {
     if (response.status === 403) {

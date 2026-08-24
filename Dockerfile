@@ -7,9 +7,6 @@ ARG NODE_ENV=development
 # Passing the args explicitly still bakes real values, which keeps local and
 # development builds working exactly as before.
 ARG VITE_OSWATCHER_API_URI=__OSW_API_URI__
-ARG VITE_AUTH0_DOMAIN=__OSW_AUTH0_DOMAIN__
-ARG VITE_AUTH0_CLIENT_ID=__OSW_AUTH0_CLIENT_ID__
-ARG VITE_AUTH0_AUDIENCE=__OSW_AUTH0_AUDIENCE__
 
 # Set the working directory inside the container
 WORKDIR /app

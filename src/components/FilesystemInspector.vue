@@ -23,7 +23,6 @@ import {
   SearchOutline,
   TimeOutline
 } from '@vicons/ionicons5'
-import { useAuth0 } from '@auth0/auth0-vue'
 import { useFilesystemInspector } from '@/composables/useFilesystemInspector'
 import { useTableFilter } from '@/composables/useTableFilter'
 import type {
@@ -79,7 +78,6 @@ const { searchQuery, filteredEntries, filterInputRef } = useTableFilter({
 })
 
 // Authentication for full export and blob downloads
-const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 const isExporting = ref(false)
 const downloadingHash = ref<string | null>(null)
 
@@ -150,8 +148,6 @@ async function exportLocalDiff() {
 
 // Export full diff (recursive)
 async function exportFullDiff() {
-  if (!isAuthenticated.value) return
-
   isExporting.value = true
   try {
     // Fetch filesystem root hashes
@@ -238,27 +234,12 @@ const exportOptions = computed<DropdownOption[]>(() => [
   {
     label: 'Export Full Tree',
     key: 'full',
-    disabled: !isAuthenticated.value || isExporting.value,
+    disabled: isExporting.value,
     props: {
       onClick: () => {
-        if (isAuthenticated.value) {
-          exportFullDiff()
-        }
+        exportFullDiff()
       }
-    },
-    children: !isAuthenticated.value
-      ? [
-          {
-            type: 'render',
-            render: () =>
-              h(
-                'div',
-                { style: { padding: '8px 12px', fontSize: '12px', color: '#999' } },
-                '🔒 Login required'
-              )
-          }
-        ]
-      : undefined
+    }
   }
 ])
 
@@ -304,8 +285,7 @@ const singleModeColumns = computed<DataTableColumns<FilesystemEntry>>(() => [
               onClick: async (e: Event) => {
                 e.stopPropagation()
                 try {
-                  const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
-                  await downloadBlob(row.hash, row.name, tokenGetter)
+                  await downloadBlob(row.hash, row.name)
                 } catch (error) {
                   console.error('Download failed:', error)
                   alert(error instanceof Error ? error.message : 'Download failed')
@@ -360,9 +340,8 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
       const handleDownload = async (hash: string, commitName: string) => {
         downloadingHash.value = hash
         try {
-          const tokenGetter = isAuthenticated.value ? getAccessTokenSilently : undefined
           const filename = getDownloadFilename(row.name, commitName, hash)
-          await downloadBlob(hash, filename, tokenGetter)
+          await downloadBlob(hash, filename)
         } catch (error) {
           console.error('Download failed:', error)
           alert(error instanceof Error ? error.message : 'Download failed')
