@@ -47,4 +47,3 @@ jobs:
       # failed with "vite: not found" while this job stayed green.
       - name: Docker build (production args)
         run: docker build --build-arg NODE_ENV=production -t frontend-ci-check .
-          NODE_OPTIONS: --openssl-legacy-provider
