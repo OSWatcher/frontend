@@ -103,10 +103,10 @@ These variables are included for local development setup of the complete system 
 
 ### Vite Configuration
 
-The `vite.config.ts` sets different base paths for development vs production:
+The `vite.config.ts` uses the domain root in development and production, matching the container and deployment proxy:
 
 ```typescript
-base: process.env.NODE_ENV === 'production' ? '/frontend/' : '/'
+base: '/'
 ```
 
 ### TypeScript Environment Types

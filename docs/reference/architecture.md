@@ -493,7 +493,7 @@ Parsing and formatting utilities for PDB data:
 - **Environment**: Local API endpoints
 
 ### 2. Production Build
-- **Base Path**: `/frontend/` (sub-path deployment)
+- **Base Path**: `/` (served at the domain root)
 - **Optimization**: Code splitting, minification
 - **Assets**: Hashed filenames for caching
 - **Environment**: Production API endpoints

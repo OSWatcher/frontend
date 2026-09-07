@@ -83,7 +83,7 @@ public; there is no login flow and no token injection.
 4. This frontend is not meant to run standalone against a self-hosted backend: point it at an `oswatcher-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO). `.env` is conventionally a symlink to `../oswatcher-deploy/.env` when both repos are checked out as siblings.
 
 #### Build Configuration
-- Production base path set to `/frontend/` in Vite config (assumes deployment behind `oswatcher-deploy`'s reverse proxy)
+- Base path is `/` in all modes: the container and `oswatcher-deploy` serve the app at the domain root
 
 ### Documentation Structure
 The project includes comprehensive technical reference documentation:

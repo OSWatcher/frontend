@@ -46,3 +46,10 @@ jobs:
       # failed with "vite: not found" while this job stayed green.
       - name: Docker build (production args)
         run: docker build --build-arg NODE_ENV=production -t frontend-ci-check .
+
+      - name: Verify served assets and runtime configuration
+        run: |
+          docker run -d --name frontend-smoke -p 127.0.0.1:8080:8080 \
+            -e VITE_OSWATCHER_API_URI=http://localhost:4000/ frontend-ci-check
+          trap 'docker rm -f frontend-smoke' EXIT
+          node scripts/smoke-test.mjs http://127.0.0.1:8080
