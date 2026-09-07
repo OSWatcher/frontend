@@ -10,7 +10,8 @@ export default defineConfig({
     vue(),
     vueJsx()
   ],
-  base: process.env.NODE_ENV === 'production' ? '/frontend/' : '/',
+  // The container and oswatcher-deploy both serve the app at the domain root.
+  base: '/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
