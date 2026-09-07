@@ -105,9 +105,6 @@ export async function downloadBlob(hash: string, filename: string): Promise<void
   const response = await fetch(url.toString())
 
   if (!response.ok) {
-    if (response.status === 403) {
-      throw new Error('Access denied: This blob is restricted')
-    }
     throw new Error(`Download failed: ${response.status} ${response.statusText}`)
   }
 
