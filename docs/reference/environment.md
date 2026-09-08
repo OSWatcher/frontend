@@ -38,7 +38,7 @@ if (!apiUri) {
 
 ### Standalone vs. OSWatcher Deploy
 
-This frontend does not run standalone against a self-hosted backend. It is meant to be pointed at an `oswatcher-deploy` stack (the Docker Compose orchestration that provides the GraphQL API, Neo4j, and MinIO). When both repos are checked out as siblings, `.env` is conventionally a symlink to `../oswatcher-deploy/.env`.
+This frontend does not run standalone against a self-hosted backend. It is meant to be pointed at an `oswatcher` stack (the Docker Compose orchestration that provides the GraphQL API, Neo4j, and MinIO). When both repos are checked out as siblings, `.env` is conventionally a symlink to `../oswatcher/.env`.
 
 ### Development Environment
 

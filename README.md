@@ -4,7 +4,7 @@ Vue.js application for exploring operating system analysis data with commit hist
 
 ## Quick Start
 
-This frontend is not meant to run standalone against a self-hosted backend: it expects an `oswatcher-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO) running alongside it. Clone `oswatcher-deploy` as a sibling directory and follow its setup first.
+This frontend is not meant to run standalone against a self-hosted backend: it expects an `oswatcher` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO) running alongside it. Clone `oswatcher` as a sibling directory and follow its setup first.
 
 ```bash
 # Install dependencies
@@ -12,8 +12,8 @@ npm install
 
 # Copy environment variables
 cp .env.example .env
-# Edit .env to point at your oswatcher-deploy stack
-# (conventionally a symlink to ../oswatcher-deploy/.env)
+# Edit .env to point at your oswatcher stack
+# (conventionally a symlink to ../oswatcher/.env)
 
 # Start development server
 npm run dev
