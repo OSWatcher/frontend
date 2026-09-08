@@ -80,10 +80,10 @@ public; there is no login flow and no token injection.
 1. Copy `.env.example` to `.env` and configure required variables
 2. The `.env` file contains backend service configuration (Neo4j, MinIO, etc.) for local development
 3. Frontend-specific variables must be prefixed with `VITE_` to be accessible in the browser
-4. This frontend is not meant to run standalone against a self-hosted backend: point it at an `oswatcher-deploy` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO). `.env` is conventionally a symlink to `../oswatcher-deploy/.env` when both repos are checked out as siblings.
+4. This frontend is not meant to run standalone against a self-hosted backend: point it at an `oswatcher` stack (Docker Compose orchestration for the GraphQL API, Neo4j, and MinIO). `.env` is conventionally a symlink to `../oswatcher/.env` when both repos are checked out as siblings.
 
 #### Build Configuration
-- Base path is `/` in all modes: the container and `oswatcher-deploy` serve the app at the domain root
+- Base path is `/` in all modes: the container and `oswatcher` serve the app at the domain root
 
 ### Documentation Structure
 The project includes comprehensive technical reference documentation:

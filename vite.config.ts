@@ -10,7 +10,7 @@ export default defineConfig({
     vue(),
     vueJsx()
   ],
-  // The container and oswatcher-deploy both serve the app at the domain root.
+  // The container and oswatcher both serve the app at the domain root.
   base: '/',
   resolve: {
     alias: {
