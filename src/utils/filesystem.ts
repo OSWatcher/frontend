@@ -101,6 +101,7 @@ export async function downloadBlob(hash: string, filename: string): Promise<void
   }
 
   const url = new URL(`/blob/${hash}`, apiUri)
+  url.searchParams.set('filename', filename)
 
   const response = await fetch(url.toString())
 
