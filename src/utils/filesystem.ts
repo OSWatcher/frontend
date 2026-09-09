@@ -93,8 +93,16 @@ export function generateBreadcrumbs(path: string, includeHome = true): Breadcrum
 
 /**
  * Download a blob by hash.
+ *
+ * `filename` is the real PE basename sent as `?filename=` so the API can resolve
+ * the blob on Winbindex. `saveAs` is the (possibly decorated) name shown to the
+ * user; it defaults to `filename` and never reaches the server.
  */
-export async function downloadBlob(hash: string, filename: string): Promise<void> {
+export async function downloadBlob(
+  hash: string,
+  filename: string,
+  saveAs: string = filename
+): Promise<void> {
   const apiUri = import.meta.env.VITE_OSWATCHER_API_URI
   if (!apiUri) {
     throw new Error('VITE_OSWATCHER_API_URI not configured')
@@ -115,7 +123,7 @@ export async function downloadBlob(hash: string, filename: string): Promise<void
 
   const a = document.createElement('a')
   a.href = downloadUrl
-  a.download = filename
+  a.download = saveAs
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
