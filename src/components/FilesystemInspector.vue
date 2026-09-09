@@ -340,8 +340,7 @@ const comparisonModeColumns = computed<DataTableColumns<FilesystemDiffEntry>>(()
       const handleDownload = async (hash: string, commitName: string) => {
         downloadingHash.value = hash
         try {
-          const filename = getDownloadFilename(row.name, commitName, hash)
-          await downloadBlob(hash, filename)
+          await downloadBlob(hash, row.name, getDownloadFilename(row.name, commitName, hash))
         } catch (error) {
           console.error('Download failed:', error)
           alert(error instanceof Error ? error.message : 'Download failed')
